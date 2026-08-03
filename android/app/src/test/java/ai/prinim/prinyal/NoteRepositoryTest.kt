@@ -132,9 +132,31 @@ class NoteRepositoryTest {
         repo.editItem(items[0].id, window = Window.TOMORROW_MORNING)
 
         val after = db.returns().forItem(items[0].id).single()
-        assertTrue(after.scheduledAt != before.scheduledAt)
+        val stored = db.items().byId(items[0].id)!!
+
+        // Сверяем пересборку, а не метку времени: вечер записи и «завтра утром» могут
+        // совпасть по моменту (вечернее окно уже прошло → тоже завтра), и тогда
+        // сравнение timestamp'ов проверяло бы календарь, а не поведение.
+        assertTrue("возврат должен быть пересобран", after.id != before.id)
+        assertTrue("старый аларм должен быть снят", scheduler.cancelled.contains(before.id))
+        assertTrue("новый аларм должен быть поставлен", scheduler.scheduled.containsKey(after.id))
+        assertEquals(Window.TOMORROW_MORNING.wire, stored.window)
+        assertTrue(stored.edited)
+    }
+
+    @Test
+    fun `правка на «не возвращать» снимает возврат совсем`() = runTest {
+        val id = note()
+        val items = repo.applyParse(id, parsed(item(window = Window.EVENING)))
+        val before = db.returns().forItem(items[0].id).single()
+
+        repo.editItem(items[0].id, clearSchedule = true)
+
+        val stored = db.items().byId(items[0].id)!!
+        assertEquals(DueKind.NONE.wire, stored.dueKind)
+        assertNull(stored.window)
+        assertTrue(db.returns().forItem(items[0].id).isEmpty())
         assertTrue(scheduler.cancelled.contains(before.id))
-        assertTrue(db.items().byId(items[0].id)!!.edited)
     }
 
     @Test

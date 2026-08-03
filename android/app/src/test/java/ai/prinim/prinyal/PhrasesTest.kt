@@ -122,13 +122,24 @@ class PhrasesTest {
 
     @Test
     fun `в строках ошибок нет образности`() {
-        // §4.1, п. 1: метафоры запрещены, особенно в ошибках.
-        val forbidden = listOf("спит", "устал", "проснул", "ой", "упс", "!", "🙂")
-        val codes = listOf("llm_no_balance", "no_server", "asr_failed", "asr_empty", "llm_disabled", "llm_error")
+        // §4.1, п. 1: метафоры и игривость запрещены, особенно в ошибках — уставший
+        // человек в шторке должен понять смысл за секунду, не разгадывая тон.
+        // Слова ищем целиком: «настройках» содержит «ой», и это не повод падать.
+        val forbidden = listOf("спит", "уснул", "устал", "проснулся", "ой", "упс", "ага", "увы")
+        val codes = listOf(
+            "llm_no_balance", "no_server", "asr_failed", "asr_empty", "llm_disabled", "llm_error",
+        )
+
         codes.forEach { code ->
             val text = Phrases.degraded(context, code).orEmpty()
+            val words = text.lowercase().split(Regex("[^\\p{L}]+")).filter(String::isNotEmpty)
+
             forbidden.forEach { bad ->
-                assert(!text.contains(bad)) { "строка «$text» нарушает §4.1: содержит «$bad»" }
+                assert(bad !in words) { "строка «$text» нарушает §4.1: содержит «$bad»" }
+            }
+            assert(!text.contains("!")) { "строка «$text» повышает голос" }
+            assert(text.none { it.code > 0x2000 && it.code !in 0x2010..0x2060 }) {
+                "строка «$text» содержит эмодзи — §4.1 этого не разрешает"
             }
         }
     }
