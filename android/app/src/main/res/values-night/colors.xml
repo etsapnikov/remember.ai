@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="paper">#1A1512</color>
+    <color name="surface">#221C18</color>
+    <color name="ink">#F3EBE3</color>
+    <color name="ink_muted">#A9998C</color>
+    <color name="accent_self">#D98F6B</color>
+    <color name="record">#D8412F</color>
+    <color name="done">#7FB08F</color>
+</resources>

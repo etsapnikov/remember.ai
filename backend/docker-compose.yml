@@ -1,0 +1,57 @@
+# Бэкенд «Принял». Приёмка §F-4: поднимается одним `docker compose up`.
+#
+#   docker compose up -d              — лёгкий контур со стаб-ASR (контракт, latency-пол)
+#   docker compose --profile asr up -d  — контур с GigaAM
+#   docker compose --profile tls up -d  — плюс caddy с TLS (PRD §7)
+#
+# Публичного порта по возможности не открывать вовсе: предпочтительный доступ —
+# tailscale до сервера (PRD §7).
+
+services:
+  api:
+    build:
+      context: .
+      target: base
+    env_file: .env
+    environment:
+      ASR_BACKEND: ${ASR_BACKEND:-stub}
+      VAD_BACKEND: ${VAD_BACKEND:-energy}
+    ports:
+      - "127.0.0.1:8080:8080"
+    restart: unless-stopped
+    profiles: ["", "default"]
+
+  api-asr:
+    build:
+      context: .
+      target: asr
+    env_file: .env
+    environment:
+      ASR_BACKEND: gigaam
+      VAD_BACKEND: silero
+      ASR_MODEL_PATH: /models/gigaam
+    volumes:
+      - ./models:/models:ro
+    ports:
+      - "127.0.0.1:8080:8080"
+    restart: unless-stopped
+    profiles: ["asr"]
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on: [api]
+    environment:
+      PRINYAL_DOMAIN: ${PRINYAL_DOMAIN:-api.prinim.ai}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: unless-stopped
+    profiles: ["tls"]
+
+volumes:
+  caddy-data:
+  caddy-config:

@@ -1,0 +1,152 @@
+{
+  "meta": {
+    "name": "Принял / prinim.ai",
+    "version": "1.0",
+    "date": "2026-08-03",
+    "basis": "PRD MVP «Одна петля» v1.0, ТЗ UI v2.1, ТЗ айдентики v1.0"
+  },
+  "color": {
+    "light": {
+      "paper": "#FBF6F0",
+      "surface": "#FFFFFF",
+      "wellSurface": "#EFE6DC",
+      "ink": "#241C17",
+      "inkMuted": "#6E5F55",
+      "inkFaint": "#8C7A6E",
+      "rule": "#E2D3C6",
+      "accentSelf": "#B4552F",
+      "accentSelfSoft": "#FBF3EC",
+      "record": "#C8362A",
+      "recordPressed": "#AE2A20",
+      "recordWell": "#8E2318",
+      "done": "#3F6B4F"
+    },
+    "dark": {
+      "paper": "#1A1512",
+      "surface": "#221C18",
+      "wellSurface": "#2C241E",
+      "ink": "#F3EBE3",
+      "inkMuted": "#A9998C",
+      "inkFaint": "#8C7A6E",
+      "rule": "#372D26",
+      "accentSelf": "#D98F6B",
+      "accentSelfSoft": "#2A1F18",
+      "record": "#D8412F",
+      "recordPressed": "#B32C20",
+      "recordWell": "#7A1C12",
+      "done": "#7FB08F"
+    }
+  },
+  "semantics": {
+    "record": "только клавиша записи, её пульс и таймер записи",
+    "accentSelf": "всё, что продукт сделал сам: планы, возвраты, квитанция, причина",
+    "done": "только состояние done у айтема",
+    "forbidden": "красный вне жеста записи; зелёный вне done; синий нигде"
+  },
+  "type": {
+    "display": {
+      "font": "Spectral",
+      "weight": 400,
+      "size": 38,
+      "line": 1.1,
+      "use": "квитанция «Принял.»"
+    },
+    "voice": {
+      "font": "Spectral",
+      "weight": 400,
+      "style": "italic",
+      "size": 18,
+      "line": 1.45,
+      "use": "план возврата, реплики продукта"
+    },
+    "itemTitle": {
+      "font": "Golos Text",
+      "weight": 600,
+      "size": 21,
+      "line": 1.3,
+      "use": "текст айтема"
+    },
+    "body": {
+      "font": "Golos Text",
+      "weight": 400,
+      "size": 17,
+      "line": 1.5
+    },
+    "label": {
+      "font": "Golos Text",
+      "weight": 600,
+      "size": 16,
+      "line": 1.3,
+      "use": "кнопки"
+    },
+    "meta": {
+      "font": "JetBrains Mono",
+      "weight": 400,
+      "size": 13,
+      "letterSpacing": 0.02,
+      "use": "время, статусы, служебное"
+    },
+    "minSize": 16
+  },
+  "space": {
+    "base": 4,
+    "scale": [
+      4,
+      8,
+      12,
+      16,
+      20,
+      26,
+      32,
+      44
+    ],
+    "screenPadding": 26,
+    "itemGap": 18
+  },
+  "radius": {
+    "sheet": 2,
+    "control": 12,
+    "pill": 999,
+    "icon": 20
+  },
+  "key": {
+    "housing": 112,
+    "cap": 84,
+    "capPressed": 78,
+    "dot": 26,
+    "states": [
+      "rest",
+      "pressed",
+      "released"
+    ]
+  },
+  "motion": {
+    "pulse": {
+      "dur": 2200,
+      "ease": "cubic-bezier(.4,0,.2,1)",
+      "maxScale": 1.3,
+      "opacity": [
+        0.5,
+        0
+      ]
+    },
+    "receipt": {
+      "dur": 600,
+      "ease": "cubic-bezier(.2,.8,.2,1)"
+    },
+    "noteAway": {
+      "dur": 2600,
+      "ease": "cubic-bezier(.4,0,1,1)",
+      "translateY": -26
+    },
+    "burial": {
+      "dur": 900,
+      "ease": "cubic-bezier(.3,0,.6,1)"
+    }
+  },
+  "haptics": {
+    "receipt": "двойной короткий: 18ms — пауза 70ms — 34ms",
+    "cancel": "один 40ms",
+    "returnAction": "один 12ms"
+  }
+}

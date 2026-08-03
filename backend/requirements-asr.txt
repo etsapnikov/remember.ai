@@ -1,0 +1,7 @@
+# Слой распознавания. Ставится отдельно: контейнер без ASR не обязан нести torch.
+# Путь «package» — официальный GigaAM; путь «onnx» — экспорт + onnxruntime.
+torch==2.8.0
+torchaudio==2.8.0
+onnxruntime==1.23.0
+silero-vad==5.1.2
+gigaam==0.2.0

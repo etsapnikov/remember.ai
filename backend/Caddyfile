@@ -1,0 +1,9 @@
+# TLS-терминация перед /ingest. Наружу торчит только это (PRD §7).
+{$PRINYAL_DOMAIN} {
+	encode zstd gzip
+	# Клип 90 с в AAC — единицы мегабайт; потолок отсекает мусорные загрузки.
+	request_body {
+		max_size 12MB
+	}
+	reverse_proxy api:8080
+}

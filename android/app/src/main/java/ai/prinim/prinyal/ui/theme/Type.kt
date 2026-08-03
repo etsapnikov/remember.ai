@@ -1,0 +1,121 @@
+@file:OptIn(ExperimentalTextApi::class)
+
+package ai.prinim.prinyal.ui.theme
+
+import androidx.compose.runtime.Immutable
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontVariation
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
+import ai.prinim.prinyal.R
+
+/**
+ * Типографика из `assets/design-tokens.json`, раздел `type`.
+ *
+ * Кириллица первична: шрифты выбраны с полным русским набором, кегли проверяются на
+ * длинных словах («переоформить», «стоматология»). Минимальный кегль основного
+ * текста — 16sp (ТЗ UI §2, п. 6), поэтому масштабирования вниз здесь нет.
+ */
+
+val Spectral = FontFamily(
+    Font(R.font.spectral_regular, FontWeight.Normal),
+    Font(R.font.spectral_italic, FontWeight.Normal, FontStyle.Italic),
+)
+
+// Golos Text приходит вариативным файлом: веса берём с оси wght, а не синтетическим
+// утолщением — иначе 600 на дешёвом экране мажет кириллицу.
+val GolosText = FontFamily(
+    Font(
+        R.font.golos_text,
+        FontWeight.Normal,
+        variationSettings = FontVariation.Settings(FontVariation.weight(400)),
+    ),
+    Font(
+        R.font.golos_text,
+        FontWeight.SemiBold,
+        variationSettings = FontVariation.Settings(FontVariation.weight(600)),
+    ),
+)
+
+val JetBrainsMono = FontFamily(
+    Font(
+        R.font.jetbrains_mono,
+        FontWeight.Normal,
+        variationSettings = FontVariation.Settings(FontVariation.weight(400)),
+    ),
+)
+
+// Компоновка строки без «прижатого» первого ряда — иначе крупная квитанция
+// visually съезжает вверх в своей коробке.
+private val EvenLines = LineHeightStyle(
+    alignment = LineHeightStyle.Alignment.Center,
+    trim = LineHeightStyle.Trim.None,
+)
+
+@Immutable
+data class PrinyalTypography(
+    /** Квитанция «Принял.» — единственное место этого кегля. */
+    val display: TextStyle,
+    /** Реплики продукта: план возврата, причина. Курсив — голос, не текст пользователя. */
+    val voice: TextStyle,
+    /** Текст айтема. */
+    val itemTitle: TextStyle,
+    val body: TextStyle,
+    /** Кнопки. */
+    val label: TextStyle,
+    /** Время, статусы, служебное. */
+    val meta: TextStyle,
+)
+
+val PrinyalType = PrinyalTypography(
+    display = TextStyle(
+        fontFamily = Spectral,
+        fontWeight = FontWeight.Normal,
+        fontSize = 38.sp,
+        lineHeight = 1.1.em,
+        lineHeightStyle = EvenLines,
+    ),
+    voice = TextStyle(
+        fontFamily = Spectral,
+        fontWeight = FontWeight.Normal,
+        fontStyle = FontStyle.Italic,
+        fontSize = 18.sp,
+        lineHeight = 1.45.em,
+        lineHeightStyle = EvenLines,
+    ),
+    itemTitle = TextStyle(
+        fontFamily = GolosText,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 21.sp,
+        lineHeight = 1.3.em,
+        lineHeightStyle = EvenLines,
+    ),
+    body = TextStyle(
+        fontFamily = GolosText,
+        fontWeight = FontWeight.Normal,
+        fontSize = 17.sp,
+        lineHeight = 1.5.em,
+        lineHeightStyle = EvenLines,
+    ),
+    label = TextStyle(
+        fontFamily = GolosText,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 16.sp,
+        lineHeight = 1.3.em,
+        lineHeightStyle = EvenLines,
+    ),
+    meta = TextStyle(
+        fontFamily = JetBrainsMono,
+        fontWeight = FontWeight.Normal,
+        fontSize = 13.sp,
+        letterSpacing = 0.02.em,
+        lineHeight = 1.3.em,
+        lineHeightStyle = EvenLines,
+    ),
+)

@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Словарь интерфейсных строк. Правила PRD §4.1:
+
+  1. Буквальность важнее образности. Метафоры, остроумие и игривость запрещены,
+     особенно в ошибках: уставший человек в шторке должен понять смысл за секунду.
+  2. «Комок» — внутренний термин, в UI не появляется никогда.
+  3. Разговорность допустима («напомню», «посмотри»), фамильярность — нет.
+  4. Кнопки действий — 1–2 слова с очевидным исходом.
+  5. Ревью каждой строки: поймёт ли смысл человек, который видит её впервые, на бегу,
+     за одну секунду. Нет — переписать проще.
+
+  Правки строк — только здесь. Строк в коде быть не должно.
+-->
+<resources>
+    <string name="app_name">Принял</string>
+
+    <!-- Квитанция. Точка — часть бренда: знак спокойной завершённости. -->
+    <string name="receipt">Принял.</string>
+
+    <!-- Захват -->
+    <string name="capture_hint">Говорите</string>
+    <string name="capture_cancel_hint">Свайп вниз — отменить</string>
+    <string name="capture_cancelled">Отменил, не сохранил</string>
+    <string name="capture_too_short">Слишком коротко — не сохранил</string>
+    <string name="capture_no_mic">Нужен доступ к микрофону — без него записывать нечем</string>
+    <string name="capture_mic_grant">Разрешить</string>
+
+    <!-- План айтема. Подставляется время или день. -->
+    <string name="plan_exact">верну в %1$s</string>
+    <string name="plan_window_morning">напомню утром</string>
+    <string name="plan_window_day">напомню днём</string>
+    <string name="plan_window_evening">напомню вечером</string>
+    <string name="plan_window_tomorrow_morning">напомню завтра утром</string>
+    <string name="plan_window_weekend">напомню в выходные</string>
+    <string name="plan_none">просто сохраню</string>
+    <string name="plan_low_confidence">не уверен, что понял — проверь</string>
+
+    <!-- Причина возврата: у каждого действия машины видна причина. -->
+    <string name="reason_morning">утро — сам назначил на утро</string>
+    <string name="reason_day">день — ты просил вернуть</string>
+    <string name="reason_evening">вечер — ты просил вернуть</string>
+    <string name="reason_weekend">выходные — ты просил вернуть</string>
+    <string name="reason_exact">время, которое ты назвал</string>
+    <string name="reason_second_try">возвращаю второй раз</string>
+
+    <!-- Действия возврата: три и не больше — ограничение канала Android. -->
+    <string name="action_done">сделано</string>
+    <string name="action_later">позже</string>
+    <string name="action_dismiss">не надо</string>
+    <string name="action_later_confirmed">ок, верну %1$s</string>
+
+    <!-- Понимание -->
+    <string name="understanding_title">Разобрал</string>
+    <string name="understanding_batch">разобрал %1$d за %2$s</string>
+    <plurals name="notes_parsed">
+        <item quantity="one">разобрал %1$d запись</item>
+        <item quantity="few">разобрал %1$d записи</item>
+        <item quantity="many">разобрал %1$d записей</item>
+        <item quantity="other">разобрал %1$d записи</item>
+    </plurals>
+    <string name="part_of_day_morning">утро</string>
+    <string name="part_of_day_day">день</string>
+    <string name="part_of_day_evening">вечер</string>
+    <string name="part_of_day_night">ночь</string>
+
+    <!-- Ошибки и деградации §6. Ни одной метафоры. -->
+    <string name="error_no_server">нет связи с сервером — записи сохраняются, разберу позже</string>
+    <string name="error_parse_failed">не смог разобрать — посмотри сам, верну вечером</string>
+    <string name="error_no_balance">на ключе DeepSeek кончились средства</string>
+    <string name="error_asr_failed">не расслышал — запись цела, можно повторить разбор</string>
+    <string name="error_asr_empty">речи не слышно — запись цела, можно повторить разбор</string>
+    <string name="error_llm_off">разбор выключен в настройках — сохраняю и верну вечером</string>
+    <string name="action_retry">повторить</string>
+
+    <!-- Лента -->
+    <string name="feed_title">Записи</string>
+    <string name="feed_empty">Здесь появятся записи</string>
+    <string name="feed_offline_badge">нет связи с сервером</string>
+    <string name="note_transcript">Что услышал</string>
+    <string name="note_items">Что понял</string>
+    <string name="note_returns">Возвраты</string>
+    <string name="note_play">Слушать</string>
+    <string name="note_pause">Пауза</string>
+    <string name="note_reparse">Разобрать заново</string>
+    <string name="item_bury">Похоронить</string>
+    <string name="item_buried">Похоронил</string>
+
+    <!-- Состояния айтема -->
+    <string name="state_planned">в плане</string>
+    <string name="state_returned">вернул</string>
+    <string name="state_done">сделано</string>
+    <string name="state_snoozed">перенёс</string>
+    <string name="state_dismissed">не надо</string>
+    <string name="state_expired">осталось без ответа</string>
+
+    <!-- Статусы записи -->
+    <string name="status_recorded">записано</string>
+    <string name="status_queued">жду сеть</string>
+    <string name="status_sent">отправлено</string>
+    <string name="status_parsed">разобрано</string>
+    <string name="status_failed_asr">не расслышал</string>
+    <string name="status_failed_llm">не разобрал</string>
+
+    <!-- Правка айтема -->
+    <string name="edit_title">Поправить</string>
+    <string name="edit_text">Текст</string>
+    <string name="edit_type">Что это</string>
+    <string name="edit_when">Когда вернуть</string>
+    <string name="edit_save">Сохранить</string>
+    <string name="edit_cancel">Отмена</string>
+
+    <!-- Типы -->
+    <string name="type_buy">купить</string>
+    <string name="type_do">сделать</string>
+    <string name="type_tell">сказать</string>
+    <string name="type_date">дата</string>
+    <string name="type_thought">мысль</string>
+    <string name="type_fact">факт</string>
+
+    <!-- Окна -->
+    <string name="window_morning">утром</string>
+    <string name="window_day">днём</string>
+    <string name="window_evening">вечером</string>
+    <string name="window_tomorrow_morning">завтра утром</string>
+    <string name="window_weekend">в выходные</string>
+    <string name="window_none">не возвращать</string>
+
+    <!-- Настройки -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_server">Сервер</string>
+    <string name="settings_server_url">Адрес</string>
+    <string name="settings_token">Токен</string>
+    <string name="settings_check">Проверить связь</string>
+    <string name="settings_check_ok">связь есть</string>
+    <string name="settings_check_fail">связи нет</string>
+    <string name="settings_windows">Окна дня</string>
+    <string name="settings_window_morning">Утро</string>
+    <string name="settings_window_day">День</string>
+    <string name="settings_window_evening">Вечер</string>
+    <string name="settings_window_weekend">Выходные</string>
+    <string name="settings_llm">Отправлять текст в DeepSeek</string>
+    <string name="settings_llm_off_warning">Без этого записи сохраняются и возвращаются вечером целиком, но на пункты не разбираются</string>
+    <string name="settings_silence_threshold">Порог тишины для авто-стопа</string>
+    <string name="settings_export">Выгрузить всё в файл</string>
+    <string name="settings_import">Загрузить из файла</string>
+    <string name="settings_export_done">Выгрузил %1$s</string>
+    <string name="settings_import_done">Загрузил %1$d записей</string>
+    <string name="settings_exact_alarm">Разрешить точные напоминания</string>
+    <string name="settings_exact_alarm_why">Без этого возвраты приходят с задержкой до нескольких минут</string>
+    <string name="settings_notifications">Разрешить уведомления</string>
+
+    <!-- Сводка недели §F-9 -->
+    <string name="weekly_title">Неделя</string>
+    <string name="weekly_days">Дней с записью: %1$d из %2$d</string>
+    <string name="weekly_per_day">Записей в день: %1$s</string>
+    <string name="weekly_items_median">Пунктов на запись: %1$s</string>
+    <string name="weekly_returns_acted">Возвратов с ответом: %1$d%%</string>
+    <string name="weekly_dismissed">Из них «не надо»: %1$d%%</string>
+    <string name="weekly_alarm_low">Пунктов на запись меньше 1,5 — записи похожи на одиночные команды</string>
+
+    <!-- Каналы уведомлений -->
+    <string name="channel_returns">Возвраты</string>
+    <string name="channel_returns_desc">Напоминания в окна дня</string>
+    <string name="channel_understanding">Разбор</string>
+    <string name="channel_understanding_desc">Что продукт понял из записи</string>
+    <string name="channel_capture">Запись</string>
+    <string name="channel_capture_desc">Идёт запись</string>
+
+    <!-- Системные поверхности -->
+    <string name="widget_description">Кнопка записи</string>
+    <string name="tile_label">Принял</string>
+</resources>

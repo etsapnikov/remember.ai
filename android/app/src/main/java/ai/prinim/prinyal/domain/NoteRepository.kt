@@ -1,0 +1,333 @@
+package ai.prinim.prinyal.domain
+
+import ai.prinim.prinyal.data.Analytics
+import ai.prinim.prinyal.data.CaptureSource
+import ai.prinim.prinyal.data.DueKind
+import ai.prinim.prinyal.data.ItemEntity
+import ai.prinim.prinyal.data.ItemState
+import ai.prinim.prinyal.data.ItemType
+import ai.prinim.prinyal.data.NoteEntity
+import ai.prinim.prinyal.data.NoteStatus
+import ai.prinim.prinyal.data.PrinyalDb
+import ai.prinim.prinyal.data.ReturnEntity
+import ai.prinim.prinyal.data.Settings
+import ai.prinim.prinyal.data.Window
+import ai.prinim.prinyal.net.ParseResult
+import ai.prinim.prinyal.returns.ReturnScheduler
+import java.io.File
+import java.time.Instant
+import java.time.ZoneId
+import java.util.UUID
+
+/**
+ * Склейка захвата, разбора и возвратов. Здесь живут решения, которые нельзя доверить
+ * ни модели, ни UI: что считать состоявшимся возвратом, когда перепланировать, что
+ * делать с записью, которую не удалось разобрать.
+ */
+class NoteRepository(
+    private val db: PrinyalDb,
+    private val settings: Settings,
+    private val analytics: Analytics,
+    private val scheduler: ReturnScheduler,
+    private val zone: ZoneId = ZoneId.systemDefault(),
+) {
+
+    // --- захват ---
+
+    /** Запись немедленно попадает в базу: очередь переживает убийство процесса (F-3). */
+    suspend fun createNote(
+        id: String,
+        audio: File,
+        durationMs: Long,
+        source: CaptureSource,
+        createdAt: Instant = Instant.now(),
+    ) {
+        db.notes().insert(
+            NoteEntity(
+                id = id,
+                createdAt = createdAt.toEpochMilli(),
+                audioPath = audio.absolutePath,
+                status = NoteStatus.RECORDED.wire,
+                durationMs = durationMs,
+                source = source.wire,
+            )
+        )
+        analytics.log(
+            Analytics.CAPTURE_STOP,
+            mapOf("note" to id, "source" to source.wire, "ms" to durationMs),
+        )
+    }
+
+    // --- разбор ---
+
+    /**
+     * Разбор пришёл. Пункты и расписание возвратов пересобираются целиком: повторный
+     * разбор той же записи не должен оставлять хвост от прошлого.
+     */
+    suspend fun applyParse(noteId: String, result: ParseResult): List<ItemEntity> {
+        val note = db.notes().byId(noteId) ?: return emptyList()
+        dropSchedule(noteId)
+
+        val windows = settings.windowsNow()
+        val recordedAt = Instant.ofEpochMilli(note.createdAt)
+        val now = Instant.now()
+
+        val items = result.items.mapIndexed { index, parsed ->
+            ItemEntity(
+                id = newId(),
+                noteId = noteId,
+                type = parsed.type.wire,
+                text = parsed.text,
+                who = parsed.who,
+                dueKind = parsed.dueKind.wire,
+                window = parsed.window?.wire,
+                dueAt = parsed.dueAt,
+                state = ItemState.PLANNED.wire,
+                confidence = parsed.confidence.wire,
+                rawSpan = parsed.rawSpan,
+                position = index,
+            )
+        }
+        db.items().insertAll(items)
+
+        items.forEach { item -> planReturn(item, recordedAt, windows, now) }
+
+        db.notes().update(
+            note.copy(
+                transcript = result.transcript,
+                status = NoteStatus.PARSED.wire,
+                degraded = result.degraded,
+            )
+        )
+        analytics.log(
+            Analytics.PARSE_OK,
+            mapOf(
+                "note" to noteId,
+                "items" to items.size,
+                "asr_ms" to result.asrMs,
+                "llm_ms" to result.llmMs,
+                "retries" to result.llmRetries,
+                "degraded" to result.degraded,
+            ),
+        )
+        return items
+    }
+
+    /**
+     * Разбор не состоялся совсем (ASR). Аудио цело, запись видна в ленте и
+     * перезапускаема — «не смог» не равно «потерял» (§6).
+     */
+    suspend fun markFailed(noteId: String, code: String) {
+        val status = if (code.startsWith("asr")) NoteStatus.FAILED_ASR else NoteStatus.FAILED_LLM
+        val note = db.notes().byId(noteId) ?: return
+        db.notes().update(note.copy(status = status.wire, degraded = code))
+        analytics.log(Analytics.PARSE_FAIL, mapOf("note" to noteId, "code" to code))
+    }
+
+    suspend fun markQueued(noteId: String) =
+        db.notes().setStatus(noteId, NoteStatus.QUEUED.wire)
+
+    suspend fun markSent(noteId: String) =
+        db.notes().setStatus(noteId, NoteStatus.SENT.wire)
+
+    suspend fun bumpAttempts(noteId: String) = db.notes().bumpAttempts(noteId)
+
+    // --- планирование ---
+
+    private suspend fun planReturn(
+        item: ItemEntity,
+        recordedAt: Instant,
+        windows: Scheduler.Windows,
+        now: Instant,
+        attempt: Int = 1,
+    ) {
+        val dueKind = DueKind.of(item.dueKind)
+        if (dueKind == DueKind.NONE) return
+
+        val at = when (dueKind) {
+            DueKind.EXACT -> item.dueAt?.let(Instant::ofEpochSecond)
+            DueKind.WINDOW -> Window.of(item.window)?.let { window ->
+                Scheduler.scheduleFor(window, recordedAt, windows, zone, now)
+            }
+            DueKind.NONE -> null
+        } ?: return
+
+        // Точное время из прошлого (запись пролежала в очереди) — не звоним сразу
+        // ночью, а уходим в ближайшее окно.
+        val safeAt = if (at.isAfter(now)) at else Scheduler.nextWindowAfter(now, windows, zone)
+
+        val entity = ReturnEntity(
+            id = newId(),
+            itemId = item.id,
+            scheduledAt = safeAt.toEpochMilli(),
+            attempt = attempt,
+        )
+        db.returns().insert(entity)
+        scheduler.schedule(entity.id, safeAt)
+    }
+
+    private suspend fun dropSchedule(noteId: String) {
+        db.items().forNote(noteId).forEach { item ->
+            db.returns().forItem(item.id)
+                .filter { it.firedAt == null }
+                .forEach { scheduler.cancel(it.id) }
+            db.returns().dropPending(item.id)
+        }
+        db.items().deleteForNote(noteId)
+    }
+
+    // --- действия пользователя над айтемом ---
+
+    suspend fun editItem(
+        itemId: String,
+        text: String? = null,
+        type: ItemType? = null,
+        window: Window? = null,
+        clearSchedule: Boolean = false,
+    ) {
+        val item = db.items().byId(itemId) ?: return
+        val note = db.notes().byId(item.noteId) ?: return
+
+        val updated = item.copy(
+            text = text?.trim()?.takeIf { it.isNotEmpty() } ?: item.text,
+            type = type?.wire ?: item.type,
+            window = when {
+                clearSchedule -> null
+                window != null -> window.wire
+                else -> item.window
+            },
+            dueKind = when {
+                clearSchedule -> DueKind.NONE.wire
+                window != null -> DueKind.WINDOW.wire
+                else -> item.dueKind
+            },
+            dueAt = if (clearSchedule || window != null) null else item.dueAt,
+            edited = true,
+        )
+        db.items().update(updated)
+
+        // Правка окна пересчитывает возврат немедленно (приёмка F-5).
+        db.returns().forItem(itemId).filter { it.firedAt == null }
+            .forEach { scheduler.cancel(it.id) }
+        db.returns().dropPending(itemId)
+        planReturn(
+            updated,
+            Instant.ofEpochMilli(note.createdAt),
+            settings.windowsNow(),
+            Instant.now(),
+        )
+
+        analytics.log(
+            Analytics.EDIT_ITEM,
+            mapOf("item" to itemId, "type" to updated.type, "window" to updated.window),
+        )
+    }
+
+    /** «Не надо» — один тап, без диалогов. */
+    suspend fun dismissItem(itemId: String, fromReturn: Boolean = false) {
+        setStateAndStop(itemId, ItemState.DISMISSED)
+        analytics.log(
+            Analytics.RETURN_ACTION,
+            mapOf("item" to itemId, "action" to "dismiss", "from_return" to fromReturn),
+        )
+    }
+
+    suspend fun markDone(itemId: String) {
+        setStateAndStop(itemId, ItemState.DONE)
+        analytics.log(Analytics.RETURN_ACTION, mapOf("item" to itemId, "action" to "done"))
+    }
+
+    suspend fun buryItem(itemId: String) {
+        setStateAndStop(itemId, ItemState.EXPIRED)
+        analytics.log(Analytics.MISS_ITEM, mapOf("item" to itemId, "reason" to "manual"))
+    }
+
+    /**
+     * «Позже»: время не выбирается пользователем — код ставит следующее окно и
+     * возвращает его, чтобы подтверждение назвало конкретный момент (F-6).
+     */
+    suspend fun snooze(itemId: String): Instant? {
+        val item = db.items().byId(itemId) ?: return null
+        val at = Scheduler.nextWindowAfter(Instant.now(), settings.windowsNow(), zone)
+
+        db.items().setState(itemId, ItemState.SNOOZED.wire)
+        val entity = ReturnEntity(
+            id = newId(),
+            itemId = itemId,
+            scheduledAt = at.toEpochMilli(),
+            attempt = 1,
+        )
+        db.returns().insert(entity)
+        scheduler.schedule(entity.id, at)
+
+        analytics.log(Analytics.RETURN_ACTION, mapOf("item" to itemId, "action" to "later"))
+        return at
+    }
+
+    private suspend fun setStateAndStop(itemId: String, state: ItemState) {
+        db.items().setState(itemId, state.wire)
+        db.returns().forItem(itemId).filter { it.firedAt == null }
+            .forEach { scheduler.cancel(it.id) }
+        db.returns().dropPending(itemId)
+    }
+
+    // --- возвраты ---
+
+    /**
+     * Второй заход по проигнорированному возврату. Третьего нет: дальше `expired`,
+     * который ждёт R2-разбора, а не пилит пользователя (F-6).
+     */
+    suspend fun scheduleSecondAttempt(returnId: String) {
+        val fired = db.returns().byId(returnId) ?: return
+        if (fired.attempt >= 2) {
+            db.items().setState(fired.itemId, ItemState.EXPIRED.wire)
+            analytics.log(
+                Analytics.MISS_ITEM,
+                mapOf("item" to fired.itemId, "reason" to "no_answer"),
+            )
+            return
+        }
+
+        val at = Scheduler.nextWindowAfter(Instant.now(), settings.windowsNow(), zone)
+        val entity = ReturnEntity(
+            id = newId(),
+            itemId = fired.itemId,
+            scheduledAt = at.toEpochMilli(),
+            attempt = fired.attempt + 1,
+        )
+        db.returns().insert(entity)
+        scheduler.schedule(entity.id, at)
+    }
+
+    suspend fun markFired(returnId: String) {
+        val entity = db.returns().byId(returnId) ?: return
+        db.returns().update(entity.copy(firedAt = Instant.now().toEpochMilli()))
+        db.items().setState(entity.itemId, ItemState.RETURNED.wire)
+        analytics.log(
+            Analytics.RETURN_FIRED,
+            mapOf(
+                "return" to returnId,
+                "item" to entity.itemId,
+                "attempt" to entity.attempt,
+                // Расхождение плана и факта — данные о прошивке (§9, риск 1).
+                "drift_ms" to (Instant.now().toEpochMilli() - entity.scheduledAt),
+            ),
+        )
+    }
+
+    suspend fun recordAction(returnId: String, action: String) {
+        val entity = db.returns().byId(returnId) ?: return
+        db.returns().update(entity.copy(action = action))
+    }
+
+    /** После перезагрузки алармы не переживают выключение — ставим заново. */
+    suspend fun rescheduleAll() {
+        val now = Instant.now()
+        db.returns().upcoming().forEach { entity ->
+            val at = Instant.ofEpochMilli(entity.scheduledAt)
+            scheduler.schedule(entity.id, if (at.isAfter(now)) at else now.plusSeconds(60))
+        }
+    }
+
+    fun newId(): String = UUID.randomUUID().toString()
+}

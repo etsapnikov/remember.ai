@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Дубль токенов для системных поверхностей (виджет, нотификация, окно).
+     Источник истины — assets/design-tokens.json и ui/theme/Colors.kt. -->
+<resources>
+    <color name="paper">#FBF6F0</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="ink">#241C17</color>
+    <color name="ink_muted">#6E5F55</color>
+    <color name="accent_self">#B4552F</color>
+    <color name="record">#C8362A</color>
+    <color name="done">#3F6B4F</color>
+</resources>

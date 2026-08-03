@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Бумага, а не пластик: фон продукта одинаков в системе и в Compose. -->
+    <style name="Theme.Prinyal" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/paper</item>
+        <item name="android:statusBarColor">@color/paper</item>
+        <item name="android:navigationBarColor">@color/paper</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <!-- Экран захвата открывается поверх всего и закрывается сам. -->
+    <style name="Theme.Prinyal.Capture" parent="Theme.Prinyal">
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Аудио и база не уезжают в облачный бэкап: контур пользователя — телефон
+     и свой сервер (PRD §7). Страховка данных — экспорт в файл (F-8). -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="file" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="prinyal_secure.xml" />
+    </device-transfer>
+</data-extraction-rules>
