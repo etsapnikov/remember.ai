@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -18,6 +20,19 @@ android {
         versionCode = 1
         versionName = "1.0-r1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Ключ DeepSeek едет в APK: версия работает без сервера (решение владельца,
+        // отступление от PRD §2 п.3). Значение берётся из local.properties и в git
+        // не попадает — но в самом APK оно есть, и это надо помнить.
+        val deepSeekKey = localProperty("deepseek.key")
+        buildConfigField("String", "DEEPSEEK_KEY", "\"$deepSeekKey\"")
+
+        ndk {
+            // Только arm64: онсовые библиотеки для x86 и armeabi-v7a — это ~25 МБ
+            // в APK, который и так большой из-за весов. Телефоны с Android 10+
+            // все arm64.
+            abiFilters += "arm64-v8a"
+        }
     }
 
     buildTypes {
@@ -49,10 +64,23 @@ android {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
 
+    androidResources {
+        // Веса и так сжаты квантованием: архивирование даёт единицы процентов,
+        // а распаковку замедляет заметно.
+        noCompress += "onnx"
+    }
+
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
+            all {
+                // В одной JVM живут песочницы Robolectric и ONNX-сессия на 323 МБ —
+                // дефолтной кучи на это не хватает.
+                it.maxHeapSize = "4g"
+                // Тесты с весами forkEvery=1 держат память только на время класса.
+                it.forkEvery = 1
+            }
         }
     }
 }
@@ -94,4 +122,14 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.onnxruntime.jvm)
+}
+
+
+/** Секреты для сборки живут в local.properties — он не в git. */
+fun localProperty(name: String): String {
+    val file = rootProject.file("local.properties")
+    if (!file.exists()) return ""
+    val props = Properties()
+    file.inputStream().use(props::load)
+    return props.getProperty(name, "")
 }

@@ -64,13 +64,23 @@ class UploadWorker(
             val outcome = when {
                 transcript == null -> IngestOutcome.Retryable("asr_not_ready")
                 transcript.isBlank() -> IngestOutcome.Fatal("asr_empty")
-                else -> app.api.parse(
+                // Адрес сервера задан — идём через свой бэкенд (контур PRD §2).
+                // Не задан — разбираем сами: версия работает без сервера.
+                baseUrl.isNotBlank() -> app.api.parse(
                     baseUrl = baseUrl,
                     token = token,
                     noteId = note.id,
                     transcript = transcript,
                     createdAtSeconds = note.createdAt / 1000,
                     tzOffsetMinutes = tzOffsetMinutes(note.createdAt),
+                )
+                else -> app.llm.parse(
+                    transcript = transcript,
+                    now = java.time.LocalDateTime.ofInstant(
+                        java.time.Instant.ofEpochMilli(note.createdAt),
+                        java.time.ZoneId.systemDefault(),
+                    ),
+                    zone = java.time.ZoneId.systemDefault(),
                 )
             }
 
@@ -153,8 +163,7 @@ class UploadWorker(
 
             // APPEND_OR_REPLACE: новая запись во время неудачных ретраев не должна
             // отменять уже стоящую в очереди работу.
-            WorkManager.getInstance(context)
-                .enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
+            submit(context, request, ExistingWorkPolicy.APPEND_OR_REPLACE)
         }
 
         /**
@@ -172,8 +181,26 @@ class UploadWorker(
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
                 .build()
 
-            WorkManager.getInstance(context)
-                .enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.KEEP, request)
+            submit(context, request, ExistingWorkPolicy.KEEP)
+        }
+
+        /**
+         * Постановка задачи не имеет права уронить процесс.
+         *
+         * `kick` зовётся из `Application.onCreate`, где WorkManager может быть ещё не
+         * поднят: исключение оттуда убило бы приложение при старте — то есть отняло бы
+         * у человека кнопку записи ради задачи, которая подождёт до следующего раза.
+         */
+        private fun submit(
+            context: Context,
+            request: androidx.work.OneTimeWorkRequest,
+            policy: ExistingWorkPolicy,
+        ) {
+            runCatching {
+                WorkManager.getInstance(context).enqueueUniqueWork(WORK_NAME, policy, request)
+            }.onFailure { error ->
+                Log.w(TAG, "не удалось поставить задачу разбора: ${error.message}")
+            }
         }
     }
 }

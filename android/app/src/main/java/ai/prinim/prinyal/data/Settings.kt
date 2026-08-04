@@ -43,6 +43,11 @@ class Settings(private val context: Context) {
         get() = secure.getString(KEY_TOKEN, "").orEmpty()
         set(value) = secure.edit().putString(KEY_TOKEN, value).apply()
 
+    /** Переопределение вшитого ключа DeepSeek — чтобы сменить его без пересборки. */
+    var deepSeekKey: String
+        get() = secure.getString(KEY_DEEPSEEK, "").orEmpty()
+        set(value) = secure.edit().putString(KEY_DEEPSEEK, value).apply()
+
     val serverUrl: Flow<String> = context.dataStore.data.map { it[SERVER_URL].orEmpty() }
 
     val llmEnabled: Flow<Boolean> = context.dataStore.data.map { it[LLM_ENABLED] ?: true }
@@ -96,6 +101,7 @@ class Settings(private val context: Context) {
 
     companion object {
         private const val KEY_TOKEN = "backend_token"
+        private const val KEY_DEEPSEEK = "deepseek_key"
         const val DEFAULT_SILENCE_THRESHOLD = 900
 
         private val SERVER_URL = stringPreferencesKey("server_url")
