@@ -69,22 +69,9 @@ async def run_ingest(
     outcome = await parse_transcript(transcript, now_local, settings, http)
     llm_ms = int((time.perf_counter() - llm_started) * 1000)
 
-    if isinstance(outcome, LlmItems):
-        result = validate_items(outcome.raw_items, transcript, now_local, tz_offset_minutes)
-        items = result.items
-        salvaged = result.salvaged
-        degraded = None
-        retries = outcome.retries
-        if not items:
-            # Модель ответила, но пунктов не нашла — запись всё равно не теряем.
-            items = fallback_items(transcript)
-            degraded = "llm_empty"
-    else:
-        assert isinstance(outcome, LlmDegraded)
-        items = fallback_items(transcript)
-        salvaged = 0
-        degraded = outcome.reason
-        retries = outcome.retries
+    items, salvaged, degraded, retries = _items_from(
+        outcome, transcript, now_local, tz_offset_minutes
+    )
 
     meta = IngestMeta(
         asr_ms=asr_ms,
@@ -99,6 +86,54 @@ async def run_ingest(
         salvaged=salvaged,
     )
     return IngestResponse(note_id=note_id, transcript=transcript, items=items, meta=meta)
+
+
+async def run_parse(
+    *,
+    note_id: str,
+    transcript: str,
+    tz_offset_minutes: int,
+    client_ts: int | None,
+    settings: Settings,
+    http: httpx.AsyncClient,
+) -> IngestResponse:
+    """Только LLM-стадия: транскрипт уже есть (распознали на устройстве)."""
+    now_local = _now_local(client_ts, tz_offset_minutes)
+
+    llm_started = time.perf_counter()
+    outcome = await parse_transcript(transcript, now_local, settings, http)
+    llm_ms = int((time.perf_counter() - llm_started) * 1000)
+
+    items, salvaged, degraded, retries = _items_from(
+        outcome, transcript, now_local, tz_offset_minutes
+    )
+
+    meta = IngestMeta(
+        asr_ms=0,
+        llm_ms=llm_ms,
+        llm_retries=retries,
+        asr_backend="on_device",
+        llm_model=settings.llm_model if settings.llm_enabled else None,
+        prompt_version=prompt_version(),
+        segments=0,
+        duration_ms=0,
+        degraded=degraded,
+        salvaged=salvaged,
+    )
+    return IngestResponse(note_id=note_id, transcript=transcript, items=items, meta=meta)
+
+
+def _items_from(outcome, transcript: str, now_local, tz_offset_minutes: int):
+    """Общая для обоих входов развилка «разобрали / деградировали»."""
+    if isinstance(outcome, LlmItems):
+        result = validate_items(outcome.raw_items, transcript, now_local, tz_offset_minutes)
+        if result.items:
+            return result.items, result.salvaged, None, outcome.retries
+        # Модель ответила, но пунктов не нашла — запись всё равно не теряем.
+        return fallback_items(transcript), 0, "llm_empty", outcome.retries
+
+    assert isinstance(outcome, LlmDegraded)
+    return fallback_items(transcript), 0, outcome.reason, outcome.retries
 
 
 async def _transcribe_all(

@@ -114,6 +114,19 @@ class NoteRepository(
     }
 
     /**
+     * Транскрипт с устройства. Кладём отдельно от разбора: услышанное не должно
+     * зависеть от того, дошли ли мы до сети, и пересчитывать его второй раз незачем.
+     */
+    suspend fun saveTranscript(noteId: String, transcript: String, tookMs: Long) {
+        val note = db.notes().byId(noteId) ?: return
+        db.notes().update(note.copy(transcript = transcript))
+        analytics.log(
+            "asr_done",
+            mapOf("note" to noteId, "ms" to tookMs, "chars" to transcript.length),
+        )
+    }
+
+    /**
      * Разбор не состоялся совсем (ASR). Аудио цело, запись видна в ленте и
      * перезапускаема — «не смог» не равно «потерял» (§6).
      */

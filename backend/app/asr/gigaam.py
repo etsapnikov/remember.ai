@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import asyncio
 import os
+import tempfile
+import wave
 from pathlib import Path
 
 from ..audio import Pcm
@@ -87,7 +89,6 @@ class GigaAmAsr:
 
     def _load_package(self):
         import gigaam  # noqa: PLC0415
-        import torch  # noqa: PLC0415
 
         model_name = os.environ.get("ASR_GIGAAM_MODEL", "v2_rnnt")
         if self._path.is_dir():
@@ -95,10 +96,31 @@ class GigaAmAsr:
         model = gigaam.load_model(model_name, device="cpu")
 
         def run(pcm: Pcm) -> str:
-            wav = torch.tensor([s / 32768.0 for s in pcm.samples], dtype=torch.float32)
-            with torch.inference_mode():
-                text = model.transcribe_sample(wav.unsqueeze(0), pcm.sample_rate)
-            return _clean(text)
+            # Публичный API пакета принимает путь к файлу, не тензор. Обходить его
+            # через приватный `_decode` заманчиво (не трогали бы диск), но это
+            # ломается на первом же обновлении пакета. Пишем во временный файл и
+            # удаляем сразу: аудио на диске не остаётся — бэкенд stateless (PRD §2).
+            handle = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+            try:
+                with wave.open(handle, "wb") as writer:
+                    writer.setnchannels(1)
+                    writer.setsampwidth(2)
+                    writer.setframerate(pcm.sample_rate)
+                    writer.writeframes(pcm.to_bytes())
+                handle.close()
+
+                try:
+                    result = model.transcribe(handle.name)
+                except ValueError:
+                    # Клип длиннее порога короткой формы — у пакета для этого
+                    # отдельный путь с внутренней нарезкой.
+                    result = model.transcribe_longform(handle.name)
+                    return _clean(_join_longform(result))
+
+                return _clean(getattr(result, "text", str(result)))
+            finally:
+                handle.close()
+                Path(handle.name).unlink(missing_ok=True)
 
         return run
 
@@ -221,6 +243,15 @@ def _greedy_rnnt(decoder, joint, enc_out, enc_len: int, blank: int, np) -> list[
             last = np.array([[token]], dtype=np.int32)
 
     return tokens
+
+
+def _join_longform(result) -> str:
+    """Длинная форма отдаёт список кусков — склеиваем в одну строку."""
+    chunks = getattr(result, "transcriptions", None) or getattr(result, "chunks", None)
+    if not chunks:
+        return getattr(result, "text", str(result))
+    parts = [getattr(chunk, "text", str(chunk)) for chunk in chunks]
+    return " ".join(part for part in parts if part)
 
 
 def _clean(text: str) -> str:

@@ -54,6 +54,10 @@ async def parse_transcript(
         "max_tokens": settings.llm_max_tokens,
         "response_format": {"type": "json_object"},
         "stream": False,
+        # Non-thinking — обязательно (PRD §2.2). Без этого v4-flash уводит все
+        # `max_tokens` в reasoning, упирается в `finish_reason: length` и возвращает
+        # пустой content: замер показал 21 с и ноль пунктов вместо 3 с и трёх.
+        "thinking": {"type": "disabled"},
     }
     headers = {
         "Authorization": f"Bearer {settings.deepseek_api_key}",
@@ -87,10 +91,15 @@ async def parse_transcript(
         if response.status_code >= 400:
             return LlmDegraded("llm_error", attempt)
 
-        content = _content_of(response)
+        content, finish_reason = _content_of(response)
         if not content:
-            # Документированная особенность DeepSeek: изредка пустой content.
             last_reason = "llm_empty"
+            if finish_reason == "length":
+                # Модель упёрлась в потолок токенов. Это не случайность, а
+                # воспроизводимый исход: повтор даст ровно то же самое, только
+                # заставит человека ждать ещё два круга. Уходим в деградацию сразу.
+                return LlmDegraded("llm_empty", attempt)
+            # Документированная особенность DeepSeek: изредка пустой content.
             continue
 
         items = _items_of(content)
@@ -103,16 +112,18 @@ async def parse_transcript(
     return LlmDegraded(last_reason, attempts - 1)
 
 
-def _content_of(response: httpx.Response) -> str:
+def _content_of(response: httpx.Response) -> tuple[str, str]:
+    """Возвращает (content, finish_reason) — по второму видно, стоит ли ретраить."""
     try:
         body = response.json()
     except ValueError:
-        return ""
+        return "", ""
     choices = body.get("choices") or []
     if not choices:
-        return ""
-    message = choices[0].get("message") or {}
-    return (message.get("content") or "").strip()
+        return "", ""
+    choice = choices[0]
+    message = choice.get("message") or {}
+    return (message.get("content") or "").strip(), (choice.get("finish_reason") or "")
 
 
 def _items_of(content: str) -> list[dict] | None:

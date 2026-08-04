@@ -85,6 +85,7 @@ dependencies {
     implementation(libs.androidx.security.crypto)
 
     implementation(libs.okhttp)
+    implementation(libs.onnxruntime.android)
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)
@@ -92,4 +93,5 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.onnxruntime.jvm)
 }

@@ -69,6 +69,20 @@ class IngestResponse(BaseModel):
     meta: IngestMeta
 
 
+class ParseRequest(BaseModel):
+    """Разбор уже распознанного текста.
+
+    Путь для on-device ASR: аудио не покидает телефон вовсе, наружу уходит только
+    текст — тот же объём данных, что и раньше уходил в DeepSeek, но теперь и свой
+    сервер звука не видит.
+    """
+
+    note_id: str
+    transcript: str
+    client_ts: int | None = None
+    tz_offset_minutes: int = 0
+
+
 class ErrorResponse(BaseModel):
     """Ошибки, после которых айтемов нет вовсе.
 

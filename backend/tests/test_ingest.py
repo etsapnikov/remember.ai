@@ -153,7 +153,7 @@ def test_meta_carries_the_numbers_analytics_needs(client, m4a):
     meta = post(client, m4a).json()["meta"]
     assert meta["asr_ms"] >= 0 and meta["llm_ms"] >= 0
     assert meta["duration_ms"] == pytest.approx(3000, abs=250)
-    assert meta["prompt_version"] == "1"
+    assert meta["prompt_version"] == "2"
     assert meta["segments"] >= 1
 
 
@@ -161,4 +161,58 @@ def test_health_reports_the_stack(client):
     body = client.get("/health").json()
     assert body["ok"] is True
     assert body["asr"] == "stub"
-    assert body["prompt_version"] == "1"
+    assert body["prompt_version"] == "2"
+
+
+# --- путь для ASR на устройстве ---
+
+
+def post_parse(client: TestClient, transcript: str, **extra):
+    payload = {
+        "note_id": "01J0PARSE",
+        "transcript": transcript,
+        "client_ts": 1754222400,
+        "tz_offset_minutes": 180,
+    }
+    payload.update(extra)
+    return client.post(
+        "/parse", headers={"Authorization": f"Bearer {TOKEN}"}, json=payload
+    )
+
+
+def test_parse_needs_a_token(client):
+    response = client.post("/parse", json={"note_id": "x", "transcript": "текст"})
+    assert response.status_code == 401
+
+
+@respx.mock
+def test_parse_turns_transcript_into_items_without_touching_audio(client):
+    respx.post(URL).mock(return_value=httpx.Response(200, json=deepseek_reply(KOMOK_ITEMS)))
+
+    response = post_parse(
+        client, "капли купить соню к лору записать и мужу сказать что суббота занята"
+    )
+    assert response.status_code == 200
+    body = response.json()
+
+    assert len(body["items"]) == 3
+    assert len({i["window"] for i in body["items"]}) == 3
+    # ASR не участвовал: аудио телефон не покидал.
+    assert body["meta"]["asr_backend"] == "on_device"
+    assert body["meta"]["asr_ms"] == 0
+    assert body["meta"]["degraded"] is None
+
+
+@respx.mock
+def test_parse_degrades_the_same_way_as_ingest(client):
+    respx.post(URL).mock(return_value=httpx.Response(500))
+    body = post_parse(client, "надо не забыть про капли").json()
+    assert body["meta"]["degraded"] == "llm_error"
+    assert len(body["items"]) == 1
+    assert body["items"][0]["type"] == "thought"
+
+
+def test_parse_rejects_empty_transcript(client):
+    response = post_parse(client, "   ")
+    assert response.status_code == 422
+    assert response.json()["error"] == "asr_empty"

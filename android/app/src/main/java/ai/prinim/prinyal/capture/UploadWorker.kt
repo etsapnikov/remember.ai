@@ -1,15 +1,15 @@
 package ai.prinim.prinyal.capture
 
 import ai.prinim.prinyal.PrinyalApp
+import ai.prinim.prinyal.asr.AudioDecoder
 import ai.prinim.prinyal.data.NoteStatus
 import ai.prinim.prinyal.net.IngestOutcome
 import ai.prinim.prinyal.returns.Notifications
 import android.content.Context
+import android.util.Log
 import androidx.work.BackoffPolicy
-import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
-import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -57,14 +57,22 @@ class UploadWorker(
             app.repository.markQueued(note.id)
             app.repository.bumpAttempts(note.id)
 
-            val outcome = app.api.ingest(
-                baseUrl = baseUrl,
-                token = token,
-                noteId = note.id,
-                audio = audio,
-                createdAtSeconds = note.createdAt / 1000,
-                tzOffsetMinutes = tzOffsetMinutes(note.createdAt),
-            )
+            // Распознаём на устройстве и только потом идём в сеть: аудио телефон не
+            // покидает, а транскрипт появляется даже когда сети нет вовсе.
+            val transcript = note.transcript ?: transcribeLocally(app, note.id, audio)
+
+            val outcome = when {
+                transcript == null -> IngestOutcome.Retryable("asr_not_ready")
+                transcript.isBlank() -> IngestOutcome.Fatal("asr_empty")
+                else -> app.api.parse(
+                    baseUrl = baseUrl,
+                    token = token,
+                    noteId = note.id,
+                    transcript = transcript,
+                    createdAtSeconds = note.createdAt / 1000,
+                    tzOffsetMinutes = tzOffsetMinutes(note.createdAt),
+                )
+            }
 
             when (outcome) {
                 is IngestOutcome.Ok -> {
@@ -96,21 +104,49 @@ class UploadWorker(
         return if (retryNeeded) Result.retry() else Result.success()
     }
 
+    /**
+     * Распознавание на устройстве. Транскрипт сразу кладётся в базу: разбор может
+     * не состояться из-за сети, но услышанное уже не потеряется и второй раз
+     * считаться не будет — GigaAM стоит секунд процессорного времени.
+     *
+     * @return текст, пустая строка (речи нет) или null, если движок недоступен
+     */
+    private suspend fun transcribeLocally(
+        app: PrinyalApp,
+        noteId: String,
+        audio: File,
+    ): String? {
+        val engine = app.asr ?: return null
+        return try {
+            val started = System.currentTimeMillis()
+            val samples = AudioDecoder.decode(audio)
+            val text = if (samples.isEmpty()) "" else engine.transcribe(samples)
+            val took = System.currentTimeMillis() - started
+
+            app.repository.saveTranscript(noteId, text, took)
+            Log.i(TAG, "распознал $noteId за ${took}мс, символов ${text.length}")
+            text
+        } catch (e: Exception) {
+            // Движок не загрузился или упал — аудио цело, попробуем в следующий заход.
+            Log.w(TAG, "распознавание $noteId не удалось: ${e.message}")
+            null
+        }
+    }
+
     private fun tzOffsetMinutes(atMillis: Long): Int {
         val zone = ZoneId.systemDefault()
         return zone.rules.getOffset(Instant.ofEpochMilli(atMillis)).totalSeconds / 60
     }
 
     companion object {
+        private const val TAG = "PrinyalAsr"
         private const val WORK_NAME = "prinyal_upload"
 
         fun enqueue(context: Context, noteId: String? = null) {
             val request = OneTimeWorkRequestBuilder<UploadWorker>()
-                .setConstraints(
-                    Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.CONNECTED)
-                        .build()
-                )
+                // Сетевого условия нет намеренно: распознавание идёт на устройстве и
+                // должно случиться даже в самолётном режиме. Транскрипт появляется
+                // сразу, сети ждёт только разбор — он и уйдёт в retry.
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
                 .setInputData(workDataOf("note_id" to noteId))
                 .build()
@@ -119,6 +155,25 @@ class UploadWorker(
             // отменять уже стоящую в очереди работу.
             WorkManager.getInstance(context)
                 .enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
+        }
+
+        /**
+         * Пнуть очередь при открытии приложения (PRD §6: «ретраи по backoff до часа,
+         * дальше — по открытию приложения»).
+         *
+         * Без этого запись, пережившая исчерпанный backoff, ждёт следующей записи —
+         * то есть молчит ровно тогда, когда человек открыл приложение посмотреть,
+         * почему тихо.
+         *
+         * KEEP, а не APPEND: если работа уже стоит, второй заход не нужен.
+         */
+        fun kick(context: Context) {
+            val request = OneTimeWorkRequestBuilder<UploadWorker>()
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                .build()
+
+            WorkManager.getInstance(context)
+                .enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.KEEP, request)
         }
     }
 }

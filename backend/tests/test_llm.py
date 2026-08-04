@@ -71,6 +71,23 @@ async def test_empty_content_all_attempts_degrades():
 
 @pytest.mark.asyncio
 @respx.mock
+async def test_token_limit_degrades_at_once_without_burning_two_more_rounds():
+    """Пустой content из-за `finish_reason: length` воспроизводим — повтор даст ровно
+    то же самое, только заставит человека ждать ещё два круга по 20 с."""
+    capped = {
+        "choices": [{"message": {"role": "assistant", "content": ""}, "finish_reason": "length"}]
+    }
+    route = respx.post(URL).mock(return_value=httpx.Response(200, json=capped))
+    async with httpx.AsyncClient() as client:
+        result = await parse_transcript("текст", NOW, settings(), client)
+
+    assert isinstance(result, LlmDegraded)
+    assert result.reason == "llm_empty"
+    assert route.call_count == 1
+
+
+@pytest.mark.asyncio
+@respx.mock
 async def test_402_is_not_retried_and_has_its_own_reason():
     route = respx.post(URL).mock(return_value=httpx.Response(402, json={"error": "no balance"}))
     async with httpx.AsyncClient() as client:
@@ -136,6 +153,9 @@ async def test_request_carries_json_mode_and_time_context():
     assert captured["response_format"] == {"type": "json_object"}
     assert captured["temperature"] == 0.1
     assert captured["stream"] is False
+    # Без этого v4-flash уводит весь бюджет токенов в reasoning и отдаёт пустой
+    # content: 21 с ожидания вместо 3 и ноль пунктов вместо трёх (PRD §2.2).
+    assert captured["thinking"] == {"type": "disabled"}
     system, user = captured["messages"]
     # Требование провайдера: слово «json» и пример структуры обязаны быть в промпте.
     assert "json" in system["content"].lower()

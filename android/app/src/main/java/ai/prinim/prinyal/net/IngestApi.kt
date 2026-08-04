@@ -9,6 +9,7 @@ import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.File
 import java.io.IOException
@@ -78,8 +79,53 @@ class IngestApi(
             client.newCall(request).execute().use { response ->
                 val text = response.body?.string().orEmpty()
                 when {
-                    response.isSuccessful -> IngestOutcome.Ok(parse(text))
+                    response.isSuccessful -> IngestOutcome.Ok(parseBody(text))
                     // Тишина, битое аудио, слишком длинный клип — ретрай не поможет.
+                    response.code in setOf(400, 401, 413, 422) ->
+                        IngestOutcome.Fatal(errorCode(text, response.code))
+                    else -> IngestOutcome.Retryable(errorCode(text, response.code))
+                }
+            }
+        } catch (e: IOException) {
+            IngestOutcome.Retryable("no_server")
+        } catch (e: IllegalArgumentException) {
+            IngestOutcome.Fatal("bad_response")
+        }
+    }
+
+    /**
+     * Разбор уже распознанного текста — путь для ASR на устройстве.
+     *
+     * Аудио никуда не уходит: телефон распознал сам, наружу летит только текст.
+     */
+    fun parse(
+        baseUrl: String,
+        token: String,
+        noteId: String,
+        transcript: String,
+        createdAtSeconds: Long,
+        tzOffsetMinutes: Int,
+    ): IngestOutcome {
+        if (baseUrl.isBlank() || token.isBlank()) return IngestOutcome.Retryable("not_configured")
+
+        val payload = JSONObject().apply {
+            put("note_id", noteId)
+            put("transcript", transcript)
+            put("client_ts", createdAtSeconds)
+            put("tz_offset_minutes", tzOffsetMinutes)
+        }
+
+        val request = Request.Builder()
+            .url("${baseUrl.trimEnd('/')}/parse")
+            .addHeader("Authorization", "Bearer $token")
+            .post(payload.toString().toRequestBody(JSON_TYPE))
+            .build()
+
+        return try {
+            client.newCall(request).execute().use { response ->
+                val text = response.body?.string().orEmpty()
+                when {
+                    response.isSuccessful -> IngestOutcome.Ok(parseBody(text))
                     response.code in setOf(400, 401, 413, 422) ->
                         IngestOutcome.Fatal(errorCode(text, response.code))
                     else -> IngestOutcome.Retryable(errorCode(text, response.code))
@@ -108,7 +154,7 @@ class IngestApi(
         runCatching { JSONObject(body).optString("error").ifBlank { "http_$status" } }
             .getOrDefault("http_$status")
 
-    private fun parse(body: String): ParseResult {
+    private fun parseBody(body: String): ParseResult {
         val root = JSONObject(body)
         val meta = root.optJSONObject("meta") ?: JSONObject()
         val itemsJson = root.optJSONArray("items")
@@ -146,6 +192,7 @@ class IngestApi(
 
     companion object {
         private val AUDIO_TYPE = "audio/mp4".toMediaType()
+        private val JSON_TYPE = "application/json; charset=utf-8".toMediaType()
 
         fun defaultClient(): OkHttpClient = OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)

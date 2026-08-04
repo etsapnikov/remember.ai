@@ -15,9 +15,9 @@ from fastapi.responses import JSONResponse
 from .asr import build_asr
 from .audio import ffmpeg_available
 from .config import Settings, get_settings
-from .pipeline import IngestFailure, run_ingest
+from .pipeline import IngestFailure, run_ingest, run_parse
 from .prompt import PROMPT_VERSION
-from .schemas import ErrorResponse, IngestResponse
+from .schemas import ErrorResponse, IngestResponse, ParseRequest
 
 logger = logging.getLogger("prinyal")
 
@@ -78,6 +78,45 @@ async def health(settings: Settings = Depends(get_settings)) -> dict:
         "prompt_version": PROMPT_VERSION,
         "uptime_s": int(time.time() - _state.get("started_at", time.time())),
     }
+
+
+@app.post(
+    "/parse",
+    response_model=IngestResponse,
+    dependencies=[Depends(require_token)],
+)
+async def parse(request: ParseRequest, settings: Settings = Depends(get_settings)) -> IngestResponse:
+    """Разбор уже распознанного текста — путь для ASR на устройстве.
+
+    Аудио сюда не приходит вовсе: телефон распознаёт сам и присылает транскрипт.
+    Свой сервер звука больше не видит, наружу уходит ровно то же, что и раньше
+    уходило в DeepSeek, — текст.
+    """
+    transcript = request.transcript.strip()
+    if not transcript:
+        return JSONResponse(
+            status_code=422,
+            content=ErrorResponse(error="asr_empty", detail="пустой транскрипт").model_dump(),
+        )
+
+    response = await run_parse(
+        note_id=request.note_id,
+        transcript=transcript,
+        tz_offset_minutes=request.tz_offset_minutes,
+        client_ts=request.client_ts,
+        settings=settings,
+        http=_state["http"],
+    )
+    meta = response.meta
+    logger.info(
+        "parse %s → items=%d llm=%dms retries=%d degraded=%s",
+        request.note_id,
+        len(response.items),
+        meta.llm_ms,
+        meta.llm_retries,
+        meta.degraded,
+    )
+    return response
 
 
 @app.post(

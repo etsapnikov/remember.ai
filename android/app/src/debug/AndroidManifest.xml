@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Только для debug-сборки: разрешаем HTTP без TLS, чтобы телефон дотянулся до
+  бэкенда по локальной сети (http://192.168.x.x:8080) на время dogfood-прогона.
+
+  В release этого нет: наружу бэкенд ходит только через TLS или tailscale (PRD §7).
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:usesCleartextTraffic="true"
+        tools:replace="android:usesCleartextTraffic" />
+</manifest>

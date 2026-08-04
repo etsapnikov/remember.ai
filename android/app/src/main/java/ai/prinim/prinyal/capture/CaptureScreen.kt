@@ -64,17 +64,23 @@ fun CaptureScreen(
     onStop: () -> Unit,
     onCancel: () -> Unit,
     onGrant: () -> Unit,
+    onOpenFeed: () -> Unit = {},
 ) {
     Box(
         Modifier
             .fillMaxSize()
             .background(Prinyal.colors.paper)
             .pointerInput(state.recording) {
-                if (!state.recording) return@pointerInput
                 detectVerticalDragGestures { _, dragAmount ->
-                    // Свайп вниз — отмена. Порог крупный: случайное движение
-                    // пальцем не должно стирать сказанное.
-                    if (dragAmount > 24f) onCancel()
+                    when {
+                        // Свайп вниз — отмена. Порог крупный: случайное движение
+                        // пальцем не должно стирать сказанное.
+                        dragAmount > 24f && state.recording -> onCancel()
+                        // Свайп вверх — лента (ТЗ UI §3.4). Единственный путь к
+                        // записям и настройкам: экран захвата ничего не показывает,
+                        // но и не запирает.
+                        dragAmount < -24f -> onOpenFeed()
+                    }
                 }
             }
             .clickable(

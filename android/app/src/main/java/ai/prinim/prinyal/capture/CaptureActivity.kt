@@ -61,6 +61,7 @@ class CaptureActivity : ComponentActivity() {
                     onStop = ::finishRecording,
                     onCancel = ::cancelRecording,
                     onGrant = { askMic.launch(Manifest.permission.RECORD_AUDIO) },
+                    onOpenFeed = ::openFeed,
                 )
             }
         }
@@ -188,6 +189,21 @@ class CaptureActivity : ComponentActivity() {
             delay(RECEIPT_MS)
             finishAndRemoveTask()
         }
+    }
+
+    /**
+     * Свайп вверх — лента и настройки. Начатую запись при этом не теряем: человек
+     * ушёл смотреть записи, а не передумал говорить.
+     */
+    private fun openFeed() {
+        if (state.receipt) return
+        if (recorder.isRecording) {
+            finishRecording()
+        }
+        startActivity(
+            android.content.Intent(this, ai.prinim.prinyal.ui.MainActivity::class.java)
+        )
+        if (!state.receipt) finish()
     }
 
     /** Свайп вниз — отмена. Другого способа передумать не нужно. */

@@ -1,5 +1,6 @@
 package ai.prinim.prinyal.ui
 
+import ai.prinim.prinyal.capture.UploadWorker
 import ai.prinim.prinyal.ui.theme.PrinyalTheme
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -20,6 +21,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val openNoteId = intent.getStringExtra(EXTRA_NOTE_ID)
+
+        // §6: после исчерпанного backoff очередь разгребается по открытию приложения.
+        // Человек открыл ленту посмотреть, почему тихо, — это и есть момент повторить.
+        UploadWorker.kick(this)
 
         setContent {
             PrinyalTheme {
