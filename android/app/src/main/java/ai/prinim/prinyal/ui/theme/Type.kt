@@ -71,6 +71,13 @@ data class PrinyalTypography(
     val label: TextStyle,
     /** Время, статусы, служебное. */
     val meta: TextStyle,
+    /**
+     * Таймер записи. Расширение шкалы: это единственное место, где время —
+     * не служебная подпись, а содержание экрана (ТЗ UI §3.2 требует крупную
+     * живую индикацию записи). Семейство то же, что у meta, — время моноширинное,
+     * иначе цифры скачут по ширине на каждой секунде.
+     */
+    val timer: TextStyle,
 )
 
 val PrinyalType = PrinyalTypography(
@@ -108,6 +115,14 @@ val PrinyalType = PrinyalTypography(
         fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
         lineHeight = 1.3.em,
+        lineHeightStyle = EvenLines,
+    ),
+    timer = TextStyle(
+        fontFamily = JetBrainsMono,
+        fontWeight = FontWeight.Normal,
+        fontSize = 30.sp,
+        letterSpacing = 0.04.em,
+        lineHeight = 1.2.em,
         lineHeightStyle = EvenLines,
     ),
     meta = TextStyle(

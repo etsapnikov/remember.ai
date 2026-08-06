@@ -131,32 +131,35 @@ private fun Receipt() {
 private fun Recording(state: CaptureState) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
         modifier = Modifier
             .fillMaxSize()
             .padding(Space.screen),
     ) {
-        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            MetaText(
-                text = formatElapsed(state.elapsedMs),
-                color = Prinyal.colors.record,
-            )
-        }
+        // Воздух сверху: клавиша живёт в нижней трети, телефон держат одной рукой.
+        Box(Modifier.weight(1f))
 
-        // Ключевые действия — в нижней трети: телефон держат одной рукой.
+        // Таймер — прямо над клавишей, а не сам по себе в пустоте: он читается
+        // как подпись к происходящему, а не как случайная цифра на экране.
+        Text(
+            text = formatElapsed(state.elapsedMs),
+            style = Prinyal.type.timer,
+            color = Prinyal.colors.record,
+        )
+        Box(Modifier.height(Space.ml))
+
         RecordKey(pulsing = state.recording, level = state.level)
 
-        Box(Modifier.weight(0.5f), contentAlignment = Alignment.TopCenter) {
-            Text(
-                text = stringResource(
-                    if (state.recording) R.string.capture_cancel_hint else R.string.capture_hint
-                ),
-                style = Prinyal.type.body,
-                color = Prinyal.colors.inkFaint,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = Space.l),
-            )
-        }
+        Box(Modifier.height(Space.l))
+        Text(
+            text = stringResource(
+                if (state.recording) R.string.capture_cancel_hint else R.string.capture_hint
+            ),
+            style = Prinyal.type.body,
+            color = Prinyal.colors.inkFaint,
+            textAlign = TextAlign.Center,
+        )
+
+        Box(Modifier.weight(0.55f))
     }
 }
 

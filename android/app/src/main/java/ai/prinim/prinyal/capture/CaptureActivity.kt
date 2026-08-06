@@ -192,13 +192,18 @@ class CaptureActivity : ComponentActivity() {
     }
 
     /**
-     * Свайп вверх — лента и настройки. Начатую запись при этом не теряем: человек
-     * ушёл смотреть записи, а не передумал говорить.
+     * Свайп вверх — лента и настройки.
+     *
+     * Начатую запись отбрасываем: человек пришёл разбирать накопленное, а не
+     * говорить, — сохранять нечего. Иначе каждый заход в ленту оставлял бы после
+     * себя мусорную запись «не расслышал».
      */
     private fun openFeed() {
         if (state.receipt) return
         if (recorder.isRecording) {
-            finishRecording()
+            watchdog?.cancel()
+            recorder.cancel()
+            state.recording = false
         }
         // NEW_TASK обязателен: без него лента попадает в задачу экрана записи,
         // а он через мгновение делает finishAndRemoveTask() и уносит ленту с собой.
@@ -206,7 +211,7 @@ class CaptureActivity : ComponentActivity() {
             android.content.Intent(this, ai.prinim.prinyal.ui.MainActivity::class.java)
                 .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
         )
-        if (!state.receipt) finish()
+        finish()
     }
 
     /** Свайп вниз — отмена. Другого способа передумать не нужно. */

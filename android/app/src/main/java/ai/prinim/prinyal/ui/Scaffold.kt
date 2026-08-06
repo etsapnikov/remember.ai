@@ -3,6 +3,7 @@ package ai.prinim.prinyal.ui
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.Space
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +30,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun AppScaffold(route: Route, onRoute: (Route) -> Unit) {
     val vm: AppViewModel = viewModel()
+
+    // «Назад» из карточки, настроек и сводки ведёт в ленту. Без этого системный жест
+    // закрывает приложение целиком — человек хотел вернуться к списку, а вышел вон.
+    BackHandler(enabled = route !is Route.Feed) { onRoute(Route.Feed) }
 
     Column(
         Modifier
