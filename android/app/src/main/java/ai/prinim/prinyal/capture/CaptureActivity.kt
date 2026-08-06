@@ -204,6 +204,14 @@ class CaptureActivity : ComponentActivity() {
             watchdog?.cancel()
             recorder.cancel()
             state.recording = false
+            // Иначе в аналитике остаётся capture_start без пары и выглядит как
+            // брошенная запись, хотя человек просто ушёл в ленту.
+            lifecycleScope.launch {
+                PrinyalApp.of(this@CaptureActivity).analytics.log(
+                    Analytics.CAPTURE_CANCEL,
+                    mapOf("note" to noteId, "reason" to "feed", "source" to source.wire),
+                )
+            }
         }
         // NEW_TASK обязателен: без него лента попадает в задачу экрана записи,
         // а он через мгновение делает finishAndRemoveTask() и уносит ленту с собой.
