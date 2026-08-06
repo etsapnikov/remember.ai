@@ -122,7 +122,7 @@ fun SettingsScreen(vm: AppViewModel) {
         }
 
         item {
-            Section(stringResource(R.string.settings_llm)) {
+            Section(stringResource(R.string.settings_parsing)) {
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -186,7 +186,7 @@ fun SettingsScreen(vm: AppViewModel) {
                         },
                     )
                 } else {
-                    MetaText(stringResource(R.string.settings_check_ok))
+                    MetaText(stringResource(R.string.settings_exact_alarm_granted))
                 }
             }
         }
