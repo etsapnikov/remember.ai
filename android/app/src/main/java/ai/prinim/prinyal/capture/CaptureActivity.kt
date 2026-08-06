@@ -200,8 +200,11 @@ class CaptureActivity : ComponentActivity() {
         if (recorder.isRecording) {
             finishRecording()
         }
+        // NEW_TASK обязателен: без него лента попадает в задачу экрана записи,
+        // а он через мгновение делает finishAndRemoveTask() и уносит ленту с собой.
         startActivity(
             android.content.Intent(this, ai.prinim.prinyal.ui.MainActivity::class.java)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
         )
         if (!state.receipt) finish()
     }

@@ -136,9 +136,20 @@ class UploadWorker(
             app.repository.saveTranscript(noteId, text, took)
             Log.i(TAG, "распознал $noteId за ${took}мс, символов ${text.length}")
             text
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             // Движок не загрузился или упал — аудио цело, попробуем в следующий заход.
+            // Пишем причину в свой лог: на прошивках с закрытым логкатом (Huawei)
+            // это единственный способ узнать, что именно упало.
             Log.w(TAG, "распознавание $noteId не удалось: ${e.message}")
+            app.analytics.log(
+                "asr_error",
+                mapOf(
+                    "note" to noteId,
+                    "error" to (e::class.java.name),
+                    "msg" to (e.message ?: ""),
+                    "at" to (e.stackTrace.firstOrNull()?.toString() ?: ""),
+                ),
+            )
             null
         }
     }

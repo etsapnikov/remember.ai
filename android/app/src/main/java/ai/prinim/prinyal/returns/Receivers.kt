@@ -120,9 +120,11 @@ class BootReceiver : BroadcastReceiver() {
                     app.repository.markFired(entity.id)
                 }
 
+                // Своё событие, не RETURN_FIRED: по нему считается надёжность
+                // возвратов §8, и перезагрузки завышали бы знаменатель.
                 app.analytics.log(
-                    Analytics.RETURN_FIRED,
-                    mapOf("reason" to "boot", "action" to intent.action),
+                    "alarms_rescheduled",
+                    mapOf("action" to intent.action),
                 )
             } finally {
                 pending.finish()

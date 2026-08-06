@@ -49,8 +49,13 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
     Column(Modifier.fillMaxSize()) {
         if (pending > 0) {
             // Оффлайн — не ошибка, а состояние: бейдж без драмы (ТЗ UI §3.2).
+            // Но и врать нельзя: «нет связи» только если связь действительно рвалась,
+            // иначе это просто «ещё не разобрал».
+            val stuck = notes.any { it.note.degraded in NO_SERVER_CODES }
             MetaText(
-                text = stringResource(R.string.feed_offline_badge),
+                text = stringResource(
+                    if (stuck) R.string.feed_offline_badge else R.string.feed_pending
+                ),
                 color = Prinyal.colors.inkMuted,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -113,13 +118,18 @@ private fun NoteRow(entry: NoteWithItems, onClick: () -> Unit) {
             )
         }
 
+        // Пока разбора нет, показываем услышанное. Дублировать статус словом
+        // «записано» незачем — он уже написан справа.
+        val preview = note.transcript.orEmpty()
         if (entry.items.isEmpty()) {
-            Text(
-                text = note.transcript.orEmpty().ifBlank { stringResource(R.string.status_recorded) },
-                style = Prinyal.type.body,
-                color = Prinyal.colors.inkMuted,
-                maxLines = 2,
-            )
+            if (preview.isNotBlank()) {
+                Text(
+                    text = preview,
+                    style = Prinyal.type.body,
+                    color = Prinyal.colors.inkMuted,
+                    maxLines = 2,
+                )
+            }
         } else {
             entry.items.forEach { item -> ItemLine(item) }
         }
@@ -181,7 +191,10 @@ private fun stateLabel(state: ItemState): String = stringResource(
     }
 )
 
-private val DAY_TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM · HH:mm")
+private val NO_SERVER_CODES = setOf("no_server", "not_configured")
+
+private val DAY_TIME: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("d MMM · HH:mm", java.util.Locale("ru"))
 
 private fun formatTime(millis: Long): String =
     LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneId.systemDefault()).format(DAY_TIME)
