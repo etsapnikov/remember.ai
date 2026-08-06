@@ -14,12 +14,17 @@
       "inkMuted": "#6E5F55",
       "inkFaint": "#8C7A6E",
       "rule": "#E2D3C6",
+      "hairline": "#F0E6DB",
       "accentSelf": "#B4552F",
       "accentSelfSoft": "#FBF3EC",
       "record": "#C8362A",
       "recordPressed": "#AE2A20",
       "recordWell": "#8E2318",
-      "done": "#3F6B4F"
+      "done": "#3F6B4F",
+      "destructiveBg": "#F6E0D9",
+      "destructiveFg": "#B03A24",
+      "statusOk": "#3F6B4F",
+      "statusWarn": "#A8542B"
     },
     "dark": {
       "paper": "#1A1512",
@@ -29,13 +34,24 @@
       "inkMuted": "#A9998C",
       "inkFaint": "#8C7A6E",
       "rule": "#372D26",
+      "hairline": "#1E1917",
       "accentSelf": "#D98F6B",
       "accentSelfSoft": "#2A1F18",
       "record": "#D8412F",
       "recordPressed": "#B32C20",
       "recordWell": "#7A1C12",
-      "done": "#7FB08F"
+      "done": "#7FB08F",
+      "destructiveBg": "#3C1E18",
+      "destructiveFg": "#E8836B",
+      "statusOk": "#8FB79A",
+      "statusWarn": "#E08757"
     }
+  },
+  "gesture": {
+    "swipeStart": 8,
+    "swipeCommitVertical": { "distance": 96, "velocity": 600 },
+    "swipeCommitRow": { "distance": 40, "velocity": 400 },
+    "rowActionWidth": 88
   },
   "semantics": {
     "record": "только клавиша записи, её пульс и таймер записи",
@@ -85,6 +101,20 @@
       "size": 13,
       "letterSpacing": 0.02,
       "use": "время, статусы, служебное"
+    },
+    "verdict": {
+      "font": "Golos Text",
+      "weight": 700,
+      "size": 30,
+      "line": 1.13,
+      "use": "вердикт недели («Петля жива»); в спеке дизайнера — Roboto, семейство взято из системы"
+    },
+    "metric": {
+      "font": "Golos Text",
+      "weight": 700,
+      "size": 26,
+      "line": 1.15,
+      "use": "значение kill-метрики"
     },
     "minSize": 16
   },
@@ -142,6 +172,15 @@
     "burial": {
       "dur": 900,
       "ease": "cubic-bezier(.3,0,.6,1)"
+    },
+    "followSettle": {
+      "dur": 320,
+      "ease": "cubic-bezier(.2,.8,.2,1)",
+      "minDur": 180
+    },
+    "followCancel": {
+      "dur": 200,
+      "ease": "cubic-bezier(.4,0,.6,1)"
     }
   },
   "haptics": {

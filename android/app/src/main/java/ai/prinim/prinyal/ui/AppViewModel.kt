@@ -77,6 +77,51 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         UploadWorker.enqueue(getApplication(), noteId)
     }
 
+    // --- удаление с undo (спека R1.1 §2.2) ---
+
+    /** Что показывает снекбар и что сделает «вернуть». */
+    data class UndoEvent(val message: UndoMessage, val undo: suspend () -> Unit)
+
+    sealed interface UndoMessage {
+        data object NoteDeleted : UndoMessage
+        data class JunkSwept(val count: Int) : UndoMessage
+        data object ItemBuried : UndoMessage
+    }
+
+    private val _undo = MutableStateFlow<UndoEvent?>(null)
+    val undo: StateFlow<UndoEvent?> = _undo
+
+    fun consumeUndo() {
+        _undo.value = null
+    }
+
+    fun deleteNote(noteId: String) = viewModelScope.launch {
+        app.repository.softDeleteNote(noteId)
+        _undo.value = UndoEvent(UndoMessage.NoteDeleted) {
+            app.repository.restoreNote(noteId)
+        }
+    }
+
+    fun sweepJunk() = viewModelScope.launch {
+        val swept = app.repository.sweepJunk()
+        if (swept.isEmpty()) return@launch
+        _undo.value = UndoEvent(UndoMessage.JunkSwept(swept.size)) {
+            swept.forEach { app.repository.restoreNote(it) }
+        }
+    }
+
+    fun buryWithUndo(itemId: String) = viewModelScope.launch {
+        app.repository.buryItem(itemId)
+        _undo.value = UndoEvent(UndoMessage.ItemBuried) {
+            app.repository.unburyItem(itemId)
+        }
+    }
+
+    /** Снекбар истёк или экран покинут — точка невозврата. */
+    fun purgeDeleted() = viewModelScope.launch { app.repository.purgeDeleted() }
+
+    fun runUndo(event: UndoEvent) = viewModelScope.launch { event.undo() }
+
     // --- настройки ---
 
     fun setServerUrl(value: String) = viewModelScope.launch { app.settings.setServerUrl(value) }
@@ -89,6 +134,54 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setWindow(window: Window, time: LocalTime) =
         viewModelScope.launch { app.settings.setWindow(window, time) }
+
+    /**
+     * Установка окна с валидацией (спека R1.1 §5): окна дня не пересекаются.
+     * При конфликте соседнее сдвигается на 30 минут, о сдвиге сообщает снекбар
+     * «Сдвинул вечер на 20:00». Выходные — отдельный день, с буднями не конфликтуют.
+     */
+    fun setWindowValidated(window: Window, picked: LocalTime) = viewModelScope.launch {
+        app.settings.setWindow(window, picked)
+        if (window == Window.WEEKEND) return@launch
+
+        val names = mapOf(
+            Window.MORNING to "утро",
+            Window.DAY to "день",
+            Window.EVENING to "вечер",
+        )
+        var shifted: Pair<Window, LocalTime>? = null
+
+        var current = app.settings.windowsNow()
+        // Каскад вперёд: morning < day < evening, шаг между соседями минимум 30 минут.
+        if (current.day <= current.morning) {
+            val moved = current.morning.plusMinutes(30)
+            app.settings.setWindow(Window.DAY, moved)
+            if (window != Window.DAY) shifted = shifted ?: (Window.DAY to moved)
+        }
+        current = app.settings.windowsNow()
+        if (current.evening <= current.day) {
+            val moved = current.day.plusMinutes(30)
+            app.settings.setWindow(Window.EVENING, moved)
+            if (window != Window.EVENING) shifted = shifted ?: (Window.EVENING to moved)
+        }
+        // Каскад назад: выбрали день раньше утра — утро уезжает вниз.
+        current = app.settings.windowsNow()
+        if (current.morning >= current.day) {
+            val moved = current.day.minusMinutes(30)
+            app.settings.setWindow(Window.MORNING, moved)
+            if (window != Window.MORNING) shifted = shifted ?: (Window.MORNING to moved)
+        }
+
+        shifted?.let { (which, at) ->
+            showMessage(
+                getApplication<Application>().getString(
+                    ai.prinim.prinyal.R.string.settings_window_shifted,
+                    names[which],
+                    "%02d:%02d".format(at.hour, at.minute),
+                )
+            )
+        }
+    }
 
     fun setSilenceThreshold(value: Int) =
         viewModelScope.launch { app.settings.setSilenceThreshold(value) }

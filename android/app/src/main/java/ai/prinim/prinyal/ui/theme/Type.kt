@@ -41,6 +41,11 @@ val GolosText = FontFamily(
         FontWeight.SemiBold,
         variationSettings = FontVariation.Settings(FontVariation.weight(600)),
     ),
+    Font(
+        R.font.golos_text,
+        FontWeight.Bold,
+        variationSettings = FontVariation.Settings(FontVariation.weight(700)),
+    ),
 )
 
 val JetBrainsMono = FontFamily(
@@ -71,6 +76,10 @@ data class PrinyalTypography(
     val label: TextStyle,
     /** Время, статусы, служебное. */
     val meta: TextStyle,
+    /** Вердикт «Недели» — «Петля жива» одним словом. */
+    val verdict: TextStyle,
+    /** Значение kill-метрики. */
+    val metric: TextStyle,
     /**
      * Таймер записи. Расширение шкалы: это единственное место, где время —
      * не служебная подпись, а содержание экрана (ТЗ UI §3.2 требует крупную
@@ -115,6 +124,20 @@ val PrinyalType = PrinyalTypography(
         fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
         lineHeight = 1.3.em,
+        lineHeightStyle = EvenLines,
+    ),
+    verdict = TextStyle(
+        fontFamily = GolosText,
+        fontWeight = FontWeight.Bold,
+        fontSize = 30.sp,
+        lineHeight = 1.13.em,
+        lineHeightStyle = EvenLines,
+    ),
+    metric = TextStyle(
+        fontFamily = GolosText,
+        fontWeight = FontWeight.Bold,
+        fontSize = 26.sp,
+        lineHeight = 1.15.em,
         lineHeightStyle = EvenLines,
     ),
     timer = TextStyle(

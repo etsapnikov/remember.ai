@@ -106,6 +106,12 @@ data class NoteEntity(
     /** Код деградации из meta.degraded — приложение переводит его в строку §4.1. */
     @ColumnInfo(name = "degraded") val degraded: String? = null,
     @ColumnInfo(name = "attempts") val attempts: Int = 0,
+    /**
+     * Мягкое удаление (спека R1.1 §2.2): пока живёт снекбар, запись можно вернуть.
+     * Из всех выборок скрыта; окончательная зачистка — по истечении снекбара или
+     * при выходе с экрана.
+     */
+    @ColumnInfo(name = "deleted_at") val deletedAt: Long? = null,
 )
 
 @Entity(

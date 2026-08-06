@@ -27,6 +27,17 @@ data class PrinyalColors(
     val recordPressed: Color,
     val recordWell: Color,
     val done: Color,
+    /** Хайрлайн-разделитель ленты — тоньше и тише обычного rule. */
+    val hairline: Color,
+    /**
+     * Пара удаления. Единственная красная пара после клавиши записи, и появляется
+     * только в открытой зоне свайпа — в покое красного в продукте нет (спека §2.3).
+     */
+    val destructiveBg: Color,
+    val destructiveFg: Color,
+    /** Статусы «Недели»: выше порога / ниже порога. */
+    val statusOk: Color,
+    val statusWarn: Color,
     val isDark: Boolean,
 )
 
@@ -44,6 +55,11 @@ val LightColors = PrinyalColors(
     recordPressed = Color(0xFFAE2A20),
     recordWell = Color(0xFF8E2318),
     done = Color(0xFF3F6B4F),
+    hairline = Color(0xFFF0E6DB),
+    destructiveBg = Color(0xFFF6E0D9),
+    destructiveFg = Color(0xFFB03A24),
+    statusOk = Color(0xFF3F6B4F),
+    statusWarn = Color(0xFFA8542B),
     isDark = false,
 )
 
@@ -62,5 +78,10 @@ val DarkColors = PrinyalColors(
     recordPressed = Color(0xFFB32C20),
     recordWell = Color(0xFF7A1C12),
     done = Color(0xFF7FB08F),
+    hairline = Color(0xFF1E1917),
+    destructiveBg = Color(0xFF3C1E18),
+    destructiveFg = Color(0xFFE8836B),
+    statusOk = Color(0xFF8FB79A),
+    statusWarn = Color(0xFFE08757),
     isDark = true,
 )

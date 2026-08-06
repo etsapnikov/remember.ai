@@ -145,28 +145,46 @@ fun EditItemSheet(
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
-                Text(
-                    text = stringResource(R.string.edit_save),
-                    style = Prinyal.type.label,
-                    color = Prinyal.colors.accentSelf,
-                    modifier = Modifier.clickable {
-                        onSave(text.text, type, if (noSchedule) null else window, noSchedule)
-                    },
-                )
-                Text(
-                    text = stringResource(R.string.item_bury),
-                    style = Prinyal.type.label,
-                    color = Prinyal.colors.inkMuted,
-                    modifier = Modifier.clickable(onClick = onBury),
-                )
+            // Ряд действий (спека R1.1 §4): главное — залитой пилюлей, отмена рядом
+            // текстом, деструктивное — отдельной строкой за хайрлайном, чтобы жесты
+            // «сохранить» и «похоронить» нельзя было перепутать вслепую.
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Space.ml),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                androidx.compose.foundation.layout.Box(
+                    Modifier
+                        .background(Prinyal.colors.accentSelf, Radius.pill)
+                        .clickable {
+                            onSave(text.text, type, if (noSchedule) null else window, noSchedule)
+                        }
+                        .padding(horizontal = Space.ml, vertical = Space.sm),
+                ) {
+                    Text(
+                        text = stringResource(R.string.edit_save),
+                        style = Prinyal.type.label,
+                        color = Prinyal.colors.paper,
+                    )
+                }
                 Text(
                     text = stringResource(R.string.edit_cancel),
                     style = Prinyal.type.label,
-                    color = Prinyal.colors.inkFaint,
+                    color = Prinyal.colors.inkMuted,
                     modifier = Modifier.clickable(onClick = onDismiss),
                 )
             }
+
+            androidx.compose.material3.HorizontalDivider(
+                thickness = 1.dp,
+                color = Prinyal.colors.hairline,
+            )
+            MetaText(
+                text = stringResource(R.string.item_bury),
+                color = Prinyal.colors.inkMuted,
+                modifier = Modifier
+                    .clickable(onClick = onBury)
+                    .padding(vertical = Space.xs),
+            )
         }
     }
 }

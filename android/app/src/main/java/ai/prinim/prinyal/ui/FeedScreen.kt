@@ -7,165 +7,260 @@ import ai.prinim.prinyal.data.ItemType
 import ai.prinim.prinyal.data.NoteStatus
 import ai.prinim.prinyal.data.NoteWithItems
 import ai.prinim.prinyal.domain.Phrases
-import ai.prinim.prinyal.ui.components.TypeGlyph
+import ai.prinim.prinyal.ui.components.SwipeRevealRow
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.Space
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
- * Лента (PRD §F-7). Хронология записей со статусами пунктов.
+ * Лента (спека R1.1 §2). Записи списком без карточек-коробок — рамки не несли
+ * информации; разделитель — хайрлайн 1dp. Глифов типов нет (вариант А): ценность
+ * пункта — его текст и план, тип остался только чипами в шите правки.
  *
- * Ни фильтров, ни папок, ни сортировки: любой элемент организации, требующий решения
- * от пользователя, делает продукт системой, которую надо вести (ТЗ UI §1).
+ * Удаление — свайп влево + тап по зоне, undo снекбаром 6 с. Похороны здесь не
+ * живут: похоронить — про пункт, удалить — про мусор (§2.3).
  */
 @Composable
 fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
     val notes by vm.feed.collectAsState()
-    val pending by vm.pendingCount.collectAsState()
+    val llmEnabled by vm.llmEnabled.collectAsState()
+    val listState = rememberLazyListState()
+
+    // Одновременно открыта максимум одна зона свайпа.
+    var openKey by remember { mutableStateOf<String?>(null) }
+
+    // Начало скролла закрывает открытую зону (спека §2.2).
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (listState.isScrollInProgress) openKey = null
+    }
+
+    val junk = notes.filter { it.isJunk() }
 
     Column(Modifier.fillMaxSize()) {
-        if (pending > 0) {
-            // Оффлайн — не ошибка, а состояние: бейдж без драмы (ТЗ UI §3.2).
-            // Но и врать нельзя: «нет связи» только если связь действительно рвалась,
-            // иначе это просто «ещё не разобрал».
-            val stuck = notes.any { it.note.degraded in NO_SERVER_CODES }
-            MetaText(
-                text = stringResource(
-                    if (stuck) R.string.feed_offline_badge else R.string.feed_pending
-                ),
-                color = Prinyal.colors.inkMuted,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Prinyal.colors.wellSurface)
-                    .padding(horizontal = Space.screen, vertical = Space.s),
-            )
+        // §2.4: выключенный разбор — одна meta-строка под заголовком, не бейджи.
+        if (!llmEnabled) {
+            Row(Modifier.padding(horizontal = Space.screen, vertical = Space.xs)) {
+                MetaText(
+                    text = stringResource(R.string.feed_parsing_off),
+                    color = Prinyal.colors.accentSelf,
+                    modifier = Modifier.clickable { vm.setLlmEnabled(true) },
+                )
+            }
         }
 
         if (notes.isEmpty()) {
-            Box(Modifier.fillMaxSize(), Alignment.Center) {
-                Text(
-                    text = stringResource(R.string.feed_empty),
-                    style = Prinyal.type.body,
-                    color = Prinyal.colors.inkFaint,
-                )
-            }
+            EmptyFeed()
             return@Column
         }
 
         LazyColumn(
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                start = Space.screen,
-                end = Space.screen,
-                top = Space.s,
-                bottom = Space.xxl,
-            ),
-            verticalArrangement = Arrangement.spacedBy(Space.itemGap),
+            state = listState,
+            contentPadding = PaddingValues(top = Space.xs, bottom = Space.xxl),
         ) {
-            items(notes, key = { it.note.id }) { entry ->
-                NoteRow(entry, onClick = { onOpenNote(entry.note.id) })
+            // Групповая уборка: появляется при ≥ 3 записях без пунктов.
+            if (junk.size >= 3) {
+                item(key = "junk-sweep") {
+                    JunkSweepRow(count = junk.size, onSweep = { vm.sweepJunk() })
+                    Hairline()
+                }
+            }
+
+            notes.forEachIndexed { index, entry ->
+                item(key = entry.note.id) {
+                    SwipeRevealRow(
+                        key = entry.note.id,
+                        openKey = openKey,
+                        onOpen = { openKey = it },
+                        actionLabel = deleteLabel(entry.items.count { it.isAlive() }),
+                        onAction = {
+                            openKey = null
+                            vm.deleteNote(entry.note.id)
+                        },
+                    ) { revealed ->
+                        NoteRow(
+                            entry = entry,
+                            compact = revealed > 0.05f,
+                            onClick = { if (openKey == null) onOpenNote(entry.note.id) },
+                        )
+                    }
+                    if (index != notes.lastIndex) Hairline()
+                }
             }
         }
     }
 }
 
+/** «Удалить» или «Удалить · 3 пункта» — число и есть предупреждение, модалки нет. */
 @Composable
-private fun NoteRow(entry: NoteWithItems, onClick: () -> Unit) {
+private fun deleteLabel(itemCount: Int): String =
+    if (itemCount == 0) stringResource(R.string.note_delete)
+    else pluralStringResource(R.plurals.note_delete_items, itemCount, itemCount)
+
+@Composable
+private fun Hairline() {
+    HorizontalDivider(
+        thickness = 1.dp,
+        color = Prinyal.colors.hairline,
+        modifier = Modifier.padding(horizontal = Space.screen),
+    )
+}
+
+@Composable
+private fun JunkSweepRow(count: Int, onSweep: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onSweep)
+            .padding(horizontal = Space.screen, vertical = Space.sm),
+    ) {
+        MetaText(
+            text = pluralStringResource(R.plurals.feed_junk_sweep, count, count),
+            color = Prinyal.colors.accentSelf,
+        )
+    }
+}
+
+/**
+ * Запись в ленте (спека §2.1).
+ *
+ * Без пунктов — одна строка 48 dp: слева время, справа длительность и статус;
+ * при открытой зоне свайпа длительность прячется (контент сжимается).
+ * Разобранная — шапка «дата · N пунктов» и пункты с meta-строкой.
+ */
+@Composable
+private fun NoteRow(entry: NoteWithItems, compact: Boolean, onClick: () -> Unit) {
     val note = entry.note
-    val status = NoteStatus.of(note.status)
+    val alive = entry.items.filter { it.isAlive() || it.isClosed() }
 
     Column(
         Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = Space.s),
-        verticalArrangement = Arrangement.spacedBy(Space.s),
+            .padding(horizontal = Space.screen, vertical = Space.s),
     ) {
         Row(
-            Modifier.fillMaxWidth(),
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = if (alive.isEmpty()) 32.dp else 0.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             MetaText(formatTime(note.createdAt))
-            MetaText(
-                text = statusLabel(status),
-                color = when (status) {
-                    NoteStatus.FAILED_ASR, NoteStatus.FAILED_LLM -> Prinyal.colors.inkMuted
-                    NoteStatus.PARSED -> Prinyal.colors.inkFaint
-                    else -> Prinyal.colors.accentSelf
-                },
-            )
+            if (alive.isEmpty()) {
+                // «0:04 не расслышал»; длительность прячется, когда строка сжата.
+                val status = statusLabel(NoteStatus.of(note.status))
+                val duration = formatDuration(note.durationMs)
+                MetaText(
+                    text = if (compact || duration == null) status else "$duration $status",
+                    color = Prinyal.colors.inkFaint,
+                )
+            } else {
+                MetaText(pluralStringResource(R.plurals.note_items_count, alive.size, alive.size))
+            }
         }
 
-        // Пока разбора нет, показываем услышанное. Дублировать статус словом
-        // «записано» незачем — он уже написан справа.
-        val preview = note.transcript.orEmpty()
-        if (entry.items.isEmpty()) {
-            if (preview.isNotBlank()) {
-                Text(
-                    text = preview,
-                    style = Prinyal.type.body,
-                    color = Prinyal.colors.inkMuted,
-                    maxLines = 2,
-                )
-            }
-        } else {
-            entry.items.forEach { item -> ItemLine(item) }
+        alive.forEach { item ->
+            ItemLine(item, Modifier.padding(top = Space.sm))
         }
+    }
+}
+
+/** Пункт: текст и meta-строка сегментами через « · », пустые сегменты не печатаются. */
+@Composable
+private fun ItemLine(item: ItemEntity, modifier: Modifier = Modifier) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val state = ItemState.of(item.state)
+    val closed = item.isClosed()
+
+    Column(modifier.fillMaxWidth()) {
+        Text(
+            text = item.text,
+            style = Prinyal.type.label,
+            color = if (closed) Prinyal.colors.inkFaint else Prinyal.colors.ink,
+            textDecoration = if (state == ItemState.DONE) TextDecoration.LineThrough else null,
+        )
+        val segments = buildList {
+            // Адресат — только у «сказать»: у остальных типов он не звучал.
+            if (ItemType.of(item.type) == ItemType.TELL) item.who?.let(::add)
+            add(stateLabel(state))
+            if (!closed) add(Phrases.plan(context, item))
+        }
+        MetaText(
+            text = segments.joinToString(" · "),
+            color = if (state == ItemState.DONE) Prinyal.colors.done else Prinyal.colors.inkFaint,
+            modifier = Modifier.padding(top = 2.dp),
+        )
     }
 }
 
 @Composable
-private fun ItemLine(item: ItemEntity) {
-    val state = ItemState.of(item.state)
-    val closed = state in setOf(ItemState.DONE, ItemState.DISMISSED, ItemState.EXPIRED)
-
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Space.sm),
-        verticalAlignment = Alignment.Top,
+private fun EmptyFeed() {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(horizontal = Space.xl),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        TypeGlyph(
-            type = ItemType.of(item.type),
-            color = if (closed) Prinyal.colors.inkFaint else Prinyal.colors.ink,
+        Text(
+            text = stringResource(R.string.feed_empty_title),
+            style = Prinyal.type.itemTitle,
+            color = Prinyal.colors.ink,
         )
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Space.xs)) {
-            Text(
-                text = item.text,
-                style = Prinyal.type.body,
-                color = if (closed) Prinyal.colors.inkFaint else Prinyal.colors.ink,
-                // Похороненное не вычёркивается красным крестом — просто гаснет
-                // (ТЗ UI §3.6: без вины и без драмы).
-                textDecoration = if (state == ItemState.DONE) TextDecoration.LineThrough else null,
-            )
-            MetaText(
-                text = stateLabel(state),
-                color = if (state == ItemState.DONE) Prinyal.colors.done else Prinyal.colors.inkFaint,
-            )
-        }
+        Text(
+            text = stringResource(R.string.feed_empty_body),
+            style = Prinyal.type.body,
+            color = Prinyal.colors.inkMuted,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = Space.sm),
+        )
     }
 }
+
+// --- мелкая логика строк ---
+
+private fun NoteWithItems.isJunk(): Boolean =
+    items.isEmpty() && NoteStatus.of(note.status) in
+        setOf(NoteStatus.FAILED_ASR, NoteStatus.FAILED_LLM)
+
+private fun ItemEntity.isAlive(): Boolean =
+    ItemState.of(state) in setOf(ItemState.PLANNED, ItemState.RETURNED, ItemState.SNOOZED)
+
+private fun ItemEntity.isClosed(): Boolean =
+    ItemState.of(state) in setOf(ItemState.DONE, ItemState.DISMISSED, ItemState.EXPIRED)
 
 @Composable
 private fun statusLabel(status: NoteStatus): String = stringResource(
@@ -191,10 +286,11 @@ private fun stateLabel(state: ItemState): String = stringResource(
     }
 )
 
-private val NO_SERVER_CODES = setOf("no_server", "not_configured")
-
 private val DAY_TIME: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("d MMM · HH:mm", java.util.Locale("ru"))
+    DateTimeFormatter.ofPattern("d MMM · HH:mm", Locale("ru"))
 
 private fun formatTime(millis: Long): String =
     LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneId.systemDefault()).format(DAY_TIME)
+
+private fun formatDuration(ms: Long): String? =
+    if (ms <= 0) null else "%d:%02d".format(ms / 60_000, (ms / 1000) % 60)

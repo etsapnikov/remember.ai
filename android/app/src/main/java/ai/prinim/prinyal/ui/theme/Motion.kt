@@ -29,4 +29,23 @@ object Motion {
 
     /** Похороны айтема: спокойный уход, без вины и драмы. */
     val Burial = MotionSpec(900, CubicBezierEasing(.3f, 0f, .6f, 1f))
+
+    /** Долёт жеста до конца пути (переход запись↔лента, фиксация зоны свайпа). */
+    val FollowSettle = MotionSpec(320, CubicBezierEasing(.2f, .8f, .2f, 1f))
+    const val FollowSettleMinMs = 180
+
+    /** Возврат прерванного жеста на место. */
+    val FollowCancel = MotionSpec(200, CubicBezierEasing(.4f, 0f, .6f, 1f))
+}
+
+/**
+ * Пороги жестов из токенов (`gesture`). Смещения в dp, скорости в dp/с.
+ */
+object Gesture {
+    const val SWIPE_START_DP = 8
+    const val SWIPE_COMMIT_VERTICAL_DP = 96
+    const val SWIPE_COMMIT_VERTICAL_VELOCITY = 600
+    const val SWIPE_COMMIT_ROW_DP = 40
+    const val SWIPE_COMMIT_ROW_VELOCITY = 400
+    const val ROW_ACTION_WIDTH_DP = 88
 }

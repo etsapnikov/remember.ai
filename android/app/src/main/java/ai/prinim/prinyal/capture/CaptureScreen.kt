@@ -11,7 +11,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,7 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -43,6 +41,8 @@ import androidx.compose.ui.tooling.preview.Preview
  */
 class CaptureState {
     var recording by mutableStateOf(false)
+    var showCancelHint by mutableStateOf(true)
+    var showUpHint by mutableStateOf(true)
     var receipt by mutableStateOf(false)
     var needsPermission by mutableStateOf(false)
     var failed by mutableStateOf(false)
@@ -61,28 +61,16 @@ class CaptureState {
 @Composable
 fun CaptureScreen(
     state: CaptureState,
+    hasNotes: Boolean,
     onStop: () -> Unit,
     onCancel: () -> Unit,
     onGrant: () -> Unit,
-    onOpenFeed: () -> Unit = {},
 ) {
+    // Вертикальные жесты живут в CaptureHost: вверх тянет лист ленты, вниз отменяет.
     Box(
         Modifier
             .fillMaxSize()
             .background(Prinyal.colors.paper)
-            .pointerInput(state.recording) {
-                detectVerticalDragGestures { _, dragAmount ->
-                    when {
-                        // Свайп вниз — отмена. Порог крупный: случайное движение
-                        // пальцем не должно стирать сказанное.
-                        dragAmount > 24f && state.recording -> onCancel()
-                        // Свайп вверх — лента (ТЗ UI §3.4). Единственный путь к
-                        // записям и настройкам: экран захвата ничего не показывает,
-                        // но и не запирает.
-                        dragAmount < -24f -> onOpenFeed()
-                    }
-                }
-            }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 // Ripple здесь неуместен: тап по экрану — это стоп, а не «кнопка».
@@ -97,7 +85,7 @@ fun CaptureScreen(
             state.needsPermission -> PermissionRequest(onGrant)
             state.failed -> Message(stringResource(R.string.error_asr_failed))
             state.tooShort -> Message(stringResource(R.string.capture_too_short))
-            else -> Recording(state)
+            else -> Recording(state, hasNotes)
         }
     }
 }
@@ -128,7 +116,7 @@ private fun Receipt() {
 }
 
 @Composable
-private fun Recording(state: CaptureState) {
+private fun Recording(state: CaptureState, hasNotes: Boolean) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -150,17 +138,32 @@ private fun Recording(state: CaptureState) {
         RecordKey(pulsing = state.recording, level = state.level)
 
         Box(Modifier.height(Space.l))
-        Text(
-            text = stringResource(
-                if (state.recording) R.string.capture_cancel_hint else R.string.capture_hint
-            ),
-            style = Prinyal.type.body,
-            color = Prinyal.colors.inkFaint,
-            textAlign = TextAlign.Center,
-        )
+
+        // Подсказки жестов (§8): обе под кнопкой, гаснут по счётчикам применений.
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (state.recording && state.showCancelHint) {
+                HintLine(stringResource(R.string.capture_cancel_hint))
+            }
+            if (state.showUpHint && hasNotes) {
+                HintLine(stringResource(R.string.capture_hint_up))
+            }
+            if (!state.recording && !state.showUpHint && !state.showCancelHint) {
+                HintLine(stringResource(R.string.capture_hint))
+            }
+        }
 
         Box(Modifier.weight(0.55f))
     }
+}
+
+@Composable
+private fun HintLine(text: String) {
+    Text(
+        text = text,
+        style = Prinyal.type.body,
+        color = Prinyal.colors.inkFaint,
+        textAlign = TextAlign.Center,
+    )
 }
 
 @Composable
@@ -211,6 +214,7 @@ private fun CapturePreview() {
     PrinyalTheme {
         CaptureScreen(
             state = CaptureState().apply { recording = true; elapsedMs = 7_400; level = 0.6f },
+            hasNotes = true,
             onStop = {}, onCancel = {}, onGrant = {},
         )
     }
@@ -222,6 +226,7 @@ private fun ReceiptPreview() {
     PrinyalTheme {
         CaptureScreen(
             state = CaptureState().apply { receipt = true },
+            hasNotes = true,
             onStop = {}, onCancel = {}, onGrant = {},
         )
     }

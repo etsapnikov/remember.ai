@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.security.crypto.EncryptedSharedPreferences
@@ -77,6 +78,27 @@ class Settings(private val context: Context) {
 
     suspend fun setSilenceThreshold(value: Int) {
         context.dataStore.edit { it[SILENCE_THRESHOLD] = value }
+    }
+
+    // --- счётчики подсказок жестов (спека R1.1 §8) ---
+    // Подсказка гаснет после трёх применений жеста и возвращается, если жестом
+    // не пользовались 30 дней.
+
+    suspend fun hintVisible(key: String): Boolean {
+        val data = context.dataStore.data.first()
+        val uses = data[intPreferencesKey("hint_${key}_uses")] ?: 0
+        val last = data[longPreferencesKey("hint_${key}_last")] ?: 0L
+        if (uses < 3) return true
+        val month = 30L * 24 * 60 * 60 * 1000
+        return System.currentTimeMillis() - last > month
+    }
+
+    suspend fun hintUsed(key: String) {
+        context.dataStore.edit {
+            val usesKey = intPreferencesKey("hint_${key}_uses")
+            it[usesKey] = (it[usesKey] ?: 0) + 1
+            it[longPreferencesKey("hint_${key}_last")] = System.currentTimeMillis()
+        }
     }
 
     suspend fun setWindow(window: Window, time: LocalTime) {

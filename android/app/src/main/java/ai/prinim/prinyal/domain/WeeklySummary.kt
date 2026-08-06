@@ -4,18 +4,21 @@ import ai.prinim.prinyal.data.Analytics
 import ai.prinim.prinyal.data.PrinyalDb
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 /**
- * Сводка недели под kill-критерии (PRD §F-9, §8).
+ * Сводка недели (спека R1.1 §6): экран отвечает на один вопрос — «петля жива?».
  *
- * Считается по `analytics.jsonl`, а не по ощущениям: риск «сам себе прощаю пропуски»
- * назван в §9, и лечится он только тем, что числа пишутся автоматически, а пороги
- * записаны заранее.
+ * Метрики считаются по 7-дневному окну из `analytics.jsonl`. Пороги записаны здесь
+ * констанами и в подписи порога на экране: решение по kill-критериям принимается по
+ * числам, зафиксированным заранее, а не по самочувствию (PRD §8/§9).
  *
- * Правило честности §8: первые три дня — обкатка, в метрики не идут.
+ * Отступление от таблицы дизайнера, по её же правилу «пороги из PRD §8»:
+ * возвраты — порог 50% (в макете 40), «не надо» — тревога выше 20% (в макете 60).
  */
 class WeeklySummary(
     private val analytics: Analytics,
@@ -23,85 +26,153 @@ class WeeklySummary(
     private val zone: ZoneId = ZoneId.systemDefault(),
 ) {
 
+    enum class Verdict { EARLY, ALIVE, WARN, FAIL }
+
+    /** Что именно сломано — из этого собирается фраза под вердиктом. */
+    enum class Problem { NONE, RETURNS, LUMP, DAYS }
+
     data class Report(
-        val daysWindow: Int,
+        val verdict: Verdict,
+        val problem: Problem,
+        /** Возвраты: любой ответ ÷ показанные. null — показов не было. */
+        val returnsAnswered: Int,
+        val returnsShown: Int,
+        /** Медиана пунктов в разобранной записи. null — разборов не было. */
+        val lumpMedian: Double?,
         val daysWithCapture: Int,
-        val notesPerDay: Double,
-        /** Медиана пунктов на запись. < 1.5 — тревога по kill-критерию 2. */
-        val itemsPerNoteMedian: Double,
-        val returnsActedShare: Double,
-        val dismissedShare: Double,
-        val editedShare: Double,
-        val parseLatencyMedianMs: Long,
-        val returnDriftWithin2MinShare: Double,
+        val daysWindow: Int,
+        /** Медиана записей в активный день. null — записей не было. */
+        val perDayMedian: Int?,
+        /** «Не надо»: сколько из ответов. */
+        val dismissed: Int,
     ) {
-        /** Медиана < 1.5 означает, что диктуются команды, а не комки — построен Siri-клон. */
-        val siriCloneAlarm: Boolean get() = itemsPerNoteMedian < 1.5
+        val returnsShare: Double? =
+            if (returnsShown == 0) null else returnsAnswered.toDouble() / returnsShown
     }
 
-    suspend fun build(window: Int = 14, warmupDays: Int = 3): Report =
+    companion object {
+        const val WINDOW_DAYS = 7
+        const val WARMUP_DAYS = 3
+
+        // Пороги решений — PRD §8.
+        const val RETURNS_MIN = 0.5
+        const val LUMP_MIN = 2.0
+        const val DAYS_MIN = 4
+        const val DISMISSED_MAX = 0.2
+    }
+
+    suspend fun build(today: LocalDate = LocalDate.now(zone)): Report =
         withContext(Dispatchers.IO) {
             val events = analytics.readAll()
-            val today = LocalDate.now(zone)
-            val from = today.minusDays(window.toLong() - 1)
-            val countedFrom = from.plusDays(warmupDays.toLong())
 
-            fun dayOf(millis: Long): LocalDate =
-                Instant.ofEpochMilli(millis).atZone(zone).toLocalDate()
-
-            fun counted(millis: Long): Boolean {
-                val day = dayOf(millis)
-                return !day.isBefore(countedFrom) && !day.isAfter(today)
+            val installDay = events.minOfOrNull { dayOf(it.optLong("t")) } ?: today
+            if (ChronoUnit.DAYS.between(installDay, today) < WARMUP_DAYS) {
+                val window = window(events, today)
+                return@withContext window.toReport(Verdict.EARLY, Problem.NONE)
             }
 
-            val receipts = events.filter { it.optString("e") == Analytics.RECEIPT_SHOWN }
-                .filter { counted(it.optLong("t")) }
-            val parses = events.filter { it.optString("e") == Analytics.PARSE_OK }
-                .filter { counted(it.optLong("t")) }
-            val fired = events.filter { it.optString("e") == Analytics.RETURN_FIRED }
-                .filter { counted(it.optLong("t")) && it.has("return") }
-            val actions = events.filter { it.optString("e") == Analytics.RETURN_ACTION }
-                .filter { counted(it.optLong("t")) }
-            val edits = events.filter { it.optString("e") == Analytics.EDIT_ITEM }
-                .filter { counted(it.optLong("t")) }
+            val current = window(events, today)
+            val alarms = current.failedKills()
 
-            val daysWithCapture = receipts.map { dayOf(it.optLong("t")) }.distinct().size
-            val countedDays = (window - warmupDays).coerceAtLeast(1)
+            val verdict = when {
+                alarms.isEmpty() -> if (current.warnings()) Verdict.WARN else Verdict.ALIVE
+                // Провал — kill ниже порога два дня подряд, не единичный плохой день.
+                window(events, today.minusDays(1)).failedKills()
+                    .intersect(alarms).isNotEmpty() -> Verdict.FAIL
+                else -> Verdict.WARN
+            }
 
-            val itemCounts = parses.map { it.optInt("items").toDouble() }
-            val latencies = parses.map { (it.optInt("asr_ms") + it.optInt("llm_ms")).toLong() }
+            val problem = when {
+                Problem.DAYS in alarmsAsProblems(current) -> Problem.DAYS
+                Problem.RETURNS in alarmsAsProblems(current) -> Problem.RETURNS
+                Problem.LUMP in alarmsAsProblems(current) -> Problem.LUMP
+                else -> Problem.NONE
+            }
 
-            // «Сделано» и «позже» — это замкнувшаяся петля; «не надо» — мусор разбора.
-            val acted = actions.count { it.optString("action") in setOf("done", "later") }
-            val dismissed = actions.count { it.optString("action") in setOf("dismiss", "miss") }
-
-            val drifts = fired.mapNotNull { if (it.has("drift_ms")) it.optLong("drift_ms") else null }
-            val withinTwoMinutes = drifts.count { kotlin.math.abs(it) <= 120_000 }
-
-            val totalItems = db.items().all().size
-
-            Report(
-                daysWindow = countedDays,
-                daysWithCapture = daysWithCapture,
-                notesPerDay = if (daysWithCapture == 0) 0.0
-                else receipts.size.toDouble() / daysWithCapture,
-                itemsPerNoteMedian = median(itemCounts),
-                returnsActedShare = share(acted, fired.size),
-                dismissedShare = share(dismissed, fired.size),
-                editedShare = share(edits.size, totalItems),
-                parseLatencyMedianMs = median(latencies.map(Long::toDouble)).toLong(),
-                returnDriftWithin2MinShare = share(withinTwoMinutes, drifts.size),
-            )
+            current.toReport(verdict, problem)
         }
 
-    private fun median(values: List<Double>): Double {
-        if (values.isEmpty()) return 0.0
-        val sorted = values.sorted()
+    // --- окно ---
+
+    private class WindowStats(
+        val returnsAnswered: Int,
+        val returnsShown: Int,
+        val lumpMedian: Double?,
+        val daysWithCapture: Int,
+        val perDayMedian: Int?,
+        val dismissed: Int,
+    ) {
+        /** Kill-критерии, проваленные в этом окне. Нет данных — не провал. */
+        fun failedKills(): Set<String> = buildSet {
+            if (returnsShown > 0 && returnsAnswered.toDouble() / returnsShown < RETURNS_MIN) {
+                add("returns")
+            }
+            if (lumpMedian != null && lumpMedian < LUMP_MIN) add("lump")
+        }
+
+        fun warnings(): Boolean {
+            if (daysWithCapture < DAYS_MIN) return true
+            val answered = returnsAnswered
+            if (answered > 0 && dismissed.toDouble() / answered > DISMISSED_MAX) return true
+            return false
+        }
+
+        fun toReport(verdict: Verdict, problem: Problem) = Report(
+            verdict = verdict,
+            problem = problem,
+            returnsAnswered = returnsAnswered,
+            returnsShown = returnsShown,
+            lumpMedian = lumpMedian,
+            daysWithCapture = daysWithCapture,
+            daysWindow = WINDOW_DAYS,
+            perDayMedian = perDayMedian,
+            dismissed = dismissed,
+        )
+    }
+
+    private fun alarmsAsProblems(stats: WindowStats): Set<Problem> = buildSet {
+        if ("returns" in stats.failedKills()) add(Problem.RETURNS)
+        if ("lump" in stats.failedKills()) add(Problem.LUMP)
+        if (stats.daysWithCapture < DAYS_MIN) add(Problem.DAYS)
+    }
+
+    private fun window(events: List<JSONObject>, until: LocalDate): WindowStats {
+        val from = until.minusDays(WINDOW_DAYS.toLong() - 1)
+
+        fun inWindow(event: JSONObject): Boolean {
+            val day = dayOf(event.optLong("t"))
+            return !day.isBefore(from) && !day.isAfter(until)
+        }
+
+        val receipts = events.filter { it.optString("e") == Analytics.RECEIPT_SHOWN && inWindow(it) }
+        val parses = events.filter { it.optString("e") == Analytics.PARSE_OK && inWindow(it) }
+        val shown = events.count {
+            it.optString("e") == Analytics.RETURN_FIRED && it.has("return") && inWindow(it)
+        }
+        val answers = events.filter { it.optString("e") == Analytics.RETURN_ACTION && inWindow(it) }
+
+        val byDay = receipts.groupBy { dayOf(it.optLong("t")) }
+        val perDay = byDay.values.map { it.size }.sorted()
+
+        val itemCounts = parses.map { it.optInt("items") }.sorted()
+
+        return WindowStats(
+            returnsAnswered = answers.size,
+            returnsShown = shown,
+            lumpMedian = medianOf(itemCounts.map(Int::toDouble)),
+            daysWithCapture = byDay.size,
+            perDayMedian = medianOf(perDay.map(Int::toDouble))?.toInt(),
+            dismissed = answers.count { it.optString("action") in setOf("dismiss", "miss") },
+        )
+    }
+
+    private fun medianOf(sorted: List<Double>): Double? {
+        if (sorted.isEmpty()) return null
         val middle = sorted.size / 2
         return if (sorted.size % 2 == 1) sorted[middle]
         else (sorted[middle - 1] + sorted[middle]) / 2.0
     }
 
-    private fun share(part: Int, total: Int): Double =
-        if (total == 0) 0.0 else part.toDouble() / total
+    private fun dayOf(millis: Long): LocalDate =
+        Instant.ofEpochMilli(millis).atZone(zone).toLocalDate()
 }

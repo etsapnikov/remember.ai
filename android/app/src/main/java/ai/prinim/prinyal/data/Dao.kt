@@ -29,7 +29,7 @@ interface NoteDao {
     suspend fun byId(id: String): NoteEntity?
 
     @Transaction
-    @Query("SELECT * FROM notes ORDER BY created_at DESC")
+    @Query("SELECT * FROM notes WHERE deleted_at IS NULL ORDER BY created_at DESC")
     fun feed(): Flow<List<NoteWithItems>>
 
     @Transaction
@@ -37,10 +37,13 @@ interface NoteDao {
     fun watch(id: String): Flow<NoteWithItems?>
 
     /** Что ждёт отправки: очередь переживает перезагрузку, потому что живёт в базе. */
-    @Query("SELECT * FROM notes WHERE status IN ('recorded', 'queued') ORDER BY created_at ASC")
+    @Query(
+        "SELECT * FROM notes WHERE deleted_at IS NULL AND status IN ('recorded', 'queued') " +
+            "ORDER BY created_at ASC"
+    )
     suspend fun pending(): List<NoteEntity>
 
-    @Query("SELECT COUNT(*) FROM notes WHERE status IN ('recorded', 'queued')")
+    @Query("SELECT COUNT(*) FROM notes WHERE deleted_at IS NULL AND status IN ('recorded', 'queued')")
     fun pendingCount(): Flow<Int>
 
     @Query("UPDATE notes SET status = :status WHERE id = :id")
@@ -52,8 +55,30 @@ interface NoteDao {
     @Query("DELETE FROM notes WHERE id = :id")
     suspend fun delete(id: String)
 
-    @Query("SELECT * FROM notes ORDER BY created_at ASC")
+    @Query("SELECT * FROM notes WHERE deleted_at IS NULL ORDER BY created_at ASC")
     suspend fun all(): List<NoteEntity>
+
+    // --- мягкое удаление (спека R1.1 §2.2) ---
+
+    @Query("UPDATE notes SET deleted_at = :at WHERE id = :id")
+    suspend fun softDelete(id: String, at: Long)
+
+    @Query("UPDATE notes SET deleted_at = NULL WHERE id = :id")
+    suspend fun undelete(id: String)
+
+    @Query("SELECT * FROM notes WHERE deleted_at IS NOT NULL")
+    suspend fun softDeleted(): List<NoteEntity>
+
+    /** Мусор для групповой уборки: записи без пунктов, разбор которых завершился. */
+    @Query(
+        "SELECT * FROM notes WHERE deleted_at IS NULL " +
+            "AND status IN ('failed_asr', 'failed_llm') " +
+            "AND id NOT IN (SELECT DISTINCT note_id FROM items)"
+    )
+    suspend fun junk(): List<NoteEntity>
+
+    @Query("SELECT COUNT(*) FROM notes WHERE deleted_at IS NULL")
+    suspend fun countAlive(): Int
 }
 
 @Dao

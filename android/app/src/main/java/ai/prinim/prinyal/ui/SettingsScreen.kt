@@ -1,7 +1,7 @@
 package ai.prinim.prinyal.ui
 
+import ai.prinim.prinyal.BuildConfig
 import ai.prinim.prinyal.R
-import ai.prinim.prinyal.capture.Recorder
 import ai.prinim.prinyal.data.Window
 import ai.prinim.prinyal.returns.ReturnScheduler
 import ai.prinim.prinyal.ui.theme.MetaText
@@ -10,17 +10,21 @@ import ai.prinim.prinyal.ui.theme.Radius
 import ai.prinim.prinyal.ui.theme.Space
 import android.content.Intent
 import android.provider.Settings as AndroidSettings
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.Slider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -34,90 +38,71 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import java.time.LocalTime
 
 /**
- * Настройки (PRD §F-8) — минимум, который нужен, чтобы петля работала и данные
- * не пропали: адрес и токен, окна дня, тумблер разбора, экспорт.
+ * Настройки (спека R1.1 §5). Порядок секций — по частоте использования; заголовок
+ * секции никогда не повторяет подпись элемента внутри неё (правило после трёх
+ * вычищенных дублей).
+ *
+ * Секции «Сервер» на виду больше нет: серверный контур жив в коде, но доступен
+ * только из «Для разработчика», и в release-сборке секция скрыта целиком.
  */
 @Composable
 fun SettingsScreen(vm: AppViewModel) {
     val context = LocalContext.current
-    val url by vm.serverUrl.collectAsState()
     val llm by vm.llmEnabled.collectAsState()
     val windows by vm.windows.collectAsState()
     val threshold by vm.silenceThreshold.collectAsState()
-    val health by vm.health.collectAsState()
     val message by vm.message.collectAsState()
+    val notes by vm.feed.collectAsState()
 
-    var urlDraft by remember(url) { mutableStateOf(url) }
-    var tokenDraft by remember { mutableStateOf(vm.token()) }
     val scheduler = remember { ReturnScheduler(context) }
+    var editingWindow by remember { mutableStateOf<Window?>(null) }
 
     LazyColumn(
+        state = rememberLazyListState(),
         contentPadding = PaddingValues(
             start = Space.screen, end = Space.screen, top = Space.s, bottom = Space.xxl,
         ),
-        verticalArrangement = Arrangement.spacedBy(Space.ml),
+        verticalArrangement = Arrangement.spacedBy(Space.xl),
     ) {
         item {
-            Section(stringResource(R.string.settings_server)) {
-                Field(
-                    label = stringResource(R.string.settings_server_url),
-                    value = urlDraft,
-                    onValue = {
-                        urlDraft = it
-                        vm.setServerUrl(it)
-                    },
-                )
-                Field(
-                    label = stringResource(R.string.settings_token),
-                    value = tokenDraft,
-                    secret = true,
-                    onValue = {
-                        tokenDraft = it
-                        vm.setToken(it)
-                    },
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Space.m),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(R.string.settings_check),
-                        style = Prinyal.type.label,
-                        color = Prinyal.colors.accentSelf,
-                        modifier = Modifier.clickable { vm.checkHealth() },
-                    )
-                    health?.let {
-                        MetaText(
-                            text = stringResource(
-                                if (it) R.string.settings_check_ok else R.string.settings_check_fail
-                            ),
-                            color = if (it) Prinyal.colors.done else Prinyal.colors.inkMuted,
-                        )
-                    }
+            Section(stringResource(R.string.settings_windows)) {
+                WindowRow(stringResource(R.string.settings_window_morning), windows.morning) {
+                    editingWindow = Window.MORNING
+                }
+                WindowRow(stringResource(R.string.settings_window_day), windows.day) {
+                    editingWindow = Window.DAY
+                }
+                WindowRow(stringResource(R.string.settings_window_evening), windows.evening) {
+                    editingWindow = Window.EVENING
+                }
+                WindowRow(stringResource(R.string.settings_window_weekend), windows.weekend) {
+                    editingWindow = Window.WEEKEND
                 }
             }
         }
 
         item {
-            Section(stringResource(R.string.settings_windows)) {
-                TimeRow(stringResource(R.string.settings_window_morning), windows.morning) {
-                    vm.setWindow(Window.MORNING, it)
-                }
-                TimeRow(stringResource(R.string.settings_window_day), windows.day) {
-                    vm.setWindow(Window.DAY, it)
-                }
-                TimeRow(stringResource(R.string.settings_window_evening), windows.evening) {
-                    vm.setWindow(Window.EVENING, it)
-                }
-                TimeRow(stringResource(R.string.settings_window_weekend), windows.weekend) {
-                    vm.setWindow(Window.WEEKEND, it)
-                }
+            Section(stringResource(R.string.settings_capture)) {
+                MetaText(stringResource(R.string.set_silence_title))
+                SilenceSegments(current = threshold, onSelect = { vm.setSilenceThreshold(it) })
+                Text(
+                    // Длительность тишины в продукте одна — 2 секунды (Recorder).
+                    // Спека предлагала пересчитывать число; менять длительность по
+                    // порогу громкости значило бы смешать две разные величины.
+                    text = stringResource(R.string.set_silence_note, "2"),
+                    style = Prinyal.type.body,
+                    color = Prinyal.colors.inkMuted,
+                )
             }
         }
 
@@ -129,7 +114,7 @@ fun SettingsScreen(vm: AppViewModel) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = stringResource(R.string.settings_llm),
+                        text = stringResource(R.string.set_parse_toggle),
                         style = Prinyal.type.body,
                         color = Prinyal.colors.ink,
                         modifier = Modifier.weight(1f),
@@ -143,10 +128,9 @@ fun SettingsScreen(vm: AppViewModel) {
                         ),
                     )
                 }
-                // Честная надпись, что именно перестаёт работать (F-8).
                 if (!llm) {
                     Text(
-                        text = stringResource(R.string.settings_llm_off_warning),
+                        text = stringResource(R.string.set_parse_off_note),
                         style = Prinyal.type.body,
                         color = Prinyal.colors.inkMuted,
                     )
@@ -155,63 +139,255 @@ fun SettingsScreen(vm: AppViewModel) {
         }
 
         item {
-            Section(stringResource(R.string.settings_silence_threshold)) {
-                Slider(
-                    value = threshold.toFloat(),
-                    onValueChange = { vm.setSilenceThreshold(it.toInt()) },
-                    valueRange = 200f..4_000f,
-                )
-                MetaText("$threshold")
+            Section(stringResource(R.string.settings_data)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_export),
+                        style = Prinyal.type.label,
+                        color = Prinyal.colors.accentSelf,
+                        modifier = Modifier.clickable {
+                            vm.export { file ->
+                                vm.showMessage(
+                                    context.getString(R.string.settings_export_done, file.name)
+                                )
+                            }
+                        },
+                    )
+                    MetaText(
+                        pluralStringResource(
+                            R.plurals.settings_notes_count, notes.size, notes.size,
+                        )
+                    )
+                }
+                message?.let { MetaText(it) }
             }
         }
 
         item {
-            Section(stringResource(R.string.settings_exact_alarm)) {
-                if (!scheduler.canScheduleExact()) {
-                    Text(
-                        text = stringResource(R.string.settings_exact_alarm_why),
-                        style = Prinyal.type.body,
-                        color = Prinyal.colors.inkMuted,
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_exact_alarm),
-                        style = Prinyal.type.label,
-                        color = Prinyal.colors.accentSelf,
-                        modifier = Modifier.clickable {
+            Section(stringResource(R.string.settings_system)) {
+                val granted = scheduler.canScheduleExact()
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = !granted) {
                             runCatching {
                                 context.startActivity(
                                     Intent(AndroidSettings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
                                 )
                             }
                         },
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_exact_alarm_row),
+                        style = Prinyal.type.body,
+                        color = Prinyal.colors.ink,
                     )
-                } else {
-                    MetaText(stringResource(R.string.settings_exact_alarm_granted))
+                    MetaText(
+                        text = stringResource(
+                            if (granted) R.string.settings_exact_alarm_granted
+                            else R.string.settings_exact_alarm_denied
+                        ),
+                        color = if (granted) Prinyal.colors.statusOk else Prinyal.colors.statusWarn,
+                    )
+                }
+                if (!granted) {
+                    Text(
+                        text = stringResource(R.string.settings_exact_alarm_why),
+                        style = Prinyal.type.body,
+                        color = Prinyal.colors.inkMuted,
+                    )
                 }
             }
         }
 
-        item {
-            Section(stringResource(R.string.settings_export)) {
+        // «Для разработчика»: свёрнутая строка; в release скрыта целиком (§5).
+        if (BuildConfig.DEBUG) {
+            item { DeveloperSection(vm, threshold) }
+        }
+    }
+
+    editingWindow?.let { window ->
+        val current = when (window) {
+            Window.MORNING, Window.TOMORROW_MORNING -> windows.morning
+            Window.DAY -> windows.day
+            Window.EVENING -> windows.evening
+            Window.WEEKEND -> windows.weekend
+        }
+        TimeWheelDialog(
+            current = current,
+            onDismiss = { editingWindow = null },
+            onPick = { picked ->
+                editingWindow = null
+                vm.setWindowValidated(window, picked)
+            },
+        )
+    }
+}
+
+/** Строка окна: название слева, время справа mono, тап — колесо (спека §5). */
+@Composable
+private fun WindowRow(label: String, time: LocalTime, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .heightIn(min = 44.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = Prinyal.type.body, color = Prinyal.colors.ink)
+        Text(
+            text = "%02d:%02d".format(time.hour, time.minute),
+            style = Prinyal.type.meta.copy(fontSize = 16.sp),
+            color = Prinyal.colors.ink,
+        )
+    }
+}
+
+/** Колесо времени с шагом 30 минут: прокручиваемый список слотов в диалоге. */
+@Composable
+private fun TimeWheelDialog(
+    current: LocalTime,
+    onDismiss: () -> Unit,
+    onPick: (LocalTime) -> Unit,
+) {
+    val slots = remember {
+        (5 * 60..23 * 60 step 30).map { LocalTime.of(it / 60, it % 60) }
+    }
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex =
+            slots.indexOfFirst { it >= current }.coerceAtLeast(0).coerceAtLeast(2) - 2,
+    )
+
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            Modifier
+                .background(Prinyal.colors.surface, Radius.control)
+                .padding(vertical = Space.s),
+        ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.heightIn(max = 320.dp),
+            ) {
+                items(slots.size) { index ->
+                    val slot = slots[index]
+                    val selected = slot == current
+                    Text(
+                        text = "%02d:%02d".format(slot.hour, slot.minute),
+                        style = if (selected) Prinyal.type.itemTitle else Prinyal.type.body,
+                        color = if (selected) Prinyal.colors.accentSelf else Prinyal.colors.ink,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onPick(slot) }
+                            .padding(horizontal = Space.xl, vertical = Space.s),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Сегменты «когда останавливать»: слова вместо чисел (спека §5). */
+@Composable
+private fun SilenceSegments(current: Int, onSelect: (Int) -> Unit) {
+    val options = listOf(
+        stringResource(R.string.set_silence_quiet) to 600,
+        stringResource(R.string.set_silence_normal) to 900,
+        stringResource(R.string.set_silence_noisy) to 1_400,
+    )
+    // Ближайший сегмент к текущему значению — на случай старых настроек слайдером.
+    val selected = options.minByOrNull { kotlin.math.abs(it.second - current) }?.second
+
+    Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+        options.forEach { (label, value) ->
+            val active = value == selected
+            Box(
+                Modifier
+                    .background(
+                        if (active) Prinyal.colors.accentSelfSoft else Prinyal.colors.paper,
+                        Radius.pill,
+                    )
+                    .border(
+                        1.dp,
+                        if (active) Prinyal.colors.accentSelf else Prinyal.colors.rule,
+                        Radius.pill,
+                    )
+                    .clickable { onSelect(value) }
+                    .padding(horizontal = Space.sm, vertical = Space.s),
+            ) {
                 Text(
-                    text = stringResource(R.string.settings_export),
+                    text = label,
+                    style = Prinyal.type.label,
+                    color = if (active) Prinyal.colors.accentSelf else Prinyal.colors.inkMuted,
+                )
+            }
+        }
+    }
+}
+
+/** Серверный контур и сырые числа — только для отладки. */
+@Composable
+private fun DeveloperSection(vm: AppViewModel, threshold: Int) {
+    var expanded by remember { mutableStateOf(false) }
+    val url by vm.serverUrl.collectAsState()
+    val health by vm.health.collectAsState()
+    var urlDraft by remember(url) { mutableStateOf(url) }
+    var tokenDraft by remember { mutableStateOf(vm.token()) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(Space.sm)) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded },
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            MetaText(stringResource(R.string.set_dev_section), color = Prinyal.colors.inkFaint)
+            MetaText(if (expanded) "▴" else "▾", color = Prinyal.colors.inkFaint)
+        }
+
+        if (expanded) {
+            HorizontalDivider(thickness = 1.dp, color = Prinyal.colors.hairline)
+            Field(stringResource(R.string.settings_server_url), urlDraft) {
+                urlDraft = it
+                vm.setServerUrl(it)
+            }
+            Field(stringResource(R.string.settings_token), tokenDraft, secret = true) {
+                tokenDraft = it
+                vm.setToken(it)
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Space.m),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_check),
                     style = Prinyal.type.label,
                     color = Prinyal.colors.accentSelf,
-                    modifier = Modifier.clickable {
-                        vm.export { file ->
-                            vm.showMessage(context.getString(R.string.settings_export_done, file.name))
-                        }
-                    },
+                    modifier = Modifier.clickable { vm.checkHealth() },
                 )
-                message?.let { MetaText(it) }
+                health?.let {
+                    MetaText(
+                        text = stringResource(
+                            if (it) R.string.settings_check_ok else R.string.settings_check_fail
+                        ),
+                        color = if (it) Prinyal.colors.statusOk else Prinyal.colors.statusWarn,
+                    )
+                }
             }
+            MetaText("${stringResource(R.string.settings_silence_threshold)}: $threshold")
         }
     }
 }
 
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Space.sm)) {
         MetaText(title, color = Prinyal.colors.inkFaint)
         content()
     }
@@ -233,35 +409,11 @@ private fun Field(
             textStyle = Prinyal.type.body.copy(color = Prinyal.colors.ink),
             cursorBrush = SolidColor(Prinyal.colors.accentSelf),
             visualTransformation = if (secret) PasswordVisualTransformation()
-            else androidx.compose.ui.text.input.VisualTransformation.None,
+            else VisualTransformation.None,
             modifier = Modifier
                 .fillMaxWidth()
                 .border(1.dp, Prinyal.colors.rule, Radius.control)
                 .padding(Space.sm),
-        )
-    }
-}
-
-/**
- * Время окна ползунком по получасам: точнее не нужно, а выбор из диалога — лишний
- * экран там, где хватает движения пальцем.
- */
-@Composable
-private fun TimeRow(label: String, time: LocalTime, onChange: (LocalTime) -> Unit) {
-    val minutes = time.hour * 60 + time.minute
-    Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(label, style = Prinyal.type.body, color = Prinyal.colors.ink)
-            MetaText("%02d:%02d".format(time.hour, time.minute))
-        }
-        Slider(
-            value = minutes.toFloat(),
-            onValueChange = { onChange(LocalTime.of(it.toInt() / 60, (it.toInt() % 60) / 30 * 30)) },
-            valueRange = 5f * 60f..23f * 60f,
-            steps = ((23 - 5) * 2) - 1,
         )
     }
 }

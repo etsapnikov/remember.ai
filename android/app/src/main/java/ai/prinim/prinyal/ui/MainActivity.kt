@@ -18,6 +18,10 @@ import androidx.compose.runtime.setValue
  */
 class MainActivity : ComponentActivity() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(ai.prinim.prinyal.ui.theme.LocaleForce.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val openNoteId = intent.getStringExtra(EXTRA_NOTE_ID)

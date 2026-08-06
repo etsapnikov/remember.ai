@@ -228,6 +228,55 @@ class NoteRepositoryTest {
         assertTrue(File(stored.audioPath).exists())
     }
 
+    // --- мягкое удаление (спека R1.1 §2.2) ---
+
+    @Test
+    fun `удаление скрывает запись и снимает алармы, undo возвращает всё`() = runTest {
+        val id = note()
+        val items = repo.applyParse(id, parsed(item()))
+        val pending = db.returns().forItem(items[0].id).single()
+
+        repo.softDeleteNote(id)
+
+        assertTrue("аларм должен быть снят", pending.id in scheduler.cancelled)
+        assertTrue("из выборок запись ушла", db.notes().all().none { it.id == id })
+        assertNotNull("но физически жива до зачистки", db.notes().byId(id))
+
+        repo.restoreNote(id)
+
+        assertTrue("вернулась в выборки", db.notes().all().any { it.id == id })
+        assertTrue("аларм переставлен", scheduler.scheduled.containsKey(pending.id))
+    }
+
+    @Test
+    fun `зачистка после снекбара необратима и убирает аудио`() = runTest {
+        val id = note()
+        repo.applyParse(id, parsed(item()))
+        val audio = File(db.notes().byId(id)!!.audioPath)
+
+        repo.softDeleteNote(id)
+        repo.purgeDeleted()
+
+        assertNull(db.notes().byId(id))
+        assertTrue("пункты ушли каскадом", db.items().forNote(id).isEmpty())
+        assertTrue("аудио удалено", !audio.exists())
+    }
+
+    @Test
+    fun `групповая уборка забирает только записи без пунктов`() = runTest {
+        val junk1 = note("junk1")
+        repo.markFailed(junk1, "asr_empty")
+        val junk2 = note("junk2")
+        repo.markFailed(junk2, "asr_failed")
+        val meaningful = note("mean1")
+        repo.applyParse(meaningful, parsed(item()))
+
+        val swept = repo.sweepJunk()
+
+        assertEquals(setOf(junk1, junk2), swept.toSet())
+        assertTrue(db.notes().all().any { it.id == meaningful })
+    }
+
     @Test
     fun `запись сразу попадает в очередь на отправку`() = runTest {
         val id = note()

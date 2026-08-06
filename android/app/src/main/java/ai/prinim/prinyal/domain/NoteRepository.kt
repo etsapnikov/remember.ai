@@ -255,6 +255,20 @@ class NoteRepository(
         analytics.log(Analytics.MISS_ITEM, mapOf("item" to itemId, "reason" to "manual"))
     }
 
+    /** Undo похорон из снекбара: пункт возвращается в план вместе с возвратом. */
+    suspend fun unburyItem(itemId: String) {
+        val item = db.items().byId(itemId) ?: return
+        val note = db.notes().byId(item.noteId) ?: return
+        db.items().setState(itemId, ItemState.PLANNED.wire)
+        planReturn(
+            item.copy(state = ItemState.PLANNED.wire),
+            Instant.ofEpochMilli(note.createdAt),
+            settings.windowsNow(),
+            Instant.now(),
+        )
+        analytics.log("bury_undo", mapOf("item" to itemId))
+    }
+
     /**
      * «Позже»: время не выбирается пользователем — код ставит следующее окно и
      * возвращает его, чтобы подтверждение назвало конкретный момент (F-6).
@@ -282,6 +296,55 @@ class NoteRepository(
         db.returns().forItem(itemId).filter { it.firedAt == null }
             .forEach { scheduler.cancel(it.id) }
         db.returns().dropPending(itemId)
+    }
+
+    // --- удаление записи (спека R1.1 §2.2) ---
+
+    /**
+     * Мягкое удаление: запись скрывается сразу, алармы снимаются сразу, но пока
+     * живёт снекбар, всё можно вернуть. Возвраты не трогаем в базе — их
+     * восстановление после undo должно попасть на прежние места.
+     */
+    suspend fun softDeleteNote(noteId: String) {
+        db.items().forNote(noteId).forEach { item ->
+            db.returns().forItem(item.id)
+                .filter { it.firedAt == null }
+                .forEach { scheduler.cancel(it.id) }
+        }
+        db.notes().softDelete(noteId, Instant.now().toEpochMilli())
+        analytics.log("note_delete", mapOf("note" to noteId))
+    }
+
+    /** Undo из снекбара: запись, пункты и несработавшие возвраты — на прежние места. */
+    suspend fun restoreNote(noteId: String) {
+        db.notes().undelete(noteId)
+        val now = Instant.now()
+        db.items().forNote(noteId).forEach { item ->
+            db.returns().forItem(item.id)
+                .filter { it.firedAt == null }
+                .forEach { entity ->
+                    val at = Instant.ofEpochMilli(entity.scheduledAt)
+                    scheduler.schedule(entity.id, if (at.isAfter(now)) at else now.plusSeconds(60))
+                }
+        }
+        analytics.log("note_delete_undo", mapOf("note" to noteId))
+    }
+
+    /** Окончательная зачистка: снекбар истёк или экран покинут. Отсюда возврата нет. */
+    suspend fun purgeDeleted() {
+        db.notes().softDeleted().forEach { note ->
+            runCatching { File(note.audioPath).delete() }
+            // Пункты и возвраты уходят каскадом по FK.
+            db.notes().delete(note.id)
+        }
+    }
+
+    /** Групповая уборка: все записи без пунктов одним махом, с тем же undo. */
+    suspend fun sweepJunk(): List<String> {
+        val junk = db.notes().junk()
+        junk.forEach { softDeleteNote(it.id) }
+        analytics.log("junk_sweep", mapOf("count" to junk.size))
+        return junk.map { it.id }
     }
 
     // --- возвраты ---

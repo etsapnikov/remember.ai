@@ -87,8 +87,51 @@
     <string name="note_play">Слушать</string>
     <string name="note_pause">Пауза</string>
     <string name="note_reparse">Разобрать заново</string>
-    <string name="item_bury">Похоронить</string>
-    <string name="item_buried">Похоронил</string>
+    <string name="item_bury">Похоронить пункт</string>
+    <string name="item_buried_undo">Похоронил · вернуть</string>
+
+    <!-- Удаление (спека R1.1 §2.2). Красная пара — только в открытой зоне свайпа. -->
+    <string name="note_delete">Удалить</string>
+    <string name="note_delete_full">Удалить запись</string>
+    <plurals name="note_delete_items">
+        <item quantity="one">Удалить · %1$d пункт</item>
+        <item quantity="few">Удалить · %1$d пункта</item>
+        <item quantity="many">Удалить · %1$d пунктов</item>
+        <item quantity="other">Удалить · %1$d пункта</item>
+    </plurals>
+    <string name="note_deleted_undo">Удалил запись · вернуть</string>
+    <string name="undo">вернуть</string>
+    <plurals name="feed_junk_sweep">
+        <item quantity="one">%1$d запись без пунктов · убрать все</item>
+        <item quantity="few">%1$d записи без пунктов · убрать все</item>
+        <item quantity="many">%1$d записей без пунктов · убрать все</item>
+        <item quantity="other">%1$d записи без пунктов · убрать все</item>
+    </plurals>
+    <plurals name="feed_junk_swept_undo">
+        <item quantity="one">Убрал %1$d запись · вернуть</item>
+        <item quantity="few">Убрал %1$d записи · вернуть</item>
+        <item quantity="many">Убрал %1$d записей · вернуть</item>
+        <item quantity="other">Убрал %1$d записи · вернуть</item>
+    </plurals>
+
+    <!-- Лента: состояния и шапки записей -->
+    <string name="feed_parsing_off">разбор выключен · включить</string>
+    <string name="feed_recording_now">Идёт запись</string>
+    <string name="feed_empty_title">Пока пусто</string>
+    <string name="feed_empty_body">Открой значок, скажи как есть — комком, не по пунктам. Я разберу и вернусь в нужное время.</string>
+    <plurals name="note_items_count">
+        <item quantity="one">%1$d пункт</item>
+        <item quantity="few">%1$d пункта</item>
+        <item quantity="many">%1$d пунктов</item>
+        <item quantity="other">%1$d пункта</item>
+    </plurals>
+
+    <!-- Карточка: ошибка ASR без метафор и без дублей действий -->
+    <string name="note_asr_failed_body">Не разобрал речь. Обычно так бывает, если далеко от телефона или вокруг шумно.</string>
+    <string name="note_audio_play">послушать</string>
+
+    <!-- Подсказки жестов на экране записи -->
+    <string name="capture_hint_up">Свайп вверх — записи</string>
 
     <!-- Состояния айтема -->
     <string name="state_planned">в плане</string>
@@ -152,8 +195,54 @@
     <string name="settings_import_done">Загрузил %1$d записей</string>
     <string name="settings_exact_alarm">Разрешить точные напоминания</string>
     <string name="settings_exact_alarm_why">Без этого возвраты приходят с задержкой до нескольких минут</string>
-    <string name="settings_exact_alarm_granted">включены</string>
+    <string name="settings_exact_alarm_granted">разрешены</string>
+    <string name="settings_exact_alarm_denied">запрещены</string>
     <string name="settings_parsing">Разбор</string>
+    <string name="settings_capture">Запись</string>
+    <string name="settings_data">Данные</string>
+    <string name="settings_system">Система</string>
+    <string name="settings_exact_alarm_row">Точные напоминания</string>
+    <string name="set_parse_toggle">Разбирать речь на пункты</string>
+    <string name="set_parse_off_note">Выключу — записи останутся текстом. Пунктов и возвратов не будет.</string>
+    <string name="set_silence_title">Когда останавливать</string>
+    <string name="set_silence_quiet">тихая комната</string>
+    <string name="set_silence_normal">обычно</string>
+    <string name="set_silence_noisy">шумно</string>
+    <string name="set_silence_note">Жду %1$s секунды тишины и останавливаю запись сам.</string>
+    <string name="set_dev_section">Для разработчика</string>
+    <plurals name="settings_notes_count">
+        <item quantity="one">%1$d запись</item>
+        <item quantity="few">%1$d записи</item>
+        <item quantity="many">%1$d записей</item>
+        <item quantity="other">%1$d записи</item>
+    </plurals>
+    <string name="settings_window_shifted">Сдвинул %1$s на %2$s</string>
+
+    <!-- Неделя (спека §6): вердикт словом, пороги из PRD §8 -->
+    <string name="week_verdict_alive">Петля жива</string>
+    <string name="week_verdict_warn">Тревога</string>
+    <string name="week_verdict_fail">Провал</string>
+    <string name="week_verdict_early">Пока рано судить</string>
+    <string name="week_early_note">Считаю, но выводов пока не делаю. Пороги включатся на четвёртый день.</string>
+    <string name="week_metric_returns">Отвечаю на возвраты</string>
+    <string name="week_metric_lump">Говорю комком, а не командой</string>
+    <string name="week_metric_days">Дней с записью</string>
+    <string name="week_metric_per_day">Записей в день</string>
+    <string name="week_metric_dismissed">Ответов «не надо»</string>
+    <plurals name="week_items_median">
+        <item quantity="one">обычно %1$d пункт в записи</item>
+        <item quantity="few">обычно %1$d пункта в записи</item>
+        <item quantity="many">обычно %1$d пунктов в записи</item>
+        <item quantity="other">обычно %1$d пункта в записи</item>
+    </plurals>
+    <string name="week_no_data">нет данных</string>
+    <string name="week_of">%1$d из %2$d</string>
+    <string name="week_threshold_returns">порог %1$d%% · ниже — возвраты не работают</string>
+    <string name="week_threshold_lump">порог %1$d · ниже — это команды, не комки</string>
+    <string name="week_phrase_ok">Записываю, говорю комком, отвечаю на возвраты — как надо.</string>
+    <string name="week_phrase_returns">Записываю и говорю комком — как надо. Но на возвраты не отвечаю: петля не замыкается.</string>
+    <string name="week_phrase_lump">Возвраты работают, но записи — одиночные команды, а не комки.</string>
+    <string name="week_phrase_days">Петля настроена, но записей почти нет — жеста не случается.</string>
     <string name="settings_notifications">Разрешить уведомления</string>
 
     <!-- Сводка недели §F-9 -->

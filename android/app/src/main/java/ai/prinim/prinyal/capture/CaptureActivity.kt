@@ -13,6 +13,8 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -30,11 +32,17 @@ import java.util.UUID
  */
 class CaptureActivity : ComponentActivity() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(ai.prinim.prinyal.ui.theme.LocaleForce.wrap(newBase))
+    }
+
     private lateinit var recorder: Recorder
     private var watchdog: Job? = null
     private var noteId: String = ""
     private var source: CaptureSource = CaptureSource.ICON
     private var launchedAt: Long = 0
+    /** Лента-лист открыта поверх экрана записи (жест §7). */
+    private var feedOpen = false
 
     private val state = CaptureState()
 
@@ -54,14 +62,29 @@ class CaptureActivity : ComponentActivity() {
         // а не момент появления пикселей.
         if (hasMic()) beginRecording() else state.needsPermission = true
 
+        lifecycleScope.launch {
+            val settings = PrinyalApp.of(this@CaptureActivity).settings
+            state.showCancelHint = settings.hintVisible(HINT_CANCEL)
+            state.showUpHint = settings.hintVisible(HINT_UP)
+        }
+
         setContent {
             PrinyalTheme {
-                CaptureScreen(
+                val hasNotes by PrinyalApp.of(this).db.notes().feed()
+                    .collectAsState(initial = emptyList())
+
+                CaptureHost(
                     state = state,
+                    hasNotes = hasNotes.isNotEmpty(),
                     onStop = ::finishRecording,
                     onCancel = ::cancelRecording,
                     onGrant = { askMic.launch(Manifest.permission.RECORD_AUDIO) },
-                    onOpenFeed = ::openFeed,
+                    onFeedOpened = {
+                        feedOpen = true
+                        lifecycleScope.launch {
+                            PrinyalApp.of(this@CaptureActivity).settings.hintUsed(HINT_UP)
+                        }
+                    },
                 )
             }
         }
@@ -168,12 +191,17 @@ class CaptureActivity : ComponentActivity() {
         }
 
         state.recording = false
-        state.receipt = true
-        Haptics.receipt(this)
+        // Лента открыта поверх: запись тихо сохраняется, квитанция не показывается
+        // и активити не закрывается — человек продолжает смотреть записи (§7).
+        val silently = feedOpen
+        if (!silently) {
+            state.receipt = true
+            Haptics.receipt(this)
+        }
 
         val app = PrinyalApp.of(this)
         lifecycleScope.launch {
-            app.analytics.log(Analytics.RECEIPT_SHOWN, mapOf("note" to noteId))
+            if (!silently) app.analytics.log(Analytics.RECEIPT_SHOWN, mapOf("note" to noteId))
             app.repository.createNote(
                 id = noteId,
                 audio = result.file,
@@ -185,9 +213,11 @@ class CaptureActivity : ComponentActivity() {
             UploadWorker.enqueue(this@CaptureActivity, noteId)
         }
 
-        lifecycleScope.launch {
-            delay(RECEIPT_MS)
-            finishAndRemoveTask()
+        if (!silently) {
+            lifecycleScope.launch {
+                delay(RECEIPT_MS)
+                finishAndRemoveTask()
+            }
         }
     }
 
@@ -229,6 +259,7 @@ class CaptureActivity : ComponentActivity() {
         recorder.cancel()
         state.recording = false
         Haptics.cancel(this)
+        lifecycleScope.launch { PrinyalApp.of(this@CaptureActivity).settings.hintUsed(HINT_CANCEL) }
 
         lifecycleScope.launch {
             PrinyalApp.of(this@CaptureActivity).analytics.log(
@@ -256,6 +287,8 @@ class CaptureActivity : ComponentActivity() {
         const val EXTRA_SOURCE = "source"
         private const val TAG = "PrinyalCapture"
         private const val TICK_MS = 100L
+        private const val HINT_CANCEL = "cancel"
+        private const val HINT_UP = "up"
         /** Квитанция висит 0.6 с и закрывается сама. */
         private const val RECEIPT_MS = 600L
         private const val SHORT_TOAST_MS = 1_200L
