@@ -33,15 +33,23 @@ class PrinyalApp : Application() {
         NoteRepository(db, settings, analytics, returnScheduler)
     }
 
+    @Volatile
+    private var asrEngine: GigaAmOnDevice? = null
+
     /**
      * Распознавание на устройстве. `null`, пока весов нет: приложение при этом
      * работает — записи сохраняются и ждут, — но транскрипта не будет.
      *
-     * Веса лежат в `files/models` (~326 МБ), в APK их нет.
+     * Не `by lazy`: ленивое поле, вычисленное до распаковки весов, навсегда
+     * запомнило бы null, и распознавание не завелось бы до перезапуска процесса.
      */
-    val asr: GigaAmOnDevice? by lazy {
+    fun asr(): GigaAmOnDevice? {
+        asrEngine?.let { return it }
         val dir = ModelStore.dir(this)
-        if (GigaAmOnDevice.modelsPresent(dir)) GigaAmOnDevice(dir) else null
+        if (!GigaAmOnDevice.modelsPresent(dir)) return null
+        return synchronized(this) {
+            asrEngine ?: GigaAmOnDevice(dir).also { asrEngine = it }
+        }
     }
 
     /**
@@ -59,14 +67,9 @@ class PrinyalApp : Application() {
         // Страховка возвратов (Р-8): прошивка душит алармы, воркер догоняет.
         ai.prinim.prinyal.returns.ReturnCatchUpWorker.ensureScheduled(this)
 
-        // Веса едут в APK и распаковываются один раз, в фоне. Пока распаковка идёт,
-        // запись работает: она и не должна ничего ждать (F-2) — транскрипт просто
-        // появится следующим заходом очереди.
-        CoroutineScope(Dispatchers.IO).launch {
-            if (ModelStore.install(this@PrinyalApp)) {
-                UploadWorker.kick(this@PrinyalApp)
-            }
-        }
+        // Распаковку весов из onCreate убрали намеренно: 326 МБ — не работа для
+        // старта приложения, а Robolectric на ней валил heap в каждом тесте.
+        // Теперь веса ставятся перед первым распознаванием, в воркере.
     }
 
     companion object {

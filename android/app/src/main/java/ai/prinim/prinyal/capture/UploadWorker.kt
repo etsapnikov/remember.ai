@@ -2,6 +2,7 @@ package ai.prinim.prinyal.capture
 
 import ai.prinim.prinyal.PrinyalApp
 import ai.prinim.prinyal.asr.AudioDecoder
+import ai.prinim.prinyal.asr.ModelStore
 import ai.prinim.prinyal.data.NoteStatus
 import ai.prinim.prinyal.net.IngestOutcome
 import ai.prinim.prinyal.returns.Notifications
@@ -126,7 +127,12 @@ class UploadWorker(
         noteId: String,
         audio: File,
     ): String? {
-        val engine = app.asr ?: return null
+        // Веса распаковываются здесь, перед первым распознаванием: старт
+        // приложения не должен ждать 326 МБ.
+        if (!ModelStore.ready(app)) {
+            if (!ModelStore.install(app)) return null
+        }
+        val engine = app.asr() ?: return null
         return try {
             val started = System.currentTimeMillis()
             val samples = AudioDecoder.decode(audio)
