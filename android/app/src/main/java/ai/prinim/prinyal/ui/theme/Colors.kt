@@ -85,3 +85,28 @@ val DarkColors = PrinyalColors(
     statusWarn = Color(0xFFE08757),
     isDark = true,
 )
+
+/**
+ * Цвета клавиши записи (спека R1.2 §12). Заданы абсолютными для обеих тем: клавиша
+ * — физический предмет, её пластик не перекрашивается вслед за фоном.
+ */
+@Immutable
+object KeyColors {
+    // idle — «заряд есть, но не идёт»
+    val idleHousing = Color(0xFF1E1917)
+    val idleHousingEdge = Color(0xFF2E2724)
+    val idleCap = Color(0xFF2A211E)
+    val idleDot = Color(0xFFD8402F)
+    val idleTimer = Color(0xFF4A403A)
+
+    // запись — клавиша это «стоп»
+    val recHousing = Color(0xFF2A1512)
+    val recHousingEdge = Color(0xFF52201A)
+    val recCap = Color(0xFFD8402F)
+    val recStopMark = Color(0xFF2A1512)
+    val recTimer = Color(0xFF8C8078)
+
+    /** Кольцо-амплитуда и его остывший вид во время отсчёта тишины. */
+    val ring = Color(0xFFE8836B)
+    val ringIdle = Color(0xFF4A403A)
+}

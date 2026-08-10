@@ -116,6 +116,7 @@ class CaptureActivity : ComponentActivity() {
         state.needsPermission = false
         state.idle = false
         state.elapsedMs = 0
+        state.silenceLeftMs = 0
         state.recording = true
 
         val app = PrinyalApp.of(this)
@@ -136,7 +137,14 @@ class CaptureActivity : ComponentActivity() {
     }
 
     /**
-     * Пульс, таймер и авто-стоп в одном цикле: 2 с тишины после ≥ 3 с речи, потолок 90 с.
+     * Таймер, амплитуда и авто-стоп в одном цикле: 2 с тишины после ≥ 3 с речи,
+     * потолок 90 с.
+     *
+     * Отсчёт до авто-стопа виден человеку (R1.2 §13): первые [SILENCE_GRACE_MS]
+     * тишины копятся молча — это пауза между словами, — а дальше под клавишей
+     * идёт обратный отсчёт. Любое слово громче порога сбрасывает его; последние
+     * [SILENCE_LOCK_MS] необратимы: решение уже принято, дёргать индикатор
+     * туда-сюда нечестно.
      */
     private fun startWatchdog() {
         val threshold = PrinyalApp.of(this).settings
@@ -153,11 +161,18 @@ class CaptureActivity : ComponentActivity() {
                 state.elapsedMs = elapsed
                 state.level = (amplitude / 12_000f).coerceIn(0f, 1f)
 
-                if (amplitude >= silenceThreshold) {
+                val locked = silenceMs >= Recorder.SILENCE_TO_STOP_MS - SILENCE_LOCK_MS
+                if (amplitude >= silenceThreshold && !locked) {
                     speechMs += TICK_MS
                     silenceMs = 0
                 } else if (speechMs >= Recorder.SPEECH_BEFORE_AUTOSTOP_MS) {
                     silenceMs += TICK_MS
+                }
+
+                state.silenceLeftMs = if (silenceMs >= SILENCE_GRACE_MS) {
+                    (Recorder.SILENCE_TO_STOP_MS - silenceMs).coerceAtLeast(0)
+                } else {
+                    0
                 }
 
                 if (silenceMs >= Recorder.SILENCE_TO_STOP_MS) {
@@ -198,6 +213,7 @@ class CaptureActivity : ComponentActivity() {
         }
 
         state.recording = false
+        state.silenceLeftMs = 0
         state.receipt = true
         Haptics.receipt(this)
 
@@ -236,6 +252,7 @@ class CaptureActivity : ComponentActivity() {
         val result = recorder.stop()
         state.recording = false
         state.elapsedMs = 0
+        state.silenceLeftMs = 0
         state.idle = true
 
         if (result == null || result.durationMs < Recorder.MIN_DURATION_MS) {
@@ -329,6 +346,10 @@ class CaptureActivity : ComponentActivity() {
         const val EXTRA_SOURCE = "source"
         private const val TAG = "PrinyalCapture"
         private const val TICK_MS = 100L
+        /** Пауза между словами копится молча — отсчёт показываем после неё (§13). */
+        private const val SILENCE_GRACE_MS = 400L
+        /** Последние 400 мс отсчёта необратимы: решение уже принято (§13). */
+        private const val SILENCE_LOCK_MS = 400L
         private const val HINT_CANCEL = "cancel"
         private const val HINT_UP = "up"
         /** Квитанция висит 0.6 с и закрывается сама. */

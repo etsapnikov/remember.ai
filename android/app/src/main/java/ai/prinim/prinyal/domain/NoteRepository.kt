@@ -127,6 +127,23 @@ class NoteRepository(
     }
 
     /**
+     * Правленый человеком транскрипт (спека R1.2 §15). Статус сбрасывается в
+     * `recorded`, чтобы очередь взяла запись в работу; ASR при этом пропускается —
+     * транскрипт уже есть, и в разбор уйдёт именно правленый текст.
+     */
+    suspend fun replaceTranscript(noteId: String, transcript: String) {
+        val note = db.notes().byId(noteId) ?: return
+        val before = note.transcript.orEmpty()
+        db.notes().update(
+            note.copy(transcript = transcript.trim(), status = NoteStatus.RECORDED.wire)
+        )
+        analytics.log(
+            "transcript_edit",
+            mapOf("note" to noteId, "was" to before.length, "now" to transcript.trim().length),
+        )
+    }
+
+    /**
      * Разбор не состоялся совсем (ASR). Аудио цело, запись видна в ленте и
      * перезапускаема — «не смог» не равно «потерял» (§6).
      */

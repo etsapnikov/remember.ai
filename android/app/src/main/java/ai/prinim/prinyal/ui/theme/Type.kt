@@ -93,8 +93,12 @@ val PrinyalType = PrinyalTypography(
     display = TextStyle(
         fontFamily = Spectral,
         fontWeight = FontWeight.Normal,
-        fontSize = 38.sp,
-        lineHeight = 1.1.em,
+        // 34, не 38: «Запомнил.» на 38 занимало 178 dp и съедало поля на узком
+        // экране. Трекинг −2% заодно возвращает точку в ритм после длинного
+        // слова (R1.2 §14).
+        fontSize = 34.sp,
+        letterSpacing = (-0.02).em,
+        lineHeight = 1.12.em,
         lineHeightStyle = EvenLines,
     ),
     voice = TextStyle(
@@ -143,7 +147,9 @@ val PrinyalType = PrinyalTypography(
     timer = TextStyle(
         fontFamily = JetBrainsMono,
         fontWeight = FontWeight.Normal,
-        fontSize = 30.sp,
+        // 22, не 30: крупным таймер был потому, что был единственным признаком
+        // жизни. Теперь жизнь показывает кольцо (R1.2 §13).
+        fontSize = 22.sp,
         letterSpacing = 0.04.em,
         lineHeight = 1.2.em,
         lineHeightStyle = EvenLines,

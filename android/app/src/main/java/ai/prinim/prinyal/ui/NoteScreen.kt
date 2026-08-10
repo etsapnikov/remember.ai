@@ -13,7 +13,9 @@ import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.Radius
 import ai.prinim.prinyal.ui.theme.Space
 import android.media.MediaPlayer
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +39,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -59,6 +68,8 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
     val note = entry?.note
 
     var editing by remember { mutableStateOf<ItemEntity?>(null) }
+    // Правка транскрипта (спека R1.2 §15). null — покой, иначе черновик.
+    var draft by remember(noteId) { mutableStateOf<TextFieldValue?>(null) }
 
     if (note == null) {
         Box(Modifier.fillMaxSize(), Alignment.Center) {
@@ -114,18 +125,67 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
             if (items.isNotEmpty()) {
                 item { SectionTitle(stringResource(R.string.note_items)) }
                 items(items, key = { it.id }) { item ->
-                    ItemCard(
-                        item = item,
-                        onDone = { vm.markDone(item.id) },
-                        onDismiss = { vm.dismiss(item.id) },
-                        onEdit = { editing = item },
-                    )
+                    // Во время правки пункты глохнут, но остаются на месте: видно,
+                    // что именно пересоберётся (§15).
+                    Box(Modifier.graphicsLayer { alpha = if (draft != null) 0.35f else 1f }) {
+                        ItemCard(
+                            item = item,
+                            onDone = { vm.markDone(item.id) },
+                            onDismiss = { vm.dismiss(item.id) },
+                            onEdit = { if (draft == null) editing = item },
+                        )
+                    }
                 }
+            } else if (status == NoteStatus.RECORDED || status == NoteStatus.QUEUED) {
+                item { MetaText(stringResource(R.string.transcript_parsing)) }
             }
 
             note.transcript?.takeIf { it.isNotBlank() }?.let { transcript ->
-                item { SectionTitle(stringResource(R.string.note_transcript)) }
-                item { TranscriptBlock(transcript, items) }
+                item {
+                    Row(
+                        Modifier.fillMaxWidth().padding(top = Space.s),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        MetaText(
+                            stringResource(R.string.note_transcript),
+                            color = Prinyal.colors.inkFaint,
+                        )
+                        // Вход — строкой у заголовка. Тап по самому тексту остаётся
+                        // выделению и копированию: транскрипт читают чаще, чем правят.
+                        if (draft == null) {
+                            MetaText(
+                                text = stringResource(R.string.transcript_edit),
+                                color = Prinyal.colors.accentSelf,
+                                modifier = Modifier.clickable {
+                                    draft = TextFieldValue(transcript)
+                                },
+                            )
+                        }
+                    }
+                }
+                item {
+                    val current = draft
+                    if (current == null) {
+                        TranscriptBlock(transcript, items)
+                    } else {
+                        TranscriptEditor(
+                            value = current,
+                            onValue = { draft = it },
+                            itemsEdited = items.any { it.edited },
+                            onReparse = {
+                                vm.saveTranscriptAndReparse(noteId, current.text)
+                                draft = null
+                            },
+                            onCancel = {
+                                if (current.text != transcript) {
+                                    vm.showDroppedEdit()
+                                }
+                                draft = null
+                            },
+                        )
+                    }
+                }
             }
         }
 
@@ -224,6 +284,88 @@ private fun ItemCard(
                     modifier = Modifier.clickable(onClick = onDismiss),
                 )
             }
+        }
+    }
+}
+
+/**
+ * Правка транскрипта (спека R1.2 §15).
+ *
+ * Голое поле: ни рамки, ни тулбара, ни форматирования — только курсор и
+ * подчёркивание акцентом. Предупреждение стоит над кнопкой постоянно, а не
+ * всплывает модалкой «Вы уверены?».
+ *
+ * Подсветка `raw_span` здесь не рисуется вовсе: она указывает на связь «этот кусок
+ * речи → этот пункт», и после первой же вставки символа врёт — границы поехали, а
+ * пункты ещё старые. Живая, но неверная подсветка хуже её отсутствия.
+ */
+@Composable
+private fun TranscriptEditor(
+    value: TextFieldValue,
+    onValue: (TextFieldValue) -> Unit,
+    itemsEdited: Boolean,
+    onReparse: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    val focus = remember { FocusRequester() }
+    val accent = Prinyal.colors.accentSelf
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+
+    // Системная «назад» из правки — тот же выход, что «Отмена».
+    BackHandler(enabled = true) { onCancel() }
+
+    Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValue,
+            textStyle = Prinyal.type.body.copy(color = Prinyal.colors.ink),
+            cursorBrush = SolidColor(Prinyal.colors.accentSelf),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focus)
+                .drawBehind {
+                    val y = size.height - 1.dp.toPx()
+                    drawLine(
+                        color = accent,
+                        start = Offset(0f, y),
+                        end = Offset(size.width, y),
+                        strokeWidth = 1.dp.toPx(),
+                    )
+                }
+                .padding(bottom = Space.s),
+        )
+
+        Text(
+            text = stringResource(
+                if (itemsEdited) R.string.transcript_reparse_warn
+                else R.string.transcript_reparse_plain
+            ),
+            style = Prinyal.type.body,
+            color = Prinyal.colors.inkMuted,
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Space.ml),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier
+                    .background(Prinyal.colors.accentSelf, Radius.pill)
+                    .clickable(onClick = onReparse)
+                    .padding(horizontal = Space.ml, vertical = Space.sm),
+            ) {
+                Text(
+                    text = stringResource(R.string.transcript_reparse),
+                    style = Prinyal.type.label,
+                    color = Prinyal.colors.paper,
+                )
+            }
+            Text(
+                text = stringResource(R.string.edit_cancel),
+                style = Prinyal.type.label,
+                color = Prinyal.colors.inkMuted,
+                modifier = Modifier.clickable(onClick = onCancel),
+            )
         }
     }
 }

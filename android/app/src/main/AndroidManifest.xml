@@ -27,13 +27,16 @@
         android:theme="@style/Theme.Prinyal">
 
         <!-- Между желанием и записью нет ни одного экрана: иконка открывает
-             приложение сразу в запись (PRD §F-1). -->
+             приложение сразу в запись (PRD §F-1).
+             adjustResize, не adjustPan: при правке транскрипта окно должно
+             сжиматься, иначе клавиатура уводит вверх и шапку, и статус-бар. -->
         <activity
             android:name=".capture.CaptureActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:excludeFromRecents="true"
             android:taskAffinity=".capture"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Prinyal.Capture">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -45,6 +48,7 @@
             android:name=".ui.MainActivity"
             android:exported="false"
             android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Prinyal" />
 
         <!-- Виджет 1×1 — тот же жест, что иконка. -->

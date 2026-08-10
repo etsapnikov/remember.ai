@@ -82,6 +82,12 @@
     <string name="feed_offline_badge">нет связи с сервером</string>
     <string name="feed_pending">разбираю</string>
     <string name="note_transcript">Что услышал</string>
+    <string name="transcript_edit">Поправить</string>
+    <string name="transcript_reparse">Разобрать заново</string>
+    <string name="transcript_reparse_warn">Разберу заново — пункты пересоберу с нуля, правки в них пропадут.</string>
+    <string name="transcript_reparse_plain">Разберу заново — пункты пересоберу с нуля.</string>
+    <string name="transcript_parsing">Разбираю…</string>
+    <string name="transcript_edit_dropped">Не сохранил правку</string>
     <string name="note_items">Что понял</string>
     <string name="note_returns">Возвраты</string>
     <string name="note_play">Слушать</string>
@@ -132,7 +138,9 @@
 
     <!-- Подсказки жестов на экране записи -->
     <string name="capture_hint_up">Свайп вверх — записи</string>
-    <string name="capture_start_hint">Нажми — запишу</string>
+    <string name="capture_idle_hint">Нажми — запишу</string>
+    <string name="capture_stop_hint">Нажми — остановлю</string>
+    <string name="capture_silence">тишина · остановлю через %1$s</string>
 
     <!-- Состояния айтема -->
     <string name="state_planned">в плане</string>

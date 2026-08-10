@@ -36,6 +36,23 @@ object Motion {
 
     /** Возврат прерванного жеста на место. */
     val FollowCancel = MotionSpec(200, CubicBezierEasing(.4f, 0f, .6f, 1f))
+
+    /** Ход колпачка вниз под пальцем. */
+    val KeyPress = MotionSpec(90, CubicBezierEasing(.4f, 0f, 1f, 1f))
+
+    /** Отпускание: колпачок возвращается. Микрофон стартует здесь, не позже. */
+    val KeyRelease = MotionSpec(160, CubicBezierEasing(.2f, .8f, .2f, 1f))
+
+    /** Смена состояния клавиши: цвета, таймер, подпись. */
+    val StateShift = MotionSpec(220, CubicBezierEasing(.4f, 0f, .2f, 1f))
+    const val StateShiftRingDelayMs = 60
+
+    /**
+     * Кольцо-амплитуда: быстрый подъём, медленный спад — так индикация читается
+     * как дыхание речи, а не как дрожь (R1.2 §13).
+     */
+    const val AmpAttackMs = 100
+    const val AmpReleaseTauMs = 220
 }
 
 /**

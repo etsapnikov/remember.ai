@@ -47,6 +47,11 @@
       "statusWarn": "#E08757"
     }
   },
+  "capture": {
+    "silenceThreshold": 0.08,
+    "silenceGraceMs": 400,
+    "silenceLockMs": 400
+  },
   "gesture": {
     "swipeStart": 8,
     "swipeCommitVertical": { "distance": 96, "velocity": 600 },
@@ -63,9 +68,10 @@
     "display": {
       "font": "Spectral",
       "weight": 400,
-      "size": 38,
-      "line": 1.1,
-      "use": "квитанция «Принял.»"
+      "size": 34,
+      "line": 1.12,
+      "letterSpacing": -0.02,
+      "use": "квитанция «Запомнил.»; 38 не влезало на 320 dp — R1.2 §14"
     },
     "voice": {
       "font": "Spectral",
@@ -101,6 +107,14 @@
       "size": 13,
       "letterSpacing": 0.02,
       "use": "время, статусы, служебное"
+    },
+    "timer": {
+      "font": "JetBrains Mono",
+      "weight": 400,
+      "size": 22,
+      "line": 1.2,
+      "letterSpacing": 0.04,
+      "use": "таймер записи; жизнь показывает кольцо, таймеру хватает 22 — R1.2 §13"
     },
     "verdict": {
       "font": "Golos Text",
@@ -143,7 +157,38 @@
     "housing": 112,
     "cap": 84,
     "capPressed": 78,
+    "capDrop": 4,
     "dot": 26,
+    "idle": {
+      "housing": "#1E1917",
+      "housingEdge": "#2E2724",
+      "cap": "#2A211E",
+      "capShadow": 3,
+      "dot": "#D8402F",
+      "timer": "#4A403A"
+    },
+    "recording": {
+      "housing": "#2A1512",
+      "housingEdge": "#52201A",
+      "cap": "#D8402F",
+      "capShadow": 4,
+      "stopMark": "#2A1512",
+      "stopRadius": 5,
+      "timer": "#8C8078"
+    },
+    "ring": {
+      "side": 120,
+      "sideGain": 26,
+      "corner": 36,
+      "cornerGain": 6,
+      "width": 1.5,
+      "widthGain": 1,
+      "color": "#E8836B",
+      "alpha": 0.35,
+      "alphaGain": 0.65,
+      "idleColor": "#4A403A",
+      "silenceSide": 126
+    },
     "states": [
       "rest",
       "pressed",
@@ -181,6 +226,27 @@
     "followCancel": {
       "dur": 200,
       "ease": "cubic-bezier(.4,0,.6,1)"
+    },
+    "keyPress": {
+      "dur": 90,
+      "ease": "cubic-bezier(.4,0,1,1)"
+    },
+    "keyRelease": {
+      "dur": 160,
+      "ease": "cubic-bezier(.2,.8,.2,1)"
+    },
+    "stateShift": {
+      "dur": 220,
+      "ease": "cubic-bezier(.4,0,.2,1)",
+      "ringDelay": 60
+    },
+    "ampAttack": {
+      "dur": 100,
+      "ease": "linear"
+    },
+    "ampRelease": {
+      "tau": 220,
+      "ease": "ease-out"
     }
   },
   "haptics": {

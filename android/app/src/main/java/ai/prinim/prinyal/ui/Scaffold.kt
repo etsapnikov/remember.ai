@@ -142,6 +142,8 @@ private fun undoText(message: AppViewModel.UndoMessage): String = when (message)
             .substringBefore(" · ")
     is AppViewModel.UndoMessage.ItemBuried ->
         stringResource(R.string.item_buried_undo).substringBefore(" · ")
+    is AppViewModel.UndoMessage.EditDropped ->
+        stringResource(R.string.transcript_edit_dropped)
 }
 
 @Composable

@@ -37,6 +37,8 @@ object KeyMetrics {
     val housing: Dp = 112.dp
     val cap: Dp = 84.dp
     val capPressed: Dp = 78.dp
+    /** Ход колпачка вниз при нажатии (R1.2 §12). */
+    val capDrop: Dp = 4.dp
     val dot: Dp = 26.dp
 }
 

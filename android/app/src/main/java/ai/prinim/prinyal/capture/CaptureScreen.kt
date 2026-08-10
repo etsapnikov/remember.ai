@@ -2,6 +2,8 @@ package ai.prinim.prinyal.capture
 
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.ui.components.RecordKey
+import ai.prinim.prinyal.ui.components.rememberAmplitude
+import ai.prinim.prinyal.ui.theme.KeyColors
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Motion
 import ai.prinim.prinyal.ui.theme.Prinyal
@@ -51,6 +53,11 @@ class CaptureState {
     var tooShort by mutableStateOf(false)
     var elapsedMs by mutableLongStateOf(0L)
     var level by mutableFloatStateOf(0f)
+    /**
+     * Осталось до авто-стопа, мс; 0 — тишина ещё не считается. Авто-стоп перестаёт
+     * быть внезапным: полторы секунды видно, что он идёт (R1.2 §13).
+     */
+    var silenceLeftMs by mutableLongStateOf(0L)
 }
 
 /**
@@ -134,45 +141,51 @@ private fun Recording(
         // Воздух сверху: клавиша живёт в нижней трети, телефон держат одной рукой.
         Box(Modifier.weight(1f))
 
-        // Таймер — прямо над клавишей, а не сам по себе в пустоте: он читается
-        // как подпись к происходящему, а не как случайная цифра на экране.
-        // В idle таймера нет — нечего мерить.
-        if (!state.idle) {
-            Text(
-                text = formatElapsed(state.elapsedMs),
-                style = Prinyal.type.timer,
-                color = Prinyal.colors.record,
-            )
-            Box(Modifier.height(Space.ml))
-        }
+        // Таймер над клавишей. Место занято даже в idle — «0:00» в disabled-цвете
+        // честнее пустоты: экран не начинает врать (R1.2 §12).
+        Text(
+            text = formatElapsed(state.elapsedMs),
+            style = Prinyal.type.timer,
+            color = if (state.recording) KeyColors.recTimer else KeyColors.idleTimer,
+        )
+        Box(Modifier.height(Space.ml))
 
-        // Клавиша — и есть кнопка: стоп во время записи, старт в idle (Р-К).
-        // Финальный вид состояний — за дизайнером (ТЗ R1.2 §1), механика уже здесь.
-        Box(
-            Modifier.clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-            ) {
-                if (state.recording) onStop() else onStart()
-            }
-        ) {
-            RecordKey(pulsing = state.recording, level = state.level)
-        }
+        // Клавиша — и есть кнопка: стоп во время записи, старт в idle.
+        // Микрофон стартует на отпускании (§12), поэтому press/release разведены.
+        val level by rememberAmplitude(if (state.recording) state.level else 0f)
+        RecordKey(
+            recording = state.recording,
+            level = level,
+            silence = state.silenceLeftMs > 0,
+            onRelease = { if (state.recording) onStop() else onStart() },
+        )
 
         Box(Modifier.height(Space.l))
 
-        // Подсказки жестов (§8): обе под кнопкой, гаснут по счётчикам применений.
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // Отсчёт до авто-стопа вытесняет обычную подпись: сейчас важнее он.
+            if (state.silenceLeftMs > 0) {
+                HintLine(
+                    stringResource(
+                        R.string.capture_silence,
+                        "%.1f".format(state.silenceLeftMs / 1000f).replace('.', ','),
+                    )
+                )
+            } else {
+                HintLine(
+                    stringResource(
+                        if (state.recording) R.string.capture_stop_hint
+                        else R.string.capture_idle_hint
+                    )
+                )
+            }
+
+            // Подсказки жестов (§8): гаснут по счётчикам применений.
             if (state.recording && state.showCancelHint) {
                 HintLine(stringResource(R.string.capture_cancel_hint))
             }
             if (state.showUpHint && hasNotes) {
                 HintLine(stringResource(R.string.capture_hint_up))
-            }
-            if (state.idle) {
-                HintLine(stringResource(R.string.capture_start_hint))
-            } else if (!state.recording && !state.showUpHint && !state.showCancelHint) {
-                HintLine(stringResource(R.string.capture_hint))
             }
         }
 

@@ -71,6 +71,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             app.repository.editItem(itemId, text, type, window, clear)
         }
 
+    /**
+     * Сохранить правленый транскрипт и переразобрать (спека R1.2 §15).
+     *
+     * ASR второй раз не гоняем: воркер пропускает распознавание, если транскрипт
+     * уже есть, — то есть в разбор уйдёт именно правленый текст.
+     */
+    fun saveTranscriptAndReparse(noteId: String, transcript: String) = viewModelScope.launch {
+        app.repository.replaceTranscript(noteId, transcript)
+        UploadWorker.enqueue(getApplication(), noteId)
+    }
+
+    /** Правка отброшена — снекбар с «вернуть» вернёт человека в редактор. */
+    fun showDroppedEdit() {
+        _undo.value = UndoEvent(UndoMessage.EditDropped) { }
+    }
+
     /** Перезапуск разбора после ошибки: аудио цело, значит шанс есть (F-7). */
     fun reparse(noteId: String) = viewModelScope.launch {
         app.db.notes().setStatus(noteId, ai.prinim.prinyal.data.NoteStatus.RECORDED.wire)
@@ -86,6 +102,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         data object NoteDeleted : UndoMessage
         data class JunkSwept(val count: Int) : UndoMessage
         data object ItemBuried : UndoMessage
+        data object EditDropped : UndoMessage
     }
 
     private val _undo = MutableStateFlow<UndoEvent?>(null)
