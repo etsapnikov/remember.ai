@@ -41,6 +41,8 @@ import androidx.compose.ui.tooling.preview.Preview
  */
 class CaptureState {
     var recording by mutableStateOf(false)
+    /** Вернулись из ленты: запись завершена, новая — по нажатию клавиши (Р-К). */
+    var idle by mutableStateOf(false)
     var showCancelHint by mutableStateOf(true)
     var showUpHint by mutableStateOf(true)
     var receipt by mutableStateOf(false)
@@ -65,6 +67,7 @@ fun CaptureScreen(
     onStop: () -> Unit,
     onCancel: () -> Unit,
     onGrant: () -> Unit,
+    onStart: () -> Unit = {},
 ) {
     // Вертикальные жесты живут в CaptureHost: вверх тянет лист ленты, вниз отменяет.
     Box(
@@ -85,7 +88,7 @@ fun CaptureScreen(
             state.needsPermission -> PermissionRequest(onGrant)
             state.failed -> Message(stringResource(R.string.error_asr_failed))
             state.tooShort -> Message(stringResource(R.string.capture_too_short))
-            else -> Recording(state, hasNotes)
+            else -> Recording(state, hasNotes, onStop = onStop, onStart = onStart)
         }
     }
 }
@@ -116,7 +119,12 @@ private fun Receipt() {
 }
 
 @Composable
-private fun Recording(state: CaptureState, hasNotes: Boolean) {
+private fun Recording(
+    state: CaptureState,
+    hasNotes: Boolean,
+    onStop: () -> Unit,
+    onStart: () -> Unit,
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -128,14 +136,28 @@ private fun Recording(state: CaptureState, hasNotes: Boolean) {
 
         // Таймер — прямо над клавишей, а не сам по себе в пустоте: он читается
         // как подпись к происходящему, а не как случайная цифра на экране.
-        Text(
-            text = formatElapsed(state.elapsedMs),
-            style = Prinyal.type.timer,
-            color = Prinyal.colors.record,
-        )
-        Box(Modifier.height(Space.ml))
+        // В idle таймера нет — нечего мерить.
+        if (!state.idle) {
+            Text(
+                text = formatElapsed(state.elapsedMs),
+                style = Prinyal.type.timer,
+                color = Prinyal.colors.record,
+            )
+            Box(Modifier.height(Space.ml))
+        }
 
-        RecordKey(pulsing = state.recording, level = state.level)
+        // Клавиша — и есть кнопка: стоп во время записи, старт в idle (Р-К).
+        // Финальный вид состояний — за дизайнером (ТЗ R1.2 §1), механика уже здесь.
+        Box(
+            Modifier.clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+            ) {
+                if (state.recording) onStop() else onStart()
+            }
+        ) {
+            RecordKey(pulsing = state.recording, level = state.level)
+        }
 
         Box(Modifier.height(Space.l))
 
@@ -147,7 +169,9 @@ private fun Recording(state: CaptureState, hasNotes: Boolean) {
             if (state.showUpHint && hasNotes) {
                 HintLine(stringResource(R.string.capture_hint_up))
             }
-            if (!state.recording && !state.showUpHint && !state.showCancelHint) {
+            if (state.idle) {
+                HintLine(stringResource(R.string.capture_start_hint))
+            } else if (!state.recording && !state.showUpHint && !state.showCancelHint) {
                 HintLine(stringResource(R.string.capture_hint))
             }
         }

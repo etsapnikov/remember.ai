@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Значок статус-бара (Р-3). Вектор с альфа-маской вместо белого PNG: системе нужна
+  только альфа, PNG 96px без неё рисовался невидимым квадратом.
+
+  Форма — знак айдентики: клавиша с утопленным кругом (та же ДНК, что иконка
+  приложения), без микрофона.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Скруглённый корпус клавиши -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M7,2h10a5,5 0 0 1 5,5v10a5,5 0 0 1 -5,5H7a5,5 0 0 1 -5,-5V7a5,5 0 0 1 5,-5z
+            M12,7.2a4.8,4.8 0 1 0 0,9.6a4.8,4.8 0 0 0 0,-9.6z" />
+    <!-- Точка «Принял.» в центре колодца -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,10.6a1.4,1.4 0 1 1 0,2.8a1.4,1.4 0 0 1 0,-2.8z" />
+</vector>

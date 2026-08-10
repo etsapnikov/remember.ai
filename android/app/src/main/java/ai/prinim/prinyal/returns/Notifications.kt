@@ -150,7 +150,8 @@ object Notifications {
 
     private fun base(context: Context, channel: String): NotificationCompat.Builder =
         NotificationCompat.Builder(context, channel)
-            .setSmallIcon(R.drawable.ic_notification)
+            // Вектор с альфа-маской (Р-3): PNG без альфы был невидим в статус-баре.
+            .setSmallIcon(R.drawable.ic_stat_note)
             // Акцент «это он мне принёс»: по цвету нашу карточку находят в чужой
             // шторке за пару секунд (ТЗ айдентики §9.2).
             .setColor(ContextCompat.getColor(context, R.color.accent_self))

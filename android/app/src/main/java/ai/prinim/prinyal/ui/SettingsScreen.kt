@@ -203,6 +203,47 @@ fun SettingsScreen(vm: AppViewModel) {
                         color = Prinyal.colors.inkMuted,
                     )
                 }
+
+                // Р-8: без исключения из оптимизации батареи прошивка убивает
+                // процесс и возвраты молчат — риск PRD §9, подтверждён на Honor.
+                val pm = context.getSystemService(android.os.PowerManager::class.java)
+                val ignoring = pm?.isIgnoringBatteryOptimizations(context.packageName) == true
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = !ignoring) {
+                            runCatching {
+                                context.startActivity(
+                                    Intent(
+                                        AndroidSettings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                                        android.net.Uri.parse("package:" + context.packageName),
+                                    )
+                                )
+                            }
+                        },
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_battery_row),
+                        style = Prinyal.type.body,
+                        color = Prinyal.colors.ink,
+                    )
+                    MetaText(
+                        text = stringResource(
+                            if (ignoring) R.string.settings_battery_ok
+                            else R.string.settings_battery_bad
+                        ),
+                        color = if (ignoring) Prinyal.colors.statusOk else Prinyal.colors.statusWarn,
+                    )
+                }
+                if (!ignoring) {
+                    Text(
+                        text = stringResource(R.string.settings_battery_why),
+                        style = Prinyal.type.body,
+                        color = Prinyal.colors.inkMuted,
+                    )
+                }
             }
         }
 

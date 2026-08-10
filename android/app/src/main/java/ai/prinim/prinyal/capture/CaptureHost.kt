@@ -65,6 +65,7 @@ fun CaptureHost(
     onCancel: () -> Unit,
     onGrant: () -> Unit,
     onFeedOpened: () -> Unit,
+    onStart: () -> Unit = {},
 ) {
     val density = LocalDensity.current
     var heightPx by remember { mutableStateOf(0f) }
@@ -201,6 +202,7 @@ fun CaptureHost(
                 onStop = onStop,
                 onCancel = onCancel,
                 onGrant = onGrant,
+                onStart = onStart,
             )
         }
 
@@ -213,43 +215,13 @@ fun CaptureHost(
                     .background(Prinyal.colors.paper)
                     .nestedScroll(nestedScroll),
             ) {
-                Column(Modifier.fillMaxSize()) {
-                    if (state.recording) {
-                        RecordingBanner(
-                            elapsedMs = state.elapsedMs,
-                            onReturn = { scope.launch { drag.animateTo(SheetValue.Hidden) } },
-                        )
-                    }
-                    FeedPane()
-                }
+                FeedPane()
             }
         }
     }
 }
 
 private enum class SheetValue { Hidden, Shown }
-
-/** «Идёт запись · 0:02» — тап возвращает к кнопке той же механикой (§7). */
-@Composable
-private fun RecordingBanner(elapsedMs: Long, onReturn: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .background(Prinyal.colors.accentSelfSoft)
-            .clickable(onClick = onReturn)
-            .padding(horizontal = Space.screen, vertical = Space.s),
-    ) {
-        MetaText(
-            text = "%s · %d:%02d".format(
-                stringResource(R.string.feed_recording_now),
-                elapsedMs / 60_000,
-                (elapsedMs / 1000) % 60,
-            ),
-            color = Prinyal.colors.accentSelf,
-        )
-    }
-}
 
 /** Лента и её экраны — тот же каркас, что открывается из уведомлений. */
 @Composable

@@ -132,6 +132,7 @@
 
     <!-- Подсказки жестов на экране записи -->
     <string name="capture_hint_up">Свайп вверх — записи</string>
+    <string name="capture_start_hint">Нажми — запишу</string>
 
     <!-- Состояния айтема -->
     <string name="state_planned">в плане</string>
@@ -197,6 +198,10 @@
     <string name="settings_exact_alarm_why">Без этого возвраты приходят с задержкой до нескольких минут</string>
     <string name="settings_exact_alarm_granted">разрешены</string>
     <string name="settings_exact_alarm_denied">запрещены</string>
+    <string name="settings_battery_row">Работа в фоне</string>
+    <string name="settings_battery_ok">без ограничений</string>
+    <string name="settings_battery_bad">ограничена</string>
+    <string name="settings_battery_why">Телефон экономит батарею и убивает приложение — напоминания молчат. Разреши работу в фоне.</string>
     <string name="settings_parsing">Разбор</string>
     <string name="settings_capture">Запись</string>
     <string name="settings_data">Данные</string>

@@ -41,8 +41,6 @@ class CaptureActivity : ComponentActivity() {
     private var noteId: String = ""
     private var source: CaptureSource = CaptureSource.ICON
     private var launchedAt: Long = 0
-    /** Лента-лист открыта поверх экрана записи (жест §7). */
-    private var feedOpen = false
 
     private val state = CaptureState()
 
@@ -56,7 +54,6 @@ class CaptureActivity : ComponentActivity() {
 
         recorder = Recorder(this)
         source = CaptureSource.of(intent.getStringExtra(EXTRA_SOURCE))
-        noteId = UUID.randomUUID().toString()
 
         // Запись — раньше setContent: приёмка F-1 меряет момент старта записи,
         // а не момент появления пикселей.
@@ -80,11 +77,12 @@ class CaptureActivity : ComponentActivity() {
                     onCancel = ::cancelRecording,
                     onGrant = { askMic.launch(Manifest.permission.RECORD_AUDIO) },
                     onFeedOpened = {
-                        feedOpen = true
+                        stopForFeed()
                         lifecycleScope.launch {
                             PrinyalApp.of(this@CaptureActivity).settings.hintUsed(HINT_UP)
                         }
                     },
+                    onStart = ::beginRecording,
                 )
             }
         }
@@ -96,7 +94,13 @@ class CaptureActivity : ComponentActivity() {
      */
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
-        if (recorder.isRecording) finishRecording()
+        if (recorder.isRecording) {
+            finishRecording()
+        } else if (state.idle && hasMic()) {
+            // Пришли с иконки/виджета, а экран стоял в idle — capture-first.
+            source = CaptureSource.of(intent.getStringExtra(EXTRA_SOURCE))
+            beginRecording()
+        }
     }
 
     private fun hasMic(): Boolean =
@@ -108,7 +112,10 @@ class CaptureActivity : ComponentActivity() {
             state.failed = true
             return
         }
+        noteId = UUID.randomUUID().toString()
         state.needsPermission = false
+        state.idle = false
+        state.elapsedMs = 0
         state.recording = true
 
         val app = PrinyalApp.of(this)
@@ -191,17 +198,12 @@ class CaptureActivity : ComponentActivity() {
         }
 
         state.recording = false
-        // Лента открыта поверх: запись тихо сохраняется, квитанция не показывается
-        // и активити не закрывается — человек продолжает смотреть записи (§7).
-        val silently = feedOpen
-        if (!silently) {
-            state.receipt = true
-            Haptics.receipt(this)
-        }
+        state.receipt = true
+        Haptics.receipt(this)
 
         val app = PrinyalApp.of(this)
         lifecycleScope.launch {
-            if (!silently) app.analytics.log(Analytics.RECEIPT_SHOWN, mapOf("note" to noteId))
+            app.analytics.log(Analytics.RECEIPT_SHOWN, mapOf("note" to noteId))
             app.repository.createNote(
                 id = noteId,
                 audio = result.file,
@@ -213,11 +215,51 @@ class CaptureActivity : ComponentActivity() {
             UploadWorker.enqueue(this@CaptureActivity, noteId)
         }
 
-        if (!silently) {
+        lifecycleScope.launch {
+            delay(RECEIPT_MS)
+            finishAndRemoveTask()
+        }
+    }
+
+    /**
+     * Свайп вверх завершает запись (решение владельца 07.08, отмена §7 спеки R1.1:
+     * запись при открытой ленте больше не живёт — она зомбировалась на потолке 90 с).
+     * Сказанное сохраняется без квитанции-экрана, но с фирменным вибро; экран записи
+     * остаётся в idle — новая запись по нажатию клавиши.
+     */
+    private fun stopForFeed() {
+        if (!recorder.isRecording) {
+            state.idle = true
+            return
+        }
+        watchdog?.cancel()
+        val result = recorder.stop()
+        state.recording = false
+        state.elapsedMs = 0
+        state.idle = true
+
+        if (result == null || result.durationMs < Recorder.MIN_DURATION_MS) {
+            result?.file?.delete()
             lifecycleScope.launch {
-                delay(RECEIPT_MS)
-                finishAndRemoveTask()
+                PrinyalApp.of(this@CaptureActivity).analytics.log(
+                    Analytics.CAPTURE_CANCEL,
+                    mapOf("note" to noteId, "reason" to "feed_short", "source" to source.wire),
+                )
             }
+            return
+        }
+
+        Haptics.receipt(this)
+        val app = PrinyalApp.of(this)
+        lifecycleScope.launch {
+            app.repository.createNote(
+                id = noteId,
+                audio = result.file,
+                durationMs = result.durationMs,
+                source = source,
+                createdAt = result.startedAt,
+            )
+            UploadWorker.enqueue(this@CaptureActivity, noteId)
         }
     }
 

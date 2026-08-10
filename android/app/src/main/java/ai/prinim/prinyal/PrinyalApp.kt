@@ -56,6 +56,8 @@ class PrinyalApp : Application() {
     override fun onCreate() {
         super.onCreate()
         Notifications.ensureChannels(this)
+        // Страховка возвратов (Р-8): прошивка душит алармы, воркер догоняет.
+        ai.prinim.prinyal.returns.ReturnCatchUpWorker.ensureScheduled(this)
 
         // Веса едут в APK и распаковываются один раз, в фоне. Пока распаковка идёт,
         // запись работает: она и не должна ничего ждать (F-2) — транскрипт просто
