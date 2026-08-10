@@ -5,7 +5,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.withFrameNanos
 import kotlin.math.exp
 
@@ -25,6 +27,11 @@ import kotlin.math.exp
 fun rememberAmplitude(target: Float): State<Float> {
     val smoothed = remember { mutableFloatStateOf(0f) }
 
+    // Цикл живёт всю жизнь экрана, а `target` меняется каждые 100 мс. Без
+    // rememberUpdatedState лямбда замкнулась бы на значении первой композиции —
+    // кольцо дышало бы от вечного нуля.
+    val latest by rememberUpdatedState(target)
+
     LaunchedEffect(Unit) {
         var previousNanos = 0L
         while (true) {
@@ -32,6 +39,7 @@ fun rememberAmplitude(target: Float): State<Float> {
                 if (previousNanos != 0L) {
                     val deltaMs = (nanos - previousNanos) / 1_000_000f
                     val current = smoothed.floatValue
+                    val target = latest
                     smoothed.floatValue = if (target > current) {
                         // Линейная атака: полный ход за AmpAttackMs.
                         (current + deltaMs / Motion.AmpAttackMs).coerceAtMost(target)

@@ -159,7 +159,7 @@ class CaptureActivity : ComponentActivity() {
                 val elapsed = recorder.elapsedMs
 
                 state.elapsedMs = elapsed
-                state.level = (amplitude / 12_000f).coerceIn(0f, 1f)
+                state.level = Loudness.level(amplitude)
 
                 val locked = silenceMs >= Recorder.SILENCE_TO_STOP_MS - SILENCE_LOCK_MS
                 if (amplitude >= silenceThreshold && !locked) {
@@ -226,6 +226,7 @@ class CaptureActivity : ComponentActivity() {
                 durationMs = result.durationMs,
                 source = source,
                 createdAt = result.startedAt,
+                peakAmplitude = result.amplitudePeak,
             )
             // Отправка — отдельной задачей: квитанция уже показана, и сеть её не держит.
             UploadWorker.enqueue(this@CaptureActivity, noteId)

@@ -112,8 +112,12 @@ fun RecordKey(
 
     // Во время отсчёта тишины кольцо стягивается к корпусу и не дышит.
     val amplitude = if (silence) 0f else level
-    val ringSide = if (silence) SILENCE_SIDE else RING_SIDE + RING_SIDE_GAIN * amplitude.pow(2)
-    val ringCorner = RING_CORNER + RING_CORNER_GAIN * amplitude.pow(2)
+    // Показатель 1.25, а не 2 из спеки: квадрат был нужен, чтобы шорох не мерцал,
+    // но эту работу уже делает логарифмическая нормировка — тихая комната падает
+    // в ноль до кольца. Квадрат поверх неё просто съедал ход.
+    val shaped = amplitude.pow(RING_EXPONENT)
+    val ringSide = if (silence) SILENCE_SIDE else RING_SIDE + RING_SIDE_GAIN * shaped
+    val ringCorner = RING_CORNER + RING_CORNER_GAIN * shaped
     val ringWidth = RING_WIDTH + RING_WIDTH_GAIN * amplitude
     val ringAlpha = if (silence) 0.5f else RING_ALPHA + RING_ALPHA_GAIN * amplitude
 
@@ -206,11 +210,12 @@ fun RecordKey(
 
 // Кольцо-амплитуда (токены key.ring)
 private const val RING_SIDE = 120f
-private const val RING_SIDE_GAIN = 26f
+private const val RING_SIDE_GAIN = 44f
 private const val RING_CORNER = 36f
-private const val RING_CORNER_GAIN = 6f
-private const val RING_WIDTH = 1.5f
-private const val RING_WIDTH_GAIN = 1f
+private const val RING_CORNER_GAIN = 10f
+private const val RING_WIDTH = 2f
+private const val RING_WIDTH_GAIN = 2.5f
+private const val RING_EXPONENT = 1.25f
 private const val RING_ALPHA = 0.35f
 private const val RING_ALPHA_GAIN = 0.65f
 private const val SILENCE_SIDE = 126f

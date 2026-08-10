@@ -41,6 +41,8 @@ class NoteRepository(
         durationMs: Long,
         source: CaptureSource,
         createdAt: Instant = Instant.now(),
+        /** Пик громкости за запись: по нему видно, не тих ли микрофон. */
+        peakAmplitude: Int = 0,
     ) {
         db.notes().insert(
             NoteEntity(
@@ -54,7 +56,12 @@ class NoteRepository(
         )
         analytics.log(
             Analytics.CAPTURE_STOP,
-            mapOf("note" to id, "source" to source.wire, "ms" to durationMs),
+            mapOf(
+                "note" to id,
+                "source" to source.wire,
+                "ms" to durationMs,
+                "peak" to peakAmplitude,
+            ),
         )
     }
 
