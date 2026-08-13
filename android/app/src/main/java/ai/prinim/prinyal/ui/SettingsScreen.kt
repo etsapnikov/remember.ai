@@ -6,6 +6,7 @@ import ai.prinim.prinyal.capture.SilenceWindow
 import ai.prinim.prinyal.data.Window
 import ai.prinim.prinyal.domain.WeeklySummary
 import ai.prinim.prinyal.returns.ReturnScheduler
+import ai.prinim.prinyal.returns.ReturnDiag
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.Radius
@@ -49,6 +50,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.time.ZoneId
 
 /**
  * Настройки (спека R1.1 §5). Порядок секций — по частоте использования; заголовок
@@ -447,6 +450,45 @@ private fun KillMetrics(vm: AppViewModel) {
     }
 }
 
+/**
+ * Судьба последних возвратов: план → аларм → показ → ответ.
+ *
+ * Ради этой таблицы всё и заводилось. Она отвечает на вопрос, который три
+ * захода решался догадками: аларм не сработал — или сработал, но уведомление
+ * не дошло. Пока ответа нет, чинить нечего.
+ */
+@Composable
+private fun ReturnTrace() {
+    val context = LocalContext.current
+    val traces = remember { ReturnDiag.recent(context) }
+    val time = remember { DateTimeFormatter.ofPattern("d MMM HH:mm") }
+    val zone = remember { ZoneId.systemDefault() }
+
+    Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
+        MetaText(stringResource(R.string.set_dev_returns))
+
+        if (traces.isEmpty()) {
+            MetaText(stringResource(R.string.set_dev_returns_empty), color = Prinyal.colors.inkFaint)
+            return@Column
+        }
+
+        traces.forEach { trace ->
+            val planned = trace.plannedAt?.atZone(zone)?.format(time) ?: "—"
+            // Слова, а не галочки: важно не «сколько шагов пройдено», а где встал.
+            val state = when {
+                trace.answeredAt != null -> "ответил"
+                trace.viaCatchup -> "показан страховкой"
+                trace.shownAt != null -> "показан алармом"
+                trace.alarmAt != null -> "аларм был, показа нет"
+                trace.note != null -> trace.note
+                else -> "аларм не сработал"
+            }
+            val late = trace.lateMs?.let { " · опоздал на ${it / 60_000} мин" }.orEmpty()
+            MetaText("$planned · $state$late", color = Prinyal.colors.inkFaint)
+        }
+    }
+}
+
 /** Серверный контур и сырые числа — только для отладки. */
 @Composable
 private fun DeveloperSection(vm: AppViewModel, threshold: Int) {
@@ -474,6 +516,7 @@ private fun DeveloperSection(vm: AppViewModel, threshold: Int) {
             // принимается решение о судьбе продукта, и читает их владелец в
             // роли заказчика, а не человек в роли пользователя.
             KillMetrics(vm)
+            ReturnTrace()
 
             Field(stringResource(R.string.settings_server_url), urlDraft) {
                 urlDraft = it

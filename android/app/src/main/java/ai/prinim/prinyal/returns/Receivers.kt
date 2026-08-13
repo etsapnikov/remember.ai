@@ -17,11 +17,26 @@ class ReturnAlarmReceiver : BroadcastReceiver() {
         val app = PrinyalApp.of(context)
         val pending = goAsync()
 
+        // Первая отметка — до любых проверок: она отвечает на главный вопрос,
+        // дошёл ли до нас аларм вообще. Всё остальное уже наши решения.
+        ReturnDiag.log(context, returnId, ReturnDiag.ALARM)
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val entity = app.db.returns().byId(returnId) ?: return@launch
-                if (entity.firedAt != null) return@launch
-                val item = app.db.items().byId(entity.itemId) ?: return@launch
+                val entity = app.db.returns().byId(returnId)
+                if (entity == null) {
+                    ReturnDiag.log(context, returnId, ReturnDiag.SKIPPED, mapOf("why" to "нет записи"))
+                    return@launch
+                }
+                if (entity.firedAt != null) {
+                    ReturnDiag.log(context, returnId, ReturnDiag.SKIPPED, mapOf("why" to "уже показан"))
+                    return@launch
+                }
+                val item = app.db.items().byId(entity.itemId)
+                if (item == null) {
+                    ReturnDiag.log(context, returnId, ReturnDiag.SKIPPED, mapOf("why" to "нет пункта"))
+                    return@launch
+                }
 
                 Notifications.showReturn(
                     context,
@@ -30,6 +45,7 @@ class ReturnAlarmReceiver : BroadcastReceiver() {
                     entity.attempt,
                     app.settings.windowsNow(),
                 )
+                ReturnDiag.log(context, returnId, ReturnDiag.SHOWN)
                 app.repository.markFired(returnId)
             } finally {
                 pending.finish()
@@ -54,6 +70,7 @@ class ReturnActionReceiver : BroadcastReceiver() {
             try {
                 val entity = app.db.returns().byId(returnId) ?: return@launch
                 val itemId = entity.itemId
+                ReturnDiag.log(context, returnId, ReturnDiag.ANSWERED, mapOf("action" to action))
 
                 when (action) {
                     DONE -> {

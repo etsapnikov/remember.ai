@@ -36,10 +36,15 @@ open class ReturnScheduler(private val context: Context) {
             alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, intent)
         }
         Log.i(TAG, "план: $returnId на $at")
+        ReturnDiag.log(
+            context, returnId, ReturnDiag.SCHEDULED,
+            mapOf("at" to triggerAt, "exact" to canScheduleExact()),
+        )
     }
 
     open fun cancel(returnId: String) {
         alarms.cancel(intentFor(returnId))
+        ReturnDiag.log(context, returnId, ReturnDiag.CANCELLED, mapOf("why" to "отменён нами"))
     }
 
     open fun canScheduleExact(): Boolean =

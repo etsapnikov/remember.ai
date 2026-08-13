@@ -30,6 +30,10 @@ class ReturnCatchUpWorker(
         val app = PrinyalApp.of(applicationContext)
         val now = System.currentTimeMillis()
 
+        // Отметка о самом заходе, без привязки к возврату: она отвечает на
+        // вопрос, жив ли страховочный воркер вообще — прошивка душит и его.
+        ReturnDiag.log(applicationContext, "—", ReturnDiag.CATCHUP, mapOf("why" to "заход"))
+
         app.db.returns().due(now).forEach { entity ->
             val item = app.db.items().byId(entity.itemId) ?: return@forEach
             Notifications.showReturn(
@@ -38,6 +42,9 @@ class ReturnCatchUpWorker(
                 item,
                 entity.attempt,
                 app.settings.windowsNow(),
+            )
+            ReturnDiag.log(
+                applicationContext, entity.id, ReturnDiag.SHOWN, mapOf("catchup" to true),
             )
             app.repository.markFired(entity.id)
         }
