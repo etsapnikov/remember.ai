@@ -17,7 +17,9 @@ android {
         // Android 10+ — матрица устройств из ТЗ UI §5 (Xiaomi/realme/Samsung A).
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
+        // Минуты эпохи: код версии обязан расти, иначе установка поверх — даунгрейд,
+        // и телефон её отвергнет. Ручной счётчик здесь неизбежно отстал бы.
+        versionCode = (System.currentTimeMillis() / 60_000L).toInt()
         versionName = "1.0-r1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

@@ -14,6 +14,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
+    <!-- Приложение ставит само себя: обновление dogfood-сборки без диалога
+         (Android 12+, USER_ACTION_NOT_REQUIRED). Ставится только APK с нашей
+         подписью — проверка в SelfUpdater. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <uses-feature android:name="android.hardware.microphone" android:required="true" />
 
     <application
@@ -91,6 +96,24 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="android.intent.action.TIME_SET" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- exported, потому что команду шлёт `adb shell am broadcast` от uid shell.
+             Замок не здесь, а в проверке подписи APK. -->
+        <receiver
+            android:name=".update.UpdateReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="ai.prinim.prinyal.action.SELF_UPDATE" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".update.UpdateStatusReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="ai.prinim.prinyal.action.SELF_UPDATE_STATUS" />
             </intent-filter>
         </receiver>
 
