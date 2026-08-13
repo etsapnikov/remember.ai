@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=Lora:ital@1&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#0C0A09; }
+  body { font-family:'Roboto', system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+  a { color:#E08757; text-decoration:none; }
+  a:hover { color:#F0A279; }
+  input[type=range]{ -webkit-appearance:none; appearance:none; background:transparent; }
+  input[type=range]::-webkit-slider-runnable-track{ height:3px; background:#3A302B; border-radius:2px; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:18px; height:18px; margin-top:-8px; border-radius:50%; background:#E08757; }
+</style>
+</helmet>
+
+<section style="padding:56px 56px 96px; display:flex; flex-direction:column; gap:56px; border-bottom:1px solid #241E1B;">
+
+  <div style="max-width:880px; display:flex; flex-direction:column; gap:14px;">
+    <div style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.16em; color:#7A6E66;">R1.3 · АРТЕФАКТЫ ПО ТИПАМ ЗАМЕТОК</div>
+    <div style="font:700 40px/1.1 Roboto; color:#F4EDE7; text-wrap:pretty;">Когда разбор заслуживает формы</div>
+    <div style="font:400 16px/1.6 Roboto; color:#A99D94; text-wrap:pretty;">Человек по-прежнему говорит комком. Меняется то, во что превращается разбор: там, где у речи есть внутренняя структура, харнес отдаёт не список пунктов, а артефакт с собственной формой. Три типа, по два варианта каждый: <a href="#3a">3a</a> список покупок и дел, <a href="#3b">3b</a> факт-чекинг, <a href="#3c">3c</a> мини-груминг. Общие правила и деградация — <a href="#3d">3d</a>.</div>
+    <div style="font:400 15px/1.6 Roboto; color:#8C8078; max-width:820px; text-wrap:pretty;">Ограничение, из которого всё выведено: артефакт живёт в ленте рядом с обычными записями и должен читаться с одного взгляда одной рукой. Поэтому ни один из них не становится экраном-приложением — это по-прежнему запись, просто свёрстанная по своему.</div>
+  </div>
+
+  <div style="display:flex; flex-wrap:wrap; gap:64px; align-items:flex-start;">
+
+    <!-- 3a -->
+    <div id="3a" style="display:flex; flex-direction:column; gap:20px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:#E08757; color:#1A120D; font:500 12px 'JetBrains Mono',monospace;">3a</span>
+        <span style="font:500 18px Roboto; color:#F4EDE7;">Список покупок и дел</span>
+      </div>
+      <div style="font:400 14px/1.6 'JetBrains Mono',monospace; color:#6E635C; max-width:700px;">сказано: «так, надо молока взять, хлеб чёрный, яйца десяток, ещё соня просила яблок, и по дороге забрать посылку и в химчистку зайти»</div>
+
+      <div style="display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap;">
+
+        <div style="width:340px; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;"><span style="font:500 14px Roboto; color:#F4EDE7;">А · чек с разделами</span><span style="padding:3px 9px; border-radius:99px; background:#2C3A2E; color:#8FB79A; font:500 11px 'JetBrains Mono',monospace;">рекомендую</span></div>
+          <div style="background:#16110F; border:1px solid #2A2320; border-radius:22px; padding:20px 18px 22px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:18px;">
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#8C8078;">6 авг · 18:12</span>
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C;">2 из 6</span>
+            </div>
+            <div style="height:3px; background:#241E1B; border-radius:2px; margin-bottom:22px;"><span style="display:block; width:33%; height:100%; background:#E08757; border-radius:2px;"></span></div>
+
+            <div style="font:400 11px 'JetBrains Mono',monospace; letter-spacing:.1em; color:#6E635C; margin-bottom:12px;">Продукты</div>
+            <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:24px;">
+              <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font:400 17px Roboto; color:#7A6E66; text-decoration:line-through;">молоко</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#5C534D;">взял</span></div>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font:400 17px Roboto; color:#F2EAE3;">хлеб чёрный</span></div>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font:400 17px Roboto; color:#F2EAE3;">яйца</span><span style="font:400 14px 'JetBrains Mono',monospace; color:#8C8078;">десяток</span></div>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font:400 17px Roboto; color:#F2EAE3;">яблоки</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#8C8078;">Соня просила</span></div>
+            </div>
+
+            <div style="font:400 11px 'JetBrains Mono',monospace; letter-spacing:.1em; color:#6E635C; margin-bottom:12px;">По дороге</div>
+            <div style="display:flex; flex-direction:column; gap:14px;">
+              <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font:400 17px Roboto; color:#7A6E66; text-decoration:line-through;">забрать посылку</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#5C534D;">сделал</span></div>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font:400 17px Roboto; color:#F2EAE3;">химчистка</span></div>
+            </div>
+
+            <div style="margin-top:24px; padding-top:16px; border-top:1px solid #241E1B; display:flex; justify-content:space-between; align-items:baseline;">
+              <span style="font:400 14px Roboto; color:#8C8078;">Добавить голосом</span>
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C;">Что услышал</span>
+            </div>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Разделы придуманы не моделью, а маршрутом: «продукты» и «по дороге» — это две остановки. Тап по строке вычёркивает её на месте, без ухода в карточку; количество и от кого просьба живут справа в meta, не разрывая строку.</div>
+        </div>
+
+        <div style="width:340px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">Б · крупные строки, без разделов</span>
+          <div style="background:#16110F; border:1px solid #2A2320; border-radius:22px; padding:20px 18px 22px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:22px;">
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#8C8078;">6 авг · 18:12</span>
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C;">6 пунктов</span>
+            </div>
+            <div style="display:flex; flex-direction:column;">
+              <div style="padding:15px 0; border-bottom:1px solid #1E1917; font:400 19px Roboto; color:#F2EAE3;">молоко</div>
+              <div style="padding:15px 0; border-bottom:1px solid #1E1917; font:400 19px Roboto; color:#F2EAE3;">хлеб чёрный</div>
+              <div style="padding:15px 0; border-bottom:1px solid #1E1917; display:flex; justify-content:space-between; align-items:baseline;"><span style="font:400 19px Roboto; color:#F2EAE3;">яйца</span><span style="font:400 14px 'JetBrains Mono',monospace; color:#8C8078;">десяток</span></div>
+              <div style="padding:15px 0; border-bottom:1px solid #1E1917; font:400 19px Roboto; color:#F2EAE3;">яблоки</div>
+              <div style="padding:15px 0; border-bottom:1px solid #1E1917; font:400 19px Roboto; color:#F2EAE3;">забрать посылку</div>
+              <div style="padding:15px 0; font:400 19px Roboto; color:#F2EAE3;">химчистка</div>
+            </div>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Годится в магазине с тележкой в одной руке: строки 19sp, промах пальцем невозможен. Но без разделов список не помогает построить маршрут, а «Соня просила» приходится выбрасывать — вся мягкая информация из речи теряется.</div>
+        </div>
+
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="width:380px; display:flex; flex-direction:column; gap:18px;">
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ПОЧЕМУ НЕ ЧЕКБОКСЫ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Галочки запрещены айдентикой, и правильно: квадратик слева от каждой строки — это колонка пустых мишеней и обещание менеджмента задач, которого продукт не даёт. Вычеркнутая строка сообщает ровно то же, занимает ноль лишнего места и показывает историю: видно, что уже взято.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ПОЛОСА ВМЕСТО СЧЁТЧИКА</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">«2 из 6» и полоса на 3 dp отвечают на единственный вопрос в магазине — «долго ещё». Полоса живёт только у списков и только пока есть невычеркнутые строки; когда список закрыт, на её месте «всё собрал».</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ДОБАВИТЬ ГОЛОСОМ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Единственное новое действие: тап открывает запись, но сказанное дописывается в этот список, а не заводит новую запись. Это тот же capture, с контекстом. Кнопка есть только у списков — у остальных типов дописывать не во что.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ГРАНИЦА ТИПА</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Артефакт-список включается, когда в речи ≥ 4 однородных предмета подряд. Три дела вразнобой («капли, Соню к лору, мужу сказать») остаются обычными пунктами с возвратами — там ценность в напоминании, а не в форме списка.</div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- 3b -->
+    <div id="3b" style="display:flex; flex-direction:column; gap:20px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:#E08757; color:#1A120D; font:500 12px 'JetBrains Mono',monospace;">3b</span>
+        <span style="font:500 18px Roboto; color:#F4EDE7;">Факт-чекинг</span>
+      </div>
+      <div style="font:400 14px/1.6 'JetBrains Mono',monospace; color:#6E635C; max-width:700px;">сказано: «слушай, мне сказали что детские капли в нос можно капать не дольше пяти дней, это правда вообще?»</div>
+
+      <div style="display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap;">
+
+        <div style="width:340px; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;"><span style="font:500 14px Roboto; color:#F4EDE7;">А · вердикт и источники</span><span style="padding:3px 9px; border-radius:99px; background:#2C3A2E; color:#8FB79A; font:500 11px 'JetBrains Mono',monospace;">рекомендую</span></div>
+          <div style="background:#16110F; border:1px solid #2A2320; border-radius:22px; padding:20px 18px 22px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px;">
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#8C8078;">6 авг · 21:30</span>
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C;">проверил</span>
+            </div>
+            <div style="font:400 15px/1.6 Roboto; color:#8C8078; margin-bottom:18px;">Детские капли в нос — не дольше пяти дней?</div>
+            <div style="font:700 26px/1.2 Roboto; color:#8FB79A; margin-bottom:10px;">Скорее да</div>
+            <div style="font:400 16px/1.6 Roboto; color:#D6CAC2; margin-bottom:22px; text-wrap:pretty;">Сосудосуживающие — обычно до 3–5 дней подряд, дальше привыкание. Солевые можно капать сколько нужно.</div>
+
+            <div style="font:400 11px 'JetBrains Mono',monospace; letter-spacing:.1em; color:#6E635C; margin-bottom:12px;">На чём стою</div>
+            <div style="display:flex; flex-direction:column; gap:13px;">
+              <div style="display:flex; flex-direction:column; gap:3px;"><span style="font:400 15px Roboto; color:#D6CAC2;">Инструкция к ксилометазолину</span><span style="font:400 12px 'JetBrains Mono',monospace; color:#6E635C;">рлс · 2024</span></div>
+              <div style="display:flex; flex-direction:column; gap:3px;"><span style="font:400 15px Roboto; color:#D6CAC2;">Клинреки по острому риниту у детей</span><span style="font:400 12px 'JetBrains Mono',monospace; color:#6E635C;">минздрав · 2021</span></div>
+            </div>
+
+            <div style="margin-top:22px; padding:13px 15px; background:#1E1917; border-radius:10px; font:400 13px/1.6 Roboto; color:#8C8078;">Это не назначение. С Соней всё равно к лору — у тебя это уже в плане.</div>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Тот же язык вердикта, что на «Неделе»: слово первым, объяснение второй строкой. Четыре градации — «Да» / «Скорее да» / «Скорее нет» / «Не нашёл». Источники — названием и годом, без ссылок-простыней; тап раскрывает адрес.</div>
+        </div>
+
+        <div style="width:340px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">Б · что сходится и что нет</span>
+          <div style="background:#16110F; border:1px solid #2A2320; border-radius:22px; padding:20px 18px 22px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px;">
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#8C8078;">6 авг · 21:30</span>
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C;">проверил</span>
+            </div>
+            <div style="font:400 15px/1.6 Roboto; color:#8C8078; margin-bottom:22px;">Детские капли в нос — не дольше пяти дней?</div>
+
+            <div style="font:400 11px 'JetBrains Mono',monospace; letter-spacing:.1em; color:#8FB79A; margin-bottom:10px;">Сходится</div>
+            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:22px;">
+              <span style="font:400 15px/1.55 Roboto; color:#D6CAC2;">Срок 3–5 дней подряд — есть в инструкции и в клинреках.</span>
+              <span style="font:400 15px/1.55 Roboto; color:#D6CAC2;">Причина ограничения — привыкание слизистой.</span>
+            </div>
+
+            <div style="font:400 11px 'JetBrains Mono',monospace; letter-spacing:.1em; color:#E08757; margin-bottom:10px;">Расходится</div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <span style="font:400 15px/1.55 Roboto; color:#D6CAC2;">«Пять» против «трёх» — зависит от препарата, единой цифры нет.</span>
+              <span style="font:400 15px/1.55 Roboto; color:#D6CAC2;">Про солевые капли ограничение вообще не действует.</span>
+            </div>
+
+            <div style="margin-top:22px; font:400 13px 'JetBrains Mono',monospace; color:#6E635C;">2 источника · показать</div>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Честнее там, где ответа «да/нет» не существует, и хорошо ложится на спорные вопросы. Но человек спросил «правда ли» — и не получил слова в ответ; читать надо весь блок. Оставляем как форму для вердикта «Расходится».</div>
+        </div>
+
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="width:380px; display:flex; flex-direction:column; gap:18px;">
+          <div style="display:flex; flex-direction:column; gap:10px; padding:18px 20px; background:#1B1512; border:1px solid #3A302B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#E08757;">ОДНА ФОРМА, ПЯТЬ ВЕРДИКТОВ</span>
+            <div style="font:400 14px/1.65 Roboto; color:#C6BAB1;">Вариант А — основной, вариант Б включается сам, когда вердикт «Расходится»: то же место в карточке, другая внутренность. Отдельного типа заметки для этого не заводим.</div>
+            <div style="font:400 14px/1.65 'JetBrains Mono',monospace; color:#B3A79E;">Да · <span style="color:#8FB79A;">status-ok</span><br>Скорее да · <span style="color:#8FB79A;">status-ok</span><br>Скорее нет · <span style="color:#E08757;">status-warn</span><br>Расходится · <span style="color:#E08757;">status-warn</span> → форма Б<br>Не нашёл · meta</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ЧУВСТВИТЕЛЬНЫЕ ТЕМЫ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Здоровье, деньги, право — внизу одна строка-оговорка в общем тоне, не юридическая плашка. Она же связывает артефакт с уже существующими пунктами человека: «у тебя это уже в плане». Продукт не изображает врача, но и не прячется за дисклеймером.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ПОКА ИДЁТ ПРОВЕРКА</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Факт-чекинг — единственный тип, который не готов сразу: запись сохраняется мгновенно, вердикт приезжает позже. В ленте всё это время строка «проверяю…» в meta; когда готово — обычное уведомление в ближайшее окно дня, не мгновенный пуш.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ГРАНИЦА ТИПА</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Включается на прямом вопросе о факте: «правда ли», «сколько стоит», «можно ли». Не включается на риторике («ну и сколько это может стоить, а») — там остаётся мысль. При сомнении модель выбирает мысль: непрошеный вердикт раздражает сильнее, чем его отсутствие.</div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- 3c -->
+    <div id="3c" style="display:flex; flex-direction:column; gap:20px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:#E08757; color:#1A120D; font:500 12px 'JetBrains Mono',monospace;">3c</span>
+        <span style="font:500 18px Roboto; color:#F4EDE7;">Мини-груминг</span>
+      </div>
+      <div style="font:400 14px/1.6 'JetBrains Mono',monospace; color:#6E635C; max-width:700px;">сказано: «надо бы наконец разобраться с днём рождения Сони, придумать что-то, позвать кого-то, торт, ну и подарок бы уже»</div>
+
+      <div style="display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap;">
+
+        <div style="width:340px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">А · шаги по порядку</span>
+          <div style="background:#16110F; border:1px solid #2A2320; border-radius:22px; padding:20px 18px 22px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px;">
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#8C8078;">6 авг · 23:10</span>
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C;">разложил</span>
+            </div>
+            <div style="font:500 20px/1.3 Roboto; color:#F4EDE7; margin-bottom:22px;">День рождения Сони</div>
+            <div style="display:flex; flex-direction:column;">
+              <div style="display:flex; gap:14px; padding:13px 0; border-bottom:1px solid #1E1917;"><span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C; width:14px; flex:none; padding-top:3px;">1</span><span style="display:flex; flex-direction:column; gap:3px;"><span style="font:400 16px Roboto; color:#F2EAE3;">решить, дома или вне</span><span style="font:400 12px 'JetBrains Mono',monospace; color:#7A6E66;">от этого зависит всё остальное</span></span></div>
+              <div style="display:flex; gap:14px; padding:13px 0; border-bottom:1px solid #1E1917;"><span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C; width:14px; flex:none; padding-top:3px;">2</span><span style="display:flex; flex-direction:column; gap:3px;"><span style="font:400 16px Roboto; color:#F2EAE3;">позвать: список гостей</span><span style="font:400 12px 'JetBrains Mono',monospace; color:#7A6E66;">за две недели, иначе не соберутся</span></span></div>
+              <div style="display:flex; gap:14px; padding:13px 0; border-bottom:1px solid #1E1917;"><span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C; width:14px; flex:none; padding-top:3px;">3</span><span style="display:flex; flex-direction:column; gap:3px;"><span style="font:400 16px Roboto; color:#F2EAE3;">заказать торт</span><span style="font:400 12px 'JetBrains Mono',monospace; color:#7A6E66;">после гостей — нужно число</span></span></div>
+              <div style="display:flex; gap:14px; padding:13px 0;"><span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C; width:14px; flex:none; padding-top:3px;">4</span><span style="display:flex; flex-direction:column; gap:3px;"><span style="font:400 16px Roboto; color:#F2EAE3;">подарок</span><span style="font:400 12px 'JetBrains Mono',monospace; color:#7A6E66;">можно параллельно</span></span></div>
+            </div>
+            <div style="margin-top:22px; padding-top:18px; border-top:1px solid #241E1B; display:flex; flex-direction:column; gap:10px;">
+              <span style="font:400 12px 'JetBrains Mono',monospace; letter-spacing:.1em; color:#6E635C;">Начать с этого</span>
+              <span style="font:500 18px Roboto; color:#F4EDE7;">решить, дома или вне</span>
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#8C8078;">вернусь завтра вечером</span>
+            </div>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Порядок — не украшение: под каждым шагом сказано, почему он там стоит. В план уходит только первый шаг, остальные ждут — иначе четыре возврата вместо одного и человек тонет.</div>
+        </div>
+
+        <div style="width:340px; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;"><span style="font:500 14px Roboto; color:#F4EDE7;">Б · что решить, что делать</span><span style="padding:3px 9px; border-radius:99px; background:#2C3A2E; color:#8FB79A; font:500 11px 'JetBrains Mono',monospace;">рекомендую</span></div>
+          <div style="background:#16110F; border:1px solid #2A2320; border-radius:22px; padding:20px 18px 22px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px;">
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#8C8078;">6 авг · 23:10</span>
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C;">разложил</span>
+            </div>
+            <div style="font:500 20px/1.3 Roboto; color:#F4EDE7; margin-bottom:8px;">День рождения Сони</div>
+            <div style="font:400 14px/1.55 Roboto; color:#8C8078; margin-bottom:24px;">Застряло на одном решении — остальное после него.</div>
+
+            <div style="font:400 11px 'JetBrains Mono',monospace; letter-spacing:.1em; color:#E08757; margin-bottom:12px;">Надо решить</div>
+            <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
+              <div style="display:flex; flex-direction:column; gap:4px;"><span style="font:500 17px Roboto; color:#F2EAE3;">дома или вне</span><span style="font:400 13px Roboto; color:#8C8078;">развилка: от неё гости, торт и бюджет</span></div>
+              <div style="display:flex; flex-direction:column; gap:4px;"><span style="font:500 17px Roboto; color:#F2EAE3;">какое число</span><span style="font:400 13px Roboto; color:#8C8078;">суббота или сам день рождения</span></div>
+            </div>
+
+            <div style="font:400 11px 'JetBrains Mono',monospace; letter-spacing:.1em; color:#6E635C; margin-bottom:12px;">Потом сделать</div>
+            <div style="display:flex; flex-direction:column; gap:9px; margin-bottom:24px;">
+              <span style="font:400 16px Roboto; color:#B3A79E;">позвать гостей</span>
+              <span style="font:400 16px Roboto; color:#B3A79E;">заказать торт</span>
+              <span style="font:400 16px Roboto; color:#B3A79E;">купить подарок</span>
+            </div>
+
+            <div style="padding-top:18px; border-top:1px solid #241E1B; display:flex; flex-direction:column; gap:8px;">
+              <span style="font:400 12px 'JetBrains Mono',monospace; letter-spacing:.1em; color:#6E635C;">Верну одним вопросом</span>
+              <span style="font:500 18px/1.35 Roboto; color:#F4EDE7;">Дома или вне?</span>
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#8C8078;">завтра вечером</span>
+            </div>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Настоящая причина, по которой дело стоит, — не «много шагов», а нерешённая развилка. Артефакт вытаскивает её наверх и превращает возврат в один короткий вопрос, на который отвечают голосом за секунду.</div>
+        </div>
+
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="width:380px; display:flex; flex-direction:column; gap:18px;">
+          <div style="display:flex; flex-direction:column; gap:10px; padding:18px 20px; background:#1B1512; border:1px solid #3A302B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#E08757;">ПОЧЕМУ Б, А НЕ А</span>
+            <div style="font:400 14px/1.65 Roboto; color:#C6BAB1;">Пронумерованный план человек и сам умеет писать — и не пишет, потому что мешает не отсутствие плана, а невыбранная развилка. Вариант Б бьёт в неё и совпадает с петлёй продукта: возврат должен быть вопросом, на который отвечают одним словом на ходу.</div>
+            <div style="font:400 14px/1.65 Roboto; color:#C6BAB1;">Порядок из варианта А остаётся внутри — в блоке «потом сделать», просто без номеров и пояснений, которые всё равно устареют после первого решения.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ОТВЕТ ГОЛОСОМ ПЕРЕСОБИРАЕТ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Человек отвечает «дома» — развилка уходит из «надо решить», в «потом сделать» появляется то, что от неё зависело («убраться», «стулья»), и назначается следующий вопрос. Артефакт живёт, пока живо дело, и худеет с каждым ответом.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ГРАНИЦА ТИПА</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Включается, когда в речи одно дело, а не список: есть слова застревания («надо бы наконец», «никак не», «разобраться с») и ≥ 3 зависимых кусочка. Одна задача без развилок — обычный пункт. Груминг нельзя предлагать самому: если человек не застрял, разложенное дело выглядит как упрёк.</div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- 3d -->
+    <div id="3d" style="display:flex; flex-direction:column; gap:20px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:#E08757; color:#1A120D; font:500 12px 'JetBrains Mono',monospace;">3d</span>
+        <span style="font:500 18px Roboto; color:#F4EDE7;">Общие правила: лента, смена типа, деградация</span>
+      </div>
+
+      <div style="display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap;">
+
+        <div style="width:340px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">В ленте · одна строка на артефакт</span>
+          <div style="background:#16110F; border:1px solid #2A2320; border-radius:22px; padding:20px 18px 22px;">
+            <div style="font:700 21px Roboto; color:#F4EDE7; margin-bottom:22px;">Записи</div>
+            <div style="display:flex; flex-direction:column;">
+              <div style="padding:14px 0; border-bottom:1px solid #1E1917; display:flex; flex-direction:column; gap:4px;">
+                <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font:500 16px Roboto; color:#F2EAE3;">Список · продукты и по дороге</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C;">2 из 6</span></div>
+                <span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">молоко, хлеб, яйца, ещё 3</span>
+              </div>
+              <div style="padding:14px 0; border-bottom:1px solid #1E1917; display:flex; flex-direction:column; gap:4px;">
+                <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font:500 16px Roboto; color:#F2EAE3;">Капли в нос — не дольше пяти дней?</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#8FB79A;">скорее да</span></div>
+                <span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">проверил · 2 источника</span>
+              </div>
+              <div style="padding:14px 0; border-bottom:1px solid #1E1917; display:flex; flex-direction:column; gap:4px;">
+                <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font:500 16px Roboto; color:#F2EAE3;">День рождения Сони</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C;">разложил</span></div>
+                <span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">жду ответа: дома или вне</span>
+              </div>
+              <div style="padding:14px 0; display:flex; flex-direction:column; gap:3px;">
+                <span style="font:500 16px Roboto; color:#F2EAE3;">купить капли</span>
+                <span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">в плане · напомню днём</span>
+              </div>
+            </div>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Артефакт в ленте — две строки: заголовок с состоянием справа и превью содержимого в meta. Он не разворачивается на месте, иначе лента перестанет быть лентой. Обычные пункты живут рядом без изменений.</div>
+        </div>
+
+        <div style="width:340px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">Смена типа · шапка карточки</span>
+          <div style="background:#16110F; border:1px solid #2A2320; border-radius:22px; padding:20px 18px 22px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px;"><span style="font:400 13px 'JetBrains Mono',monospace; color:#8C8078;">6 авг · 18:12</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#B3A79E;">Список ›</span></div>
+            <div style="font:400 15px/1.6 Roboto; color:#8C8078; margin-bottom:16px;">Тап по «Список» открывает выбор:</div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px;">
+              <span style="padding:8px 15px; border:1px solid #E08757; border-radius:99px; font:500 14px Roboto; color:#E08757;">список</span>
+              <span style="padding:8px 15px; border:1px solid #3A302B; border-radius:99px; font:400 14px Roboto; color:#B3A79E;">пункты</span>
+              <span style="padding:8px 15px; border:1px solid #3A302B; border-radius:99px; font:400 14px Roboto; color:#B3A79E;">проверить</span>
+              <span style="padding:8px 15px; border:1px solid #3A302B; border-radius:99px; font:400 14px Roboto; color:#B3A79E;">разложить</span>
+              <span style="padding:8px 15px; border:1px solid #3A302B; border-radius:99px; font:400 14px Roboto; color:#B3A79E;">мысль</span>
+            </div>
+            <div style="font:400 13px/1.6 Roboto; color:#8C8078;">Пересоберу из того же текста — правки в пунктах пропадут.</div>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Те же чипы и то же предупреждение, что при правке транскрипта (<a href="#2d">2d</a>). Ручной выбор типа — единственный способ спорить с моделью, и он всегда доступен, а не только когда она ошиблась.</div>
+        </div>
+
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="width:400px; display:flex; flex-direction:column; gap:18px;">
+          <div style="display:flex; flex-direction:column; gap:10px; padding:18px 20px; background:#1B1512; border:1px solid #3A302B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#E08757;">ПРАВИЛО, КОГДА ФОРМА УМЕСТНА</span>
+            <div style="font:400 14px/1.65 Roboto; color:#C6BAB1;">Артефакт появляется, только если у речи есть структура, которую человек иначе восстанавливал бы сам: разделы маршрута, вердикт с основаниями, развилка внутри дела. Если структуры нет — пункты. Красивая форма поверх бесструктурной речи выглядит как работа ради работы и обесценивает те случаи, где она заслужена.</div>
+            <div style="font:400 14px/1.65 Roboto; color:#C6BAB1;">Модель неуверена — отдаёт пункты. Тихая ошибка в пользу простого вида дешевле, чем навязанный артефакт.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ЧТО ОБЩЕГО У ВСЕХ ТРЁХ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Одна шапка (дата слева, тип справа), один набор цветов, один блок «Что услышал» внизу, одно правило возврата: у каждого артефакта ровно один возврат за раз. Ни один не вводит новых кнопок, кроме «Добавить голосом» у списков.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ЧЕГО МЫ НЕ ДЕЛАЕМ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Не заводим папки по типам, не даём фильтр «показать только списки», не рисуем иконку типа. Организации в продукте нет по PRD §1.4 — типы влияют на форму карточки и на характер возврата, но не на устройство ленты.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ЧТО ПРОВЕРИТЬ НА ЖИВОМ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Доля записей, где тип поменяли руками — если выше 15%, границы типов заданы неверно. И доля списков, где вычеркнули хоть строку: список, который ни разу не открыли в магазине, форму не оправдал.</div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section style="padding:56px 56px 96px; display:flex; flex-direction:column; gap:56px; border-bottom:1px solid #241E1B;">
+
+  <div style="max-width:860px; display:flex; flex-direction:column; gap:14px;">
+    <div style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.16em; color:#7A6E66;">ТЗ R1.2 · КЛАВИША, ТАЙМЕР, ИМЯ, ТРАНСКРИПТ</div>
+    <div style="font:700 40px/1.1 Roboto; color:#F4EDE7; text-wrap:pretty;">Запомин.ai. Клавиша обретает состояния</div>
+    <div style="font:400 16px/1.6 Roboto; color:#A99D94; text-wrap:pretty;">Четыре задачи R1.2: <a href="#2a">2a</a> три состояния клавиши, <a href="#2b">2b</a> таймер и «я тебя слышу», <a href="#2c">2c</a> квитанция «Запомнил.», <a href="#2d">2d</a> правка транскрипта. Геометрия клавиши из токенов key (112 / 84 / 78 / 26), моушн — в терминах motion. Демонстрации ниже живые: амплитуда идёт настоящим циклом «речь → тишина → авто-стоп».</div>
+  </div>
+
+  <div style="display:flex; flex-wrap:wrap; gap:64px; align-items:flex-start;">
+
+    <!-- 2a -->
+    <div id="2a" style="display:flex; flex-direction:column; gap:20px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:#E08757; color:#1A120D; font:500 12px 'JetBrains Mono',monospace;">2a</span>
+        <span style="font:500 18px Roboto; color:#F4EDE7;">Клавиша: idle · запись · нажатие · §1</span>
+      </div>
+
+      <div style="display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap;">
+
+        <div style="width:300px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">Idle — «не пишу»</span>
+          <div style="height:430px; background:#16110F; border:1px solid #2A2320; border-radius:24px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:30px;">
+            <span style="font:400 30px 'JetBrains Mono',monospace; color:#4A403A;">0:00</span>
+            <span style="width:112px; height:112px; border-radius:34px; background:#1E1917; border:1px solid #2E2724; display:flex; align-items:center; justify-content:center;">
+              <span style="width:84px; height:84px; border-radius:26px; background:#2A211E; box-shadow:0 3px 0 #17110F; display:flex; align-items:center; justify-content:center;">
+                <span style="width:26px; height:26px; border-radius:50%; background:#D8402F;"></span>
+              </span>
+            </span>
+            <span style="font:400 14px Roboto; color:#8C8078;">Нажми — запишу</span>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Корпус и колпачок гаснут до цвета поверхности, красной остаётся только точка 26 — «заряд есть, но не идёт». Таймер стоит на 0:00 в disabled-цвете: место занято, врать не начинает. Ни пульса, ни кольца.</div>
+        </div>
+
+        <div style="width:300px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">Запись — клавиша это «стоп»</span>
+          <div style="height:430px; background:#16110F; border:1px solid #2A2320; border-radius:24px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:30px;">
+            <span style="font:400 30px 'JetBrains Mono',monospace; color:#E8836B;">0:12</span>
+            <span style="position:relative; width:112px; height:112px; display:flex; align-items:center; justify-content:center;">
+              <span style="position:absolute; width:132px; height:132px; border-radius:40px; border:1px solid #4A1E17;"></span>
+              <span style="position:absolute; inset:0; border-radius:34px; background:#2A1512; border:1px solid #52201A;"></span>
+              <span style="position:relative; width:84px; height:84px; border-radius:26px; background:#D8402F; box-shadow:0 4px 0 #8E2418; display:flex; align-items:center; justify-content:center;">
+                <span style="width:26px; height:26px; border-radius:5px; background:#2A1512;"></span>
+              </span>
+            </span>
+            <span style="font:400 14px Roboto; color:#B3A79E;">Нажми — остановлю</span>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Колпачок залит красным и приподнят на 4 dp — просится под палец. Точка стала квадратом 26 — это и есть значок «стоп», без галочек и иконок микрофона. Подпись прямо называет действие.</div>
+        </div>
+
+        <div style="width:300px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">Нажатие — ход колпачка</span>
+          <div style="height:430px; background:#16110F; border:1px solid #2A2320; border-radius:24px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:30px;">
+            <span style="font:400 30px 'JetBrains Mono',monospace; color:#E8836B;">0:12</span>
+            <span style="position:relative; width:112px; height:112px; display:flex; align-items:center; justify-content:center;">
+              <span style="position:absolute; inset:0; border-radius:34px; background:#2A1512; border:1px solid #52201A;"></span>
+              <span style="position:relative; width:78px; height:78px; margin-top:4px; border-radius:24px; background:#B93424; box-shadow:0 0 0 #8E2418; display:flex; align-items:center; justify-content:center;">
+                <span style="width:26px; height:26px; border-radius:5px; background:#2A1512;"></span>
+              </span>
+            </span>
+            <span style="font:400 14px Roboto; color:#6E635C;">пульс замер</span>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Колпачок 84 → 78 и вниз на 4 dp, тень схлопывается в ноль — клавиша физически продавлена. Пульс и дыхание замирают в момент касания (не гаснут плавно): звук уже не пишется, врать нельзя.</div>
+        </div>
+
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="width:380px; display:flex; flex-direction:column; gap:18px;">
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ЧТО МЕНЯЕТСЯ МЕЖДУ IDLE И ЗАПИСЬЮ</span>
+            <div style="font:400 14px/1.65 'JetBrains Mono',monospace; color:#B3A79E;">колпачок · #2A211E → #D8402F<br>корпус · #1E1917 → #2A1512<br>центр · точка 26 → квадрат 26<br>кольцо · нет → есть<br>таймер · #4A403A → #E8836B<br>подпись · «Нажми — запишу» → «Нажми — остановлю»</div>
+            <div style="font:400 13px/1.6 Roboto; color:#8C8078;">Шесть одновременных отличий, из них три — цветовые пятна размером с ладонь. Ответ «пишет / не пишет» читается с расстояния вытянутой руки, до чтения подписи.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:18px 20px; background:#1B1512; border:1px solid #3A302B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#E08757;">РЕШЕНИЕ ПО ТАПУ ВНЕ КЛАВИШИ</span>
+            <div style="font:400 14px/1.65 Roboto; color:#C6BAB1;">Оставляем — но как скрытый дубль, а не как основной путь. Владелец за два дня привык, отнимать быстрый жест жалко; при этом теперь есть явная кнопка, и обучение идёт через неё. В аналитике считаем оба пути: если через две недели тап по пустоте < 10% остановок — выключаем и получаем чистый экран, где нажимаемо ровно одно место.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">IDLE → ЗАПИСЬ · МОУШН</span>
+            <div style="font:400 14px/1.65 'JetBrains Mono',monospace; color:#B3A79E;">0 мс · нажатие, колпачок 84→78, вниз 4dp<br><span style="color:#E08757;">motion.key-press</span> · 90 мс · (.4,0,1,1)<br><br>отпускание, колпачок 78→84<br><span style="color:#E08757;">motion.key-release</span> · 160 мс · (.2,.8,.2,1)<br><br>цвет корпуса и колпачка, таймер<br><span style="color:#E08757;">motion.state-shift</span> · 220 мс · (.4,0,.2,1)<br><br>кольцо появляется из 0.92 масштаба<br><span style="color:#E08757;">motion.state-shift</span> · 220 мс · задержка 60 мс</div>
+            <div style="font:400 13px/1.6 Roboto; color:#8C8078;">Микрофон стартует на отпускании, не по завершении анимации. Вибро — один короткий тик в момент нажатия (тот же паттерн, что у квитанции, но одиночный).</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ОТКУДА БЕРЁТСЯ IDLE</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Возврат из ленты свайпом вниз, авто-стоп по тишине, стоп кнопкой, отказ в разрешении на микрофон. Capture-first цел: запуск по значку по-прежнему сразу открывает запись, idle человек видит только вернувшись назад.</div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- 2b -->
+    <div id="2b" style="display:flex; flex-direction:column; gap:20px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:#E08757; color:#1A120D; font:500 12px 'JetBrains Mono',monospace;">2b</span>
+        <span style="font:500 18px Roboto; color:#F4EDE7;">Таймер и «я тебя слышу» · §2</span>
+      </div>
+
+      <div style="display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap;">
+
+        <div style="width:300px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">А · дыхание клавиши</span>
+          <div style="height:400px; background:#16110F; border:1px solid #2A2320; border-radius:24px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:34px;">
+            <span ref="{{ timerARef }}" style="font:400 22px 'JetBrains Mono',monospace; color:#8C8078;">0:12</span>
+            <span style="position:relative; width:132px; height:132px; display:flex; align-items:center; justify-content:center;">
+              <span style="position:absolute; width:112px; height:112px; border-radius:34px; background:#2A1512; border:1px solid #52201A;"></span>
+              <span ref="{{ capARef }}" style="position:relative; width:84px; height:84px; border-radius:26px; background:#D8402F; box-shadow:0 4px 0 #8E2418; display:flex; align-items:center; justify-content:center;">
+                <span style="width:26px; height:26px; border-radius:5px; background:#2A1512;"></span>
+              </span>
+            </span>
+            <span style="font:400 13px Roboto; color:#6E635C;">клавиша дышит от громкости</span>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Масштаб колпачка 1.00→1.06 по амплитуде. Живое, но еле заметно на глаз и конфликтует с ходом нажатия: тот же колпачок отвечает за две разные вещи.</div>
+        </div>
+
+        <div style="width:300px; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;"><span style="font:500 14px Roboto; color:#F4EDE7;">Б · кольцо-амплитуда</span><span style="padding:3px 9px; border-radius:99px; background:#2C3A2E; color:#8FB79A; font:500 11px 'JetBrains Mono',monospace;">рекомендую</span></div>
+          <div style="height:400px; background:#16110F; border:1px solid #2A2320; border-radius:24px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:34px;">
+            <span ref="{{ timerBRef }}" style="font:400 22px 'JetBrains Mono',monospace; color:#8C8078;">0:12</span>
+            <span style="position:relative; width:180px; height:180px; display:flex; align-items:center; justify-content:center;">
+              <span ref="{{ ringBRef }}" style="position:absolute; width:132px; height:132px; border-radius:40px; border:2px solid #E8836B;"></span>
+              <span style="position:absolute; width:112px; height:112px; border-radius:34px; background:#2A1512; border:1px solid #52201A;"></span>
+              <span style="position:relative; width:84px; height:84px; border-radius:26px; background:#D8402F; box-shadow:0 4px 0 #8E2418; display:flex; align-items:center; justify-content:center;">
+                <span style="width:26px; height:26px; border-radius:5px; background:#2A1512;"></span>
+              </span>
+            </span>
+            <span ref="{{ hintBRef }}" style="font:400 13px Roboto; color:#6E635C;">слышу</span>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Кольцо вокруг корпуса меняет радиус и яркость от амплитуды. Не волна и не эквалайзер — одна фигура, читается боковым зрением, не мешает нажатию.</div>
+        </div>
+
+        <div style="width:300px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">В · наливающаяся точка</span>
+          <div style="height:400px; background:#16110F; border:1px solid #2A2320; border-radius:24px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:34px;">
+            <span ref="{{ timerCRef }}" style="font:400 22px 'JetBrains Mono',monospace; color:#8C8078;">0:12</span>
+            <span style="position:relative; width:132px; height:132px; display:flex; align-items:center; justify-content:center;">
+              <span style="position:absolute; width:112px; height:112px; border-radius:34px; background:#2A1512; border:1px solid #52201A;"></span>
+              <span style="position:relative; width:84px; height:84px; border-radius:26px; background:#D8402F; box-shadow:0 4px 0 #8E2418; display:flex; align-items:center; justify-content:center;">
+                <span style="position:relative; width:26px; height:26px; border-radius:5px; background:#2A1512; overflow:hidden; display:flex; align-items:flex-end;">
+                  <span ref="{{ dotCRef }}" style="width:100%; height:20%; background:#F4C9BE;"></span>
+                </span>
+              </span>
+            </span>
+            <span style="font:400 13px Roboto; color:#6E635C;">уровень внутри знака «стоп»</span>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Честный уровень, но 26 dp — слишком мелкая мишень для «я тебя слышу»: с вытянутой руки не видно, а увеличивать значок нельзя, он служебный.</div>
+        </div>
+
+        <div style="width:300px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">Тишина · до авто-стопа</span>
+          <div style="height:400px; background:#16110F; border:1px solid #2A2320; border-radius:24px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:34px;">
+            <span style="font:400 22px 'JetBrains Mono',monospace; color:#8C8078;">0:14</span>
+            <span style="position:relative; width:180px; height:180px; display:flex; align-items:center; justify-content:center;">
+              <span style="position:absolute; width:126px; height:126px; border-radius:38px; border:2px solid #4A403A;"></span>
+              <span style="position:absolute; width:112px; height:112px; border-radius:34px; background:#2A1512; border:1px solid #52201A;"></span>
+              <span style="position:relative; width:84px; height:84px; border-radius:26px; background:#D8402F; box-shadow:0 4px 0 #8E2418; display:flex; align-items:center; justify-content:center;">
+                <span style="width:26px; height:26px; border-radius:5px; background:#2A1512;"></span>
+              </span>
+            </span>
+            <span style="font:400 13px 'JetBrains Mono',monospace; color:#B3A79E;">тишина · остановлю через 1,4</span>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Кольцо остывает в серый и стягивается к корпусу, под клавишей — обратный отсчёт с десятыми. Авто-стоп перестаёт быть внезапным: полторы секунды видно, что он идёт, и его можно перебить словом.</div>
+        </div>
+
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="width:400px; display:flex; flex-direction:column; gap:18px;">
+          <div style="display:flex; flex-direction:column; gap:10px; padding:18px 20px; background:#1B1512; border:1px solid #3A302B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#E08757;">РЕКОМЕНДАЦИЯ · ВАРИАНТ Б</span>
+            <div style="font:400 14px/1.65 Roboto; color:#C6BAB1;">Кольцо — единственный из трёх, который виден с расстояния, не спорит с нажатием и без переделки превращается в индикатор тишины: та же фигура, другой цвет и радиус. Одна сущность обслуживает оба состояния.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ТАЙМЕР: 30 → 22, НАД КЛАВИШЕЙ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Таймер был крупным, потому что был единственным признаком жизни. Теперь жизнь показывает кольцо, а таймер отвечает на редкий вопрос «сколько уже говорю» — ему хватает 22sp в meta-цвете.</div>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Он не растворяется во время речи: мигающий элемент над клавишей ловит взгляд сильнее, чем спокойный. Вместо этого таймер молчит цветом (meta), а в тишине перед авто-стопом уступает место строке обратного отсчёта — она появляется ниже клавиши, не трогая таймер.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">КОЛЬЦО · МАППИНГ АМПЛИТУДЫ</span>
+            <div style="font:400 14px/1.65 'JetBrains Mono',monospace; color:#B3A79E;">сторона · 120 + 26·a² dp<br>радиус скругления · 36 + 6·a² dp<br>толщина · 1,5 + 1·a dp<br>цвет · #E8836B, прозрачность 0,35 + 0,65·a<br><br>a — амплитуда 0..1 после сглаживания</div>
+            <div style="font:400 13px/1.6 Roboto; color:#8C8078;">Квадрат амплитуды, а не сама амплитуда: тихая комната перестаёт мерцать от шороха, громкая речь всё ещё даёт полный ход.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ИНТЕРПОЛЯЦИЯ МЕЖДУ ТИКАМИ</span>
+            <div style="font:400 14px/1.65 'JetBrains Mono',monospace; color:#B3A79E;">тик приходит раз в 100 мс<br>атака (рост) · линейно за 100 мс<br>спад · экспоненциально, τ = 220 мс<br><span style="color:#E08757;">motion.amp-attack</span> · 100 мс · linear<br><span style="color:#E08757;">motion.amp-release</span> · 220 мс · ease-out</div>
+            <div style="font:400 13px/1.6 Roboto; color:#8C8078;">Быстрый подъём, медленное падение — так индикатор читается как дыхание речи, а не как дрожь. Считать на каждом кадре от системных часов, не по числу кадров: на 60 и 120 Гц поведение одинаковое.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ТИШИНА · МЕХАНИКА</span>
+            <div style="font:400 14px/1.65 Roboto; color:#B3A79E;">Отсчёт начинается, когда амплитуда ниже порога 0,08 дольше 400 мс. Кольцо за <span style="font-family:'JetBrains Mono',monospace;">motion.state-shift</span> уходит в #4A403A и стягивается до 126 dp, под клавишей появляется «тишина · остановлю через 1,4» с шагом 0,1 с. Любой звук выше порога — отсчёт сбрасывается, кольцо возвращается к амплитуде за 120 мс. Последние 400 мс отсчёта необратимы: решение уже принято, дёргать индикатор туда-сюда нечестно.</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:14px;">
+            <span onClick="{{ toggleAmp }}" style="cursor:pointer; padding:9px 16px; border:1px solid #3A302B; border-radius:99px; font:500 13px Roboto; color:#E08757;" style-hover="border-color:#E08757;">{{ ampLabel }}</span>
+            <span style="font:400 12px 'JetBrains Mono',monospace; color:#6E635C;">цикл: речь 4 с → тишина</span>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- 2c -->
+    <div id="2c" style="display:flex; flex-direction:column; gap:20px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:#E08757; color:#1A120D; font:500 12px 'JetBrains Mono',monospace;">2c</span>
+        <span style="font:500 18px Roboto; color:#F4EDE7;">Квитанция «Запомнил.» и имя · §3</span>
+      </div>
+
+      <div style="display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap;">
+
+        <div style="width:300px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">Было · 38sp</span>
+          <div style="height:300px; background:#16110F; border:1px solid #2A2320; border-radius:24px; display:flex; align-items:center; justify-content:center;">
+            <span style="font:700 38px Roboto; letter-spacing:-0.01em; color:#F4EDE7;">Принял.</span>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088;">7 знаков, 132 dp — с запасом на любом экране.</div>
+        </div>
+
+        <div style="width:300px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">Стало · 38sp на узком экране</span>
+          <div style="height:300px; background:#16110F; border:1px solid #2A2320; border-radius:24px; display:flex; align-items:center; justify-content:center; position:relative;">
+            <span style="position:absolute; left:22px; right:22px; top:0; bottom:0; border-left:1px dashed #52201A; border-right:1px dashed #52201A;"></span>
+            <span style="font:700 38px Roboto; letter-spacing:-0.01em; color:#F4EDE7;">Запомнил.</span>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#E8836B;">9 знаков, 178 dp. На 320 dp с полями 24 остаётся 272 — влезает, но воздух съеден: на «Запомнил…» с переносом уже не хватит запаса при системном увеличении шрифта.</div>
+        </div>
+
+        <div style="width:300px; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;"><span style="font:500 14px Roboto; color:#F4EDE7;">Решение · 34sp, трекинг −2%</span><span style="padding:3px 9px; border-radius:99px; background:#2C3A2E; color:#8FB79A; font:500 11px 'JetBrains Mono',monospace;">сдаю</span></div>
+          <div style="height:300px; background:#16110F; border:1px solid #2A2320; border-radius:24px; display:flex; align-items:center; justify-content:center; position:relative;">
+            <span style="position:absolute; left:22px; right:22px; top:0; bottom:0; border-left:1px dashed #2E2724; border-right:1px dashed #2E2724;"></span>
+            <span style="font:700 34px Roboto; letter-spacing:-0.02em; color:#F4EDE7;">Запомнил.</span>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088;">156 dp — те же поля, что были у «Принял.» при 38. Квитанция по-прежнему крупнейший текст в продукте, соседей по кеглю у неё нет, так что разница в 4sp не читается как понижение.</div>
+        </div>
+
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="width:400px; display:flex; flex-direction:column; gap:18px;">
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ПРАВИЛО ЖИВО</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">«Имя продукта = его реплика» сохраняется и даже усиливается: «Запомин.ai» → «Запомнил.» — это одно слово в двух временах, обещание и его исполнение. Пара работает лучше прежней, где «Принял» было лишь родственно по смыслу.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">РИТМ ТОЧКИ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Точка после длинного слова садится дальше от центра и на глаз «отваливается». Компенсируем трекингом −2%: слово собирается плотнее, точка возвращается в ритм. Отдельный кернинг перед точкой не нужен — Roboto Bold справляется.</div>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Вибро-паттерн не меняем. Он привязан к появлению квитанции, а не к числу слогов: один короткий тик, длительность прежняя.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ПРАВИЛО НАПИСАНИЯ ИМЕНИ</span>
+            <div style="font:400 14px/1.65 Roboto; color:#B3A79E;">Всегда «Запомин.ai»: прописная З, строчные ai, точка — часть имени, не сокращение. Не «ЗАПОМИН.AI», не «Запомин.AI», не «Запомин AI».<br><br>В конце предложения вторая точка не ставится: «Это Запомин.ai» — и всё.<br><br>Сторы: имя «Запомин.ai», подзаголовок «Скажи как есть — вернусь в нужное время». Латиницей в путях и id — <span style="font-family:'JetBrains Mono',monospace; font-size:13px;">zapomin</span>.<br><br>Внутри интерфейса имя не появляется вообще: продукт говорит от первого лица, называть себя ему незачем. Единственные места — сторы, «Для разработчика» и системный ярлык.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">РЕВИЗИЯ СЛОВАРЯ · ГДЕ БЫЛО «ПРИНЯЛ»</span>
+            <div style="font:400 14px/1.7 'JetBrains Mono',monospace; color:#B3A79E;">receipt · Принял. → <span style="color:#F2EAE3;">Запомнил.</span><br>note_saved · Принял, разбираю → <span style="color:#F2EAE3;">Запомнил, разбираю</span><br>item_done · Принял → <span style="color:#F2EAE3;">Готово</span><br>return_snoozed · Принял, напомню позже → <span style="color:#F2EAE3;">Хорошо, напомню позже</span></div>
+            <div style="font:400 13px/1.6 Roboto; color:#8C8078;">Два нижних намеренно уходят от «запомнил»: там продукт не запоминает, а подтверждает действие. Одно слово на все случаи снова сделало бы речь механической.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ТОКЕНЫ</span>
+            <div style="font:400 14px/1.65 'JetBrains Mono',monospace; color:#B3A79E;">type.display · 38/42 → <span style="color:#F2EAE3;">34/38 Roboto Bold, −2%</span></div>
+            <div style="font:400 13px/1.6 Roboto; color:#8C8078;">Иконку не трогаем — владелец не просил, а точка-заряд в ней от смены имени не пострадала.</div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- 2d -->
+    <div id="2d" style="display:flex; flex-direction:column; gap:20px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:#E08757; color:#1A120D; font:500 12px 'JetBrains Mono',monospace;">2d</span>
+        <span style="font:500 18px Roboto; color:#F4EDE7;">Правка транскрипта · §4</span>
+      </div>
+
+      <div style="display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap;">
+
+        <div style="width:340px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">Покой · подсветка источников</span>
+          <div style="background:#16110F; border:1px solid #2A2320; border-radius:22px; padding:20px 18px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px;"><span style="font:400 13px 'JetBrains Mono',monospace; color:#8C8078;">6 авг · 22:40</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C;">3 пункта</span></div>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:24px;">
+              <span style="font:500 16px Roboto; color:#F2EAE3;">купить капли</span>
+              <span style="font:500 16px Roboto; color:#F2EAE3;">записать Соню к лору</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;"><span style="font:400 12px 'JetBrains Mono',monospace; color:#7A6E66;">Что услышал</span><span style="font:400 13px Roboto; color:#B3A79E;">Поправить</span></div>
+            <div style="font:400 15px/1.7 Roboto; color:#B3A79E;">так купить капли <span style="background:#241D1A; border-radius:3px; padding:1px 3px;">соник лору</span> записать надо и мужу сказать что суббота занята</div>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Вход — строкой «Поправить» у заголовка блока. Тап по самому тексту оставляем выделению и копированию: транскрипт часто читают, а правят редко.</div>
+        </div>
+
+        <div style="width:340px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">Правка · подсветка погасла</span>
+          <div style="background:#16110F; border:1px solid #2A2320; border-radius:22px; padding:20px 18px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px;"><span style="font:400 13px 'JetBrains Mono',monospace; color:#8C8078;">6 авг · 22:40</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C;">3 пункта</span></div>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:24px; opacity:.35;">
+              <span style="font:500 16px Roboto; color:#F2EAE3;">купить капли</span>
+              <span style="font:500 16px Roboto; color:#F2EAE3;">записать Соню к лору</span>
+            </div>
+            <div style="font:400 12px 'JetBrains Mono',monospace; color:#7A6E66; margin-bottom:10px;">Что услышал</div>
+            <div style="font:400 15px/1.7 Roboto; color:#F2EAE3; padding-bottom:8px; border-bottom:1px solid #E08757;">так купить капли Соню к лору<span style="display:inline-block; width:2px; height:17px; background:#E08757; vertical-align:-3px; margin-left:1px;"></span> записать надо и мужу сказать что суббота занята</div>
+            <div style="font:400 13px/1.6 Roboto; color:#8C8078; margin:14px 0 18px;">Разберу заново — пункты пересоберу с нуля, правки в них пропадут.</div>
+            <div style="display:flex; align-items:center; gap:16px;">
+              <span style="padding:12px 24px; border-radius:99px; background:#E08757; color:#1A120D; font:500 15px Roboto;">Разобрать заново</span>
+              <span style="font:400 15px Roboto; color:#B3A79E;">Отмена</span>
+            </div>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Голое поле без рамки и тулбара — только курсор и подчёркивание акцентом. Пункты выше глохнут до 35%: они сейчас неактуальны, но остаются на месте, чтобы видеть, что именно пересоберётся.</div>
+        </div>
+
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="width:400px; display:flex; flex-direction:column; gap:18px;">
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">RAW_SPAN ГАСНЕТ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">При входе в правку подсветка фрагментов-источников пропадает целиком. Она указывает на связь «этот кусок речи → этот пункт», а после первой же вставки символа связь врёт: границы поехали, пункты ещё старые. Живая, но неверная подсветка хуже её отсутствия.</div>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Возвращается сама после переразбора — уже по новым границам.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ВЫХОД</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">«Разобрать заново» — сохраняет текст и запускает разбор; пока идёт, на месте пунктов строка «Разбираю…», кнопка неактивна. «Отмена» — возврат без сохранения; если текст изменён, снекбар «Не сохранил правку · вернуть» на 6 с, тем же механизмом undo, что и в ленте.</div>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Системная «назад» = «Отмена». Модалок «Вы уверены?» нет нигде.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ПРЕДУПРЕЖДЕНИЕ ОДНОЙ СТРОКОЙ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">«Разберу заново — пункты пересоберу с нуля, правки в них пропадут.» Стоит над кнопкой всегда, а не всплывает по нажатию: человек читает её до того, как решил, и решает один раз. Если пункты руками не правились, строка короче: «Разберу заново — пункты пересоберу с нуля.»</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">НОВЫЕ СТРОКИ</span>
+            <div style="font:400 14px/1.7 'JetBrains Mono',monospace; color:#B3A79E;">transcript_edit · Поправить<br>transcript_reparse_warn · Разберу заново — пункты пересоберу с нуля, правки в них пропадут.<br>transcript_reparse · Разобрать заново<br>transcript_parsing · Разбираю…<br>transcript_edit_dropped · Не сохранил правку · вернуть<br>capture_idle_hint · Нажми — запишу<br>capture_stop_hint · Нажми — остановлю<br>capture_silence · тишина · остановлю через %s</div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section style="padding:56px 56px 140px; display:flex; flex-direction:column; gap:56px;">
+
+  <div style="max-width:820px; display:flex; flex-direction:column; gap:14px;">
+    <div style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.16em; color:#7A6E66;">ТЗ R1.1 · ШЛИФОВКА UI · ТАКТЫ 1–3</div>
+    <div style="font:700 40px/1.1 Roboto; color:#F4EDE7; text-wrap:pretty;">Принял. Разбор пяти болей и решения</div>
+    <div style="font:400 16px/1.6 Roboto; color:#A99D94; text-wrap:pretty;">Не редизайн: палитра, типографика и словарь строк из токенов, экраны те же. Каждый блок ниже — одна задача ТЗ: макет слева, решение и приёмка справа. Ссылки на блоки: <a href="#1a">1a</a> удаление, <a href="#1b">1b</a> настройки, <a href="#1c">1c</a> глифы, <a href="#1d">1d</a> неделя, <a href="#1e">1e</a> моушн, <a href="#1f">1f</a> второй приоритет, <a href="#1g">1g</a> токены и строки.</div>
+  </div>
+
+  <div style="display:flex; flex-wrap:wrap; gap:64px; align-items:flex-start;">
+
+    <!-- 1a -->
+    <div id="1a" style="display:flex; flex-direction:column; gap:20px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:#E08757; color:#1A120D; font:500 12px 'JetBrains Mono',monospace;">1a</span>
+        <span style="font:500 18px Roboto; color:#F4EDE7;">Лента: удаление записи · §3.3</span>
+      </div>
+      <div style="display:flex; gap:36px; align-items:flex-start; flex-wrap:wrap;">
+
+        <div style="width:392px; background:#16110F; border:1px solid #2A2320; border-radius:28px; padding:14px 16px 18px; box-shadow:0 24px 60px rgba(0,0,0,.5);">
+          <div style="display:flex; justify-content:space-between; font:400 11px 'JetBrains Mono',monospace; color:#6E635C; margin-bottom:20px;"><span>23:02</span><span>4G · 32%</span></div>
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;">
+            <span style="font:700 21px Roboto; color:#F4EDE7;">Записи</span>
+            <span style="display:flex; gap:16px; font:400 13px 'JetBrains Mono',monospace; color:#7C716A;"><span>Неделя</span><span>Настройки</span></span>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0 14px; border-bottom:1px solid #241E1B;">
+            <span style="font:400 12px 'JetBrains Mono',monospace; color:#6E635C;">5 записей без пунктов</span>
+            <span style="font:500 12px 'JetBrains Mono',monospace; color:#B0A199;">убрать все</span>
+          </div>
+
+          <div style="display:flex; flex-direction:column;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; padding:13px 0; border-bottom:1px solid #1E1917;">
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#8C8078;">6 авг · 22:53</span>
+              <span style="display:flex; gap:12px; font:400 13px 'JetBrains Mono',monospace; color:#6E635C;"><span>0:04</span><span>не расслышал</span></span>
+            </div>
+
+            <div style="position:relative; overflow:hidden; border-bottom:1px solid #1E1917;">
+              <div style="position:absolute; inset:0; display:flex; justify-content:flex-end; align-items:center;">
+                <span style="display:flex; align-items:center; height:100%; padding:0 18px; background:#3C1E18; color:#E8836B; font:500 13px Roboto;">Удалить</span>
+              </div>
+              <div style="position:relative; background:#16110F; display:flex; justify-content:space-between; align-items:baseline; padding:13px 0; padding-right:2px; transition:margin-right 180ms cubic-bezier(.2,.8,.2,1); margin-right: {{ rowInset }};">
+                <span style="font:400 13px 'JetBrains Mono',monospace; color:#8C8078;">6 авг · 22:47</span>
+                <span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C; white-space:nowrap;">не расслышал</span>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:baseline; padding:13px 0; border-bottom:1px solid #1E1917;">
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#8C8078;">6 авг · 22:44</span>
+              <span style="display:flex; gap:12px; font:400 13px 'JetBrains Mono',monospace; color:#6E635C;"><span>0:03</span><span>не расслышал</span></span>
+            </div>
+          </div>
+
+          <div style="padding:22px 0 8px; display:flex; justify-content:space-between; align-items:baseline;">
+            <span style="font:400 13px 'JetBrains Mono',monospace; color:#8C8078;">6 авг · 22:40</span>
+            <span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C;">3 пункта</span>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:14px; padding-bottom:8px;">
+            <div style="display:flex; flex-direction:column; gap:3px;">
+              <span style="font:500 16px Roboto; color:#F2EAE3;">купить капли</span>
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">в плане · напомню днём</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:3px;">
+              <span style="font:500 16px Roboto; color:#F2EAE3;">записать Соню к лору</span>
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">в плане · напомню утром</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:3px;">
+              <span style="font:500 16px Roboto; color:#F2EAE3;">сказать мужу, что суббота занята</span>
+              <span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">муж · в плане · напомню вечером</span>
+            </div>
+          </div>
+
+          <div style="margin-top:26px; display:flex; justify-content:space-between; align-items:center; padding:13px 15px; background:#241D1A; border-radius:10px;">
+            <span style="font:400 14px Roboto; color:#D6CAC2;">Удалил запись</span>
+            <span style="font:500 14px Roboto; color:#E08757;">вернуть</span>
+          </div>
+        </div>
+
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="width:400px; display:flex; flex-direction:column; gap:18px;">
+          <div style="font:400 15px/1.6 Roboto; color:#B3A79E; text-wrap:pretty;">Мусор чистится жестом, осмысленное — с трением. Два касания максимум, случайно не выйдет.</div>
+
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ЖЕСТ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Свайп влево по строке записи открывает зону «Удалить» (88 dp, порог 40 dp, липнет к пальцу). Само по себе не удаляет — нужен тап по зоне. Зона закрывается тапом мимо и при скролле.</div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ПОДТВЕРЖДЕНИЕ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Диалога нет. Запись уходит сразу, снизу — «Удалил запись · вернуть» на 6 секунд. Если в записи есть пункты, зона свайпа подписана числом: «Удалить · 3 пункта» — это и есть предупреждение, без модалки.</div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">УДАЛИТЬ ≠ ПОХОРОНИТЬ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Похоронить — про пункт, живёт в шите правки, нейтральный серый, запись остаётся в истории. Удалить — про мусор, живёт только в ленте и внизу карточки, единственное место в продукте с красноватым фоном (#3C1E18) и только в открытом состоянии. В покое красного нет нигде.</div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ГРУППОВАЯ УБОРКА</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Строка «5 записей без пунктов · убрать все» появляется над лентой, когда нерасслышанных ≥ 3. Один тап — все ушли, тот же снекбар с «вернуть». Это ответ на «после отладки в ленте пять мусорных».</div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ТАКЖЕ ЗДЕСЬ · §4.2</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Запись без пунктов — одна строка: время слева, длительность и статус справа. Разобранная запись раскрыта пунктами, без карточек-коробок: рамки в ленте не несли информации и создавали шум.</div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:14px;">
+            <span onClick="{{ toggleSwipe }}" style="cursor:pointer; padding:9px 16px; border:1px solid #3A302B; border-radius:99px; font:500 13px Roboto; color:#E08757;" style-hover="border-color:#E08757;">{{ swipeLabel }}</span>
+            <span style="font:400 12px 'JetBrains Mono',monospace; color:#6E635C;">строка 22:47</span>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- 1b -->
+    <div id="1b" style="display:flex; flex-direction:column; gap:20px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:#E08757; color:#1A120D; font:500 12px 'JetBrains Mono',monospace;">1b</span>
+        <span style="font:500 18px Roboto; color:#F4EDE7;">Настройки: порядок и плотность · §3.5</span>
+      </div>
+      <div style="display:flex; gap:36px; align-items:flex-start; flex-wrap:wrap;">
+
+        <div style="width:392px; background:#16110F; border:1px solid #2A2320; border-radius:28px; padding:14px 16px 22px; box-shadow:0 24px 60px rgba(0,0,0,.5);">
+          <div style="display:flex; justify-content:space-between; font:400 11px 'JetBrains Mono',monospace; color:#6E635C; margin-bottom:20px;"><span>23:04</span><span>4G · 32%</span></div>
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;">
+            <span style="font:700 21px Roboto; color:#F4EDE7;">Настройки</span>
+            <span style="display:flex; gap:16px; font:400 13px 'JetBrains Mono',monospace; color:#7C716A;"><span>Неделя</span><span style="color:#E08757;">Настройки</span></span>
+          </div>
+
+          <div style="font:400 11px 'JetBrains Mono',monospace; letter-spacing:.1em; color:#6E635C; margin:22px 0 4px;">Окна дня</div>
+          <div style="display:flex; flex-direction:column;">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 0; border-bottom:1px solid #1E1917;"><span style="font:400 16px Roboto; color:#E9E0D9;">Утро</span><span style="font:400 16px 'JetBrains Mono',monospace; color:#F2EAE3;">08:00</span></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 0; border-bottom:1px solid #1E1917;"><span style="font:400 16px Roboto; color:#E9E0D9;">День</span><span style="font:400 16px 'JetBrains Mono',monospace; color:#F2EAE3;">12:30</span></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 0; border-bottom:1px solid #1E1917;"><span style="font:400 16px Roboto; color:#E9E0D9;">Вечер</span><span style="font:400 16px 'JetBrains Mono',monospace; color:#F2EAE3;">19:30</span></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 0;"><span style="font:400 16px Roboto; color:#E9E0D9;">Выходные</span><span style="font:400 16px 'JetBrains Mono',monospace; color:#F2EAE3;">11:00</span></div>
+          </div>
+          <div style="font:400 13px/1.5 'JetBrains Mono',monospace; color:#6E635C; padding-bottom:6px;">Тап по времени — колесо с шагом 30 минут.</div>
+
+          <div style="font:400 11px 'JetBrains Mono',monospace; letter-spacing:.1em; color:#6E635C; margin:28px 0 12px;">Запись</div>
+          <div style="font:400 16px Roboto; color:#E9E0D9; margin-bottom:12px;">Когда останавливать</div>
+          <div style="display:flex; gap:8px;">
+            <span style="flex:1; text-align:center; padding:11px 0; border:1px solid #3A302B; border-radius:99px; font:400 14px Roboto; color:#B3A79E;">тихая комната</span>
+            <span style="flex:1; text-align:center; padding:11px 0; border:1px solid #E08757; border-radius:99px; font:500 14px Roboto; color:#E08757;">обычно</span>
+            <span style="flex:1; text-align:center; padding:11px 0; border:1px solid #3A302B; border-radius:99px; font:400 14px Roboto; color:#B3A79E;">шумно</span>
+          </div>
+          <div style="font:400 13px/1.5 'JetBrains Mono',monospace; color:#6E635C; margin-top:10px;">Жду полторы секунды тишины и останавливаю запись сам.</div>
+
+          <div style="font:400 11px 'JetBrains Mono',monospace; letter-spacing:.1em; color:#6E635C; margin:28px 0 12px;">Разбор</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:16px;">
+            <span style="font:400 16px Roboto; color:#E9E0D9;">Разбирать речь на пункты</span>
+            <span style="width:52px; height:31px; border-radius:99px; background:#E08757; display:flex; align-items:center; justify-content:flex-end; padding:0 3px; box-sizing:border-box;"><span style="width:25px; height:25px; border-radius:50%; background:#1A120D;"></span></span>
+          </div>
+          <div style="font:400 13px/1.5 'JetBrains Mono',monospace; color:#6E635C; margin-top:10px;">Выключу — записи останутся текстом. Пунктов и возвратов не будет, в ленте появится метка «разбор выключен».</div>
+
+          <div style="font:400 11px 'JetBrains Mono',monospace; letter-spacing:.1em; color:#6E635C; margin:28px 0 4px;">Данные</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 0; border-bottom:1px solid #1E1917;"><span style="font:400 16px Roboto; color:#E9E0D9;">Выгрузить всё в файл</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C;">54 записи</span></div>
+
+          <div style="font:400 11px 'JetBrains Mono',monospace; letter-spacing:.1em; color:#6E635C; margin:28px 0 4px;">Система</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 0; border-bottom:1px solid #1E1917;"><span style="font:400 16px Roboto; color:#E9E0D9;">Точные напоминания</span><span style="font:400 14px 'JetBrains Mono',monospace; color:#8FB79A;">разрешены</span></div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:22px 0 0;"><span style="font:400 15px Roboto; color:#7C716A;">Для разработчика</span><span style="font:400 15px Roboto; color:#7C716A;">›</span></div>
+        </div>
+
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="width:400px; display:flex; flex-direction:column; gap:18px;">
+          <div style="font:400 15px/1.6 Roboto; color:#B3A79E; text-wrap:pretty;">Порядок — по частоте: то, что владелец крутит в первую неделю, наверху. Сервер уехал в «Для разработчика» (свёрнуто, пустые поля не видны).</div>
+
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ОКНА ДНЯ — БЕЗ СЛАЙДЕРОВ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Четыре строки «название — время», тап открывает колесо с шагом 30 минут. Слайдер с точками-делениями давал 48 позиций визуального шума ради значения, которое меняют раз в месяц.</div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ПОРОГ ТИШИНЫ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Вместо голого «900» — три деления по среде: тихая комната (600 мс) / обычно (900) / шумно (1400). Под ними одна фраза о том, на что это влияет. Число остаётся в «Для разработчика».</div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ПРАВИЛО ПРОТИВ ДУБЛЕЙ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Заголовок секции никогда не повторяет подпись элемента внутри. «Разбор» → «Разбирать речь на пункты». «Данные» → «Выгрузить всё в файл». «Система» → «Точные напоминания». Ни одной строки дважды.</div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">DEEPSEEK ВЫКЛЮЧЕН — ВИДНО В ЛЕНТЕ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Под заголовком «Записи» появляется строка «разбор выключен · включить» в meta-регистре. Не бейдж на каждой записи — одна строка вверху, с прямым путём обратно. Так человек не будет недоумевать, почему всё стало мыслями.</div>
+            <div style="margin-top:6px; padding:12px 14px; background:#16110F; border-radius:10px; display:flex; flex-direction:column; gap:5px;">
+              <span style="font:700 18px Roboto; color:#F4EDE7;">Записи</span>
+              <span style="font:400 12px 'JetBrains Mono',monospace; color:#8C8078;">разбор выключен · <span style="color:#E08757;">включить</span></span>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">СНЯТО С ЭКРАНА</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Секция «Сервер» с пустыми полями и «Проверить связь»; второй заголовок «Отправлять текст в DeepSeek»; чужая строка «связь есть»; голое число 900; дублирующий заголовок «Выгрузить всё в файл».</div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- 1c -->
+    <div id="1c" style="display:flex; flex-direction:column; gap:20px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:#E08757; color:#1A120D; font:500 12px 'JetBrains Mono',monospace;">1c</span>
+        <span style="font:500 18px Roboto; color:#F4EDE7;">Глифы типов: развилка А / Б / В · §3.2</span>
+      </div>
+      <div style="display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap;">
+
+        <div style="width:296px; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;"><span style="font:500 15px Roboto; color:#F4EDE7;">А · без глифов</span><span style="padding:3px 9px; border-radius:99px; background:#2C3A2E; color:#8FB79A; font:500 11px 'JetBrains Mono',monospace;">рекомендую</span></div>
+          <div style="background:#16110F; border:1px solid #2A2320; border-radius:20px; padding:18px 16px; display:flex; flex-direction:column; gap:16px;">
+            <div style="display:flex; flex-direction:column; gap:3px;"><span style="font:500 16px Roboto; color:#F2EAE3;">купить капли</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">в плане · напомню днём</span></div>
+            <div style="display:flex; flex-direction:column; gap:3px;"><span style="font:500 16px Roboto; color:#F2EAE3;">записать Соню к лору</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">в плане · напомню утром</span></div>
+            <div style="display:flex; flex-direction:column; gap:3px;"><span style="font:500 16px Roboto; color:#F2EAE3;">сказать мужу, что суббота занята</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">муж · в плане · напомню вечером</span></div>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088;">Тест одной фразой пройден: человек читает «купить капли, напомню днём» и не переспрашивает. Тип остаётся служебным полем в шите правки.</div>
+        </div>
+
+        <div style="width:296px; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;"><span style="font:500 15px Roboto; color:#F4EDE7;">Б · глиф + подпись</span><span style="padding:3px 9px; border-radius:99px; background:#332A25; color:#B3A79E; font:500 11px 'JetBrains Mono',monospace;">компромисс</span></div>
+          <div style="background:#16110F; border:1px solid #2A2320; border-radius:20px; padding:18px 16px; display:flex; flex-direction:column; gap:16px;">
+            <div style="display:flex; gap:10px;"><span style="width:16px; height:16px; border:2px solid #8C8078; border-top-color:transparent; margin-top:4px; flex:none;"></span><span style="display:flex; flex-direction:column; gap:3px;"><span style="font:500 16px Roboto; color:#F2EAE3;">купить капли</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">купить · в плане · напомню днём</span></span></div>
+            <div style="display:flex; gap:10px;"><span style="width:14px; height:14px; border-radius:50%; background:#8C8078; margin-top:5px; flex:none;"></span><span style="display:flex; flex-direction:column; gap:3px;"><span style="font:500 16px Roboto; color:#F2EAE3;">записать Соню к лору</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">сделать · в плане · напомню утром</span></span></div>
+            <div style="display:flex; gap:10px;"><span style="width:16px; height:6px; border-radius:99px; background:#8C8078; margin-top:9px; flex:none;"></span><span style="display:flex; flex-direction:column; gap:3px;"><span style="font:500 16px Roboto; color:#F2EAE3;">сказать мужу, что суббота занята</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">сказать · муж · в плане · напомню вечером</span></span></div>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088;">Учит языку глифов, но meta-строка растёт до четырёх сегментов и начинает конкурировать с текстом пункта. Слово «сделать» рядом с «записать Соню» — тавтология.</div>
+        </div>
+
+        <div style="width:296px; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;"><span style="font:500 15px Roboto; color:#F4EDE7;">В · перерисовать</span><span style="padding:3px 9px; border-radius:99px; background:#3C1E18; color:#E8836B; font:500 11px 'JetBrains Mono',monospace;">риск</span></div>
+          <div style="background:#16110F; border:1px solid #2A2320; border-radius:20px; padding:18px 16px; display:flex; flex-direction:column; gap:16px;">
+            <div style="display:flex; gap:12px; align-items:flex-start;"><span style="width:18px; height:18px; border:1.5px solid #8C8078; border-radius:3px; margin-top:3px; flex:none;"></span><span style="display:flex; flex-direction:column; gap:3px;"><span style="font:500 16px Roboto; color:#F2EAE3;">купить капли</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">в плане · напомню днём</span></span></div>
+            <div style="display:flex; gap:12px; align-items:flex-start;"><span style="width:18px; height:18px; border:1.5px solid #8C8078; border-radius:50%; margin-top:3px; flex:none;"></span><span style="display:flex; flex-direction:column; gap:3px;"><span style="font:500 16px Roboto; color:#F2EAE3;">записать Соню к лору</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">в плане · напомню утром</span></span></div>
+            <div style="display:flex; gap:12px; align-items:flex-start;"><span style="width:18px; height:18px; border:1.5px solid #8C8078; border-radius:3px 3px 3px 12px; margin-top:3px; flex:none;"></span><span style="display:flex; flex-direction:column; gap:3px;"><span style="font:500 16px Roboto; color:#F2EAE3;">сказать мужу, что суббота занята</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">муж · в плане · напомню вечером</span></span></div>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088;">Квадрат / круг / реплика — уже честнее гантели, но запреты айдентики (без корзин, галочек, эмодзи) оставляют только абстракцию. Второй заход с тем же исходом вероятен.</div>
+        </div>
+
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="width:360px; display:flex; flex-direction:column; gap:18px;">
+          <div style="display:flex; flex-direction:column; gap:10px; padding:18px 20px; background:#1B1512; border:1px solid #3A302B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#E08757;">РЕКОМЕНДАЦИЯ · ВАРИАНТ А</span>
+            <div style="font:400 14px/1.65 Roboto; color:#C6BAB1;">Глиф в ленте ничего не решает: пункт всё равно читается текстом, а тип нужен ровно в одном месте — когда правишь пункт и меняешь поведение возврата. Там он уже есть, подписанный словом.</div>
+            <div style="font:400 14px/1.65 Roboto; color:#C6BAB1;">Убирая глиф, лента теряет колонку слева — тексты пунктов выходят на левый край, вместе с датами и статусами получается одна вертикаль. Экран становится тише без единой новой сущности.</div>
+            <div style="font:400 14px/1.65 Roboto; color:#C6BAB1;">Что теряем: сканирование «где тут покупки». Но организации в продукте нет по ТЗ §1.4 — сканировать нечего, лента живёт день.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ГДЕ ГЛИФ ОСТАЁТСЯ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Только в чипах шита правки («Что это»), где рядом всегда стоит слово. Айдентика сохраняет «маркировку, не украшение» — просто маркировка живёт в месте, где её учат.</div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- 1d -->
+    <div id="1d" style="display:flex; flex-direction:column; gap:20px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:#E08757; color:#1A120D; font:500 12px 'JetBrains Mono',monospace;">1d</span>
+        <span style="font:500 18px Roboto; color:#F4EDE7;">«Неделя»: приборная панель kill-критериев · §3.4</span>
+      </div>
+      <div style="display:flex; gap:36px; align-items:flex-start; flex-wrap:wrap;">
+
+        <div style="width:392px; background:#16110F; border:1px solid #2A2320; border-radius:28px; padding:14px 16px 24px; box-shadow:0 24px 60px rgba(0,0,0,.5);">
+          <div style="display:flex; justify-content:space-between; font:400 11px 'JetBrains Mono',monospace; color:#6E635C; margin-bottom:20px;"><span>23:04</span><span>4G · 32%</span></div>
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:26px;">
+            <span style="font:700 21px Roboto; color:#F4EDE7;">Неделя</span>
+            <span style="display:flex; gap:16px; font:400 13px 'JetBrains Mono',monospace; color:#7C716A;"><span style="color:#E08757;">Неделя</span><span>Настройки</span></span>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:6px; padding-bottom:24px; border-bottom:1px solid #241E1B;">
+            <span style="font:700 30px/1.15 Roboto; color:#E08757;">Тревога</span>
+            <span style="font:400 15px/1.5 Roboto; color:#B3A79E; text-wrap:pretty;">Записываю и говорю комком — как надо. Но на возвраты не отвечаю: петля не замыкается.</span>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px; padding:22px 0 20px; border-bottom:1px solid #1E1917;">
+            <span style="font:400 15px Roboto; color:#B3A79E;">Отвечаю на возвраты</span>
+            <span style="font:700 26px Roboto; color:#F2EAE3;">0 из 12</span>
+            <div style="position:relative; height:4px; background:#241E1B; border-radius:2px; margin:6px 0 2px;"><span style="position:absolute; left:0; top:0; bottom:0; width:2%; background:#E08757; border-radius:2px;"></span><span style="position:absolute; left:40%; top:-4px; bottom:-4px; width:2px; background:#6E635C;"></span></div>
+            <span style="font:400 12px 'JetBrains Mono',monospace; color:#6E635C;">порог 40% · ниже — возвраты не работают</span>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px; padding:20px 0; border-bottom:1px solid #1E1917;">
+            <span style="font:400 15px Roboto; color:#B3A79E;">Говорю комком, а не командой</span>
+            <span style="font:700 26px Roboto; color:#F2EAE3;">обычно 3 пункта в записи</span>
+            <div style="position:relative; height:4px; background:#241E1B; border-radius:2px; margin:6px 0 2px;"><span style="position:absolute; left:0; top:0; bottom:0; width:75%; background:#8FB79A; border-radius:2px;"></span><span style="position:absolute; left:50%; top:-4px; bottom:-4px; width:2px; background:#6E635C;"></span></div>
+            <span style="font:400 12px 'JetBrains Mono',monospace; color:#6E635C;">порог 2 · ниже — это диктофон команд</span>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:14px; padding:22px 0 0;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font:400 14px Roboto; color:#9C9088;">Дней с записью</span><span style="font:400 14px 'JetBrains Mono',monospace; color:#D6CAC2;">6 из 7 <span style="color:#8FB79A;">норма</span></span></div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font:400 14px Roboto; color:#9C9088;">Записей в день</span><span style="font:400 14px 'JetBrains Mono',monospace; color:#D6CAC2;">8 <span style="color:#8FB79A;">норма</span></span></div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font:400 14px Roboto; color:#9C9088;">Ответов «не надо»</span><span style="font:400 14px 'JetBrains Mono',monospace; color:#D6CAC2;">— <span style="color:#6E635C;">нет данных</span></span></div>
+          </div>
+        </div>
+
+        <div style="width:392px; background:#16110F; border:1px solid #2A2320; border-radius:28px; padding:14px 16px 24px; box-shadow:0 24px 60px rgba(0,0,0,.5);">
+          <div style="display:flex; justify-content:space-between; font:400 11px 'JetBrains Mono',monospace; color:#6E635C; margin-bottom:20px;"><span>23:04</span><span>4G · 32%</span></div>
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:26px;">
+            <span style="font:700 21px Roboto; color:#F4EDE7;">Неделя</span>
+            <span style="display:flex; gap:16px; font:400 13px 'JetBrains Mono',monospace; color:#7C716A;"><span style="color:#E08757;">Неделя</span><span>Настройки</span></span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px; padding-bottom:24px; border-bottom:1px solid #241E1B;">
+            <span style="font:700 30px/1.15 Roboto; color:#B3A79E;">Пока рано судить</span>
+            <span style="font:400 15px/1.5 Roboto; color:#9C9088; text-wrap:pretty;">Второй день из трёх обкатки. Считаю, но выводов пока не делаю.</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:14px; padding:22px 0 0;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font:400 15px Roboto; color:#9C9088;">Отвечаю на возвраты</span><span style="font:400 14px 'JetBrains Mono',monospace; color:#7C716A;">0 из 3</span></div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font:400 15px Roboto; color:#9C9088;">Пунктов в записи</span><span style="font:400 14px 'JetBrains Mono',monospace; color:#7C716A;">обычно 3</span></div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font:400 15px Roboto; color:#9C9088;">Дней с записью</span><span style="font:400 14px 'JetBrains Mono',monospace; color:#7C716A;">2 из 2</span></div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font:400 15px Roboto; color:#9C9088;">Записей в день</span><span style="font:400 14px 'JetBrains Mono',monospace; color:#7C716A;">8</span></div>
+          </div>
+          <div style="margin-top:26px; font:400 13px/1.55 'JetBrains Mono',monospace; color:#6E635C;">Пороги включатся на четвёртый день.</div>
+        </div>
+
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="width:380px; display:flex; flex-direction:column; gap:18px;">
+          <div style="font:400 15px/1.6 Roboto; color:#B3A79E; text-wrap:pretty;">Один вопрос — «петля жива?» — и ответ словом в первой строке. Числа ниже только объясняют вердикт.</div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ВЕРДИКТ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Три состояния: <span style="color:#8FB79A;">Петля жива</span> · <span style="color:#E08757;">Тревога</span> (одна метрика ниже порога) · <span style="color:#E8836B;">Провал</span> (kill-критерий ниже порога два дня подряд). Под ним — одна фраза, почему.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ИЕРАРХИЯ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Два kill-критерия — крупно, с полосой и меткой порога. Остальное — строчки в meta. Полоса не график: только «где я относительно порога».</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ЯЗЫК</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">«обычно 3 пункта в записи» вместо «медиана items/note 3,0». «0 из 12» вместо «0%» — видно объём, а не пустой процент. Нет данных — прочерк и слова «нет данных», не «0%».</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ПЕРВЫЕ 3 ДНЯ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Правый макет. Вердикт «Пока рано судить», пороги и полосы скрыты, метрики показаны серым как наблюдение. Экран не врёт нулями.</div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- 1e -->
+    <div id="1e" style="display:flex; flex-direction:column; gap:20px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:#E08757; color:#1A120D; font:500 12px 'JetBrains Mono',monospace;">1e</span>
+        <span style="font:500 18px Roboto; color:#F4EDE7;">Моушн: запись ↔ лента приезжает за пальцем · §3.1</span>
+      </div>
+      <div style="display:flex; gap:36px; align-items:flex-start; flex-wrap:wrap;">
+
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div style="position:relative; width:392px; height:660px; background:#16110F; border:1px solid #2A2320; border-radius:28px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.5);">
+            <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:26px; transform: {{ captureT }}; opacity: {{ captureO }};">
+              <span style="font:400 34px 'JetBrains Mono',monospace; color:#D8402F;">0:02</span>
+              <span style="width:132px; height:132px; border-radius:34px; background:#D8402F;"></span>
+              <span style="font:400 14px Roboto; color:#8C8078;">Свайп вверх — записи</span>
+            </div>
+            <div style="position:absolute; inset:0; background:#16110F; border-top:1px solid #2A2320; border-radius:24px 24px 0 0; padding:20px 16px; box-sizing:border-box; transform: {{ feedT }}; box-shadow:0 -20px 40px rgba(0,0,0,.5);">
+              <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:18px;">
+                <span style="font:700 21px Roboto; color:#F4EDE7;">Записи</span>
+                <span style="display:flex; gap:16px; font:400 13px 'JetBrains Mono',monospace; color:#7C716A;"><span>Неделя</span><span>Настройки</span></span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:11px 14px; background:#241D1A; border-radius:10px; margin-bottom:18px;">
+                <span style="font:400 14px Roboto; color:#D6CAC2;">Идёт запись</span>
+                <span style="font:400 14px 'JetBrains Mono',monospace; color:#D8402F;">0:02</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:16px;">
+                <div style="display:flex; flex-direction:column; gap:3px;"><span style="font:500 16px Roboto; color:#F2EAE3;">купить капли</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">в плане · напомню днём</span></div>
+                <div style="display:flex; flex-direction:column; gap:3px;"><span style="font:500 16px Roboto; color:#F2EAE3;">записать Соню к лору</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#7C716A;">в плане · напомню утром</span></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:14px; width:392px;">
+            <input type="range" min="0" max="100" value="{{ mp }}" onInput="{{ setMp }}" style="flex:1;">
+            <span style="width:96px; font:400 12px 'JetBrains Mono',monospace; color:#8C8078;">{{ mpLabel }}</span>
+          </div>
+          <div style="font:400 12px 'JetBrains Mono',monospace; color:#6E635C;">Протяни ползунок — это палец. Лента 1:1, экран записи с параллаксом.</div>
+        </div>
+
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="width:400px; display:flex; flex-direction:column; gap:18px;">
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">СЛЕЖЕНИЕ ЗА ПАЛЬЦЕМ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Лента — лист поверх записи. translateY ленты = смещению пальца 1:1, без резинки до конца хода. Экран записи одновременно уходит вверх на 0,35 от смещения (параллакс) и гаснет до 25% непрозрачности. Ниже 0 лента не уходит.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ПОРОГИ СРАБАТЫВАНИЯ</span>
+            <div style="font:400 14px/1.65 'JetBrains Mono',monospace; color:#B3A79E;">старт жеста — 8 dp вертикально<br>долистать — 96 dp пройдено<br>или скорость — 600 dp/с вверх<br>иначе — вернуть на место</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">КРИВЫЕ И ДЛИТЕЛЬНОСТИ</span>
+            <div style="font:400 14px/1.65 'JetBrains Mono',monospace; color:#B3A79E;">долёт после отпускания<br><span style="color:#E08757;">motion.follow-settle</span> · 320 мс · cubic-bezier(.2,.8,.2,1)<br><br>отмена, возврат записи<br><span style="color:#E08757;">motion.follow-cancel</span> · 200 мс · cubic-bezier(.4,0,.6,1)<br><br>Оба — новые пресеты в токены (§1g). Длительность долёта масштабируется по остатку пути: не меньше 180 мс.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">ЗАПИСЬ НЕ ЛОМАЕТСЯ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Жест не трогает микрофон. Если запись идёт, в ленте сверху остаётся строка «Идёт запись · 0:02» — тап или свайп вниз возвращает к кнопке. Прерванный на полпути свайп возвращает экран записи в исходное состояние, таймер не сбрасывается.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:16px 18px; background:#161211; border:1px solid #241E1B; border-radius:12px;">
+            <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">РЕАЛИЗАЦИЯ</span>
+            <div style="font:400 14px/1.6 Roboto; color:#B3A79E;">Не подмена активити: лента живёт в том же окне, поверх записи, и получает смещение от общего drag-контроллера. Свайп вниз — та же механика в обратную сторону с теми же порогами.</div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- 1f -->
+    <div id="1f" style="display:flex; flex-direction:column; gap:20px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:#E08757; color:#1A120D; font:500 12px 'JetBrains Mono',monospace;">1f</span>
+        <span style="font:500 18px Roboto; color:#F4EDE7;">Второй приоритет: ошибка, запись, шит, пустое · §4</span>
+      </div>
+      <div style="display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap;">
+
+        <div style="width:340px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">Карточка · не расслышал</span>
+          <div style="background:#16110F; border:1px solid #2A2320; border-radius:22px; padding:20px 18px 22px; display:flex; flex-direction:column;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:22px;"><span style="font:400 13px 'JetBrains Mono',monospace; color:#8C8078;">6 авг · 22:53</span><span style="font:400 13px 'JetBrains Mono',monospace; color:#6E635C;">не расслышал</span></div>
+            <div style="font:400 16px/1.55 Roboto; color:#B3A79E; margin-bottom:22px; text-wrap:pretty;">Не разобрал речь. Обычно так бывает, если далеко от телефона или вокруг шумно.</div>
+            <div style="display:flex; align-items:center; gap:12px; padding:13px 15px; background:#1E1917; border-radius:10px; margin-bottom:24px;">
+              <span style="width:0; height:0; border-left:11px solid #E08757; border-top:7px solid transparent; border-bottom:7px solid transparent;"></span>
+              <span style="font:400 14px 'JetBrains Mono',monospace; color:#B3A79E;">послушать · 0:04</span>
+            </div>
+            <span style="align-self:flex-start; padding:11px 20px; border-radius:99px; background:#E08757; color:#1A120D; font:500 15px Roboto;">Разобрать заново</span>
+            <span style="margin-top:20px; font:400 14px Roboto; color:#7C716A;">Удалить запись</span>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088;">Осталось одно действие вместо «повторить» + «Разобрать заново». Аудио даёт карточке содержание, объяснение — причину.</div>
+        </div>
+
+        <div style="width:340px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">Экран записи · затухание подсказок</span>
+          <div style="background:#16110F; border:1px solid #2A2320; border-radius:22px; padding:34px 18px; display:flex; flex-direction:column; align-items:center; gap:22px;">
+            <span style="font:400 30px 'JetBrains Mono',monospace; color:#D8402F;">0:02</span>
+            <span style="width:118px; height:118px; border-radius:30px; background:#D8402F;"></span>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:7px;">
+              <span style="font:400 14px Roboto; color:#8C8078;">Свайп вниз — отменить</span>
+              <span style="font:400 14px Roboto; color:#8C8078;">Свайп вверх — записи</span>
+            </div>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088; text-wrap:pretty;">Обе подсказки живут вместе и гаснут по счётчику применений жеста, не по времени: пока жест не сделан 3 раза — показываю; после — исчезает навсегда. Возвращается, если жестом не пользовались 30 дней. «Свайп вверх» появляется только после первой сохранённой записи — до неё ленты нет.</div>
+        </div>
+
+        <div style="width:340px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">Шит правки · иерархия действий</span>
+          <div style="background:#1C1613; border:1px solid #2A2320; border-radius:22px; padding:18px; display:flex; flex-direction:column; gap:18px;">
+            <span style="align-self:center; width:56px; height:4px; border-radius:2px; background:#4A403A;"></span>
+            <div style="display:flex; flex-direction:column; gap:8px;"><span style="font:400 12px 'JetBrains Mono',monospace; color:#7A6E66;">Текст</span><span style="padding:14px 16px; border:1px solid #3A302B; border-radius:12px; font:500 17px Roboto; color:#F2EAE3;">купить капли</span></div>
+            <div style="display:flex; flex-direction:column; gap:10px;"><span style="font:400 12px 'JetBrains Mono',monospace; color:#7A6E66;">Что это</span>
+              <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                <span style="padding:8px 15px; border:1px solid #E08757; border-radius:99px; font:500 14px Roboto; color:#E08757;">купить</span>
+                <span style="padding:8px 15px; border:1px solid #3A302B; border-radius:99px; font:400 14px Roboto; color:#B3A79E;">сделать</span>
+                <span style="padding:8px 15px; border:1px solid #3A302B; border-radius:99px; font:400 14px Roboto; color:#B3A79E;">сказать</span>
+                <span style="padding:8px 15px; border:1px solid #3A302B; border-radius:99px; font:400 14px Roboto; color:#B3A79E;">мысль</span>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:16px; padding-top:4px;">
+              <span style="padding:12px 26px; border-radius:99px; background:#E08757; color:#1A120D; font:500 15px Roboto;">Сохранить</span>
+              <span style="font:400 15px Roboto; color:#B3A79E;">Отмена</span>
+            </div>
+            <div style="padding-top:14px; border-top:1px solid #2A2320;"><span style="font:400 14px Roboto; color:#7C716A;">Похоронить пункт</span></div>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088;">Главное действие — залитая кнопка, отмена — текст рядом. «Похоронить» уезжает за разделитель: это не отмена правки, а конец пункта.</div>
+        </div>
+
+        <div style="width:340px; display:flex; flex-direction:column; gap:12px;">
+          <span style="font:500 14px Roboto; color:#F4EDE7;">Пустая лента · первый запуск</span>
+          <div style="background:#16110F; border:1px solid #2A2320; border-radius:22px; padding:20px 18px 64px; display:flex; flex-direction:column;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:80px;"><span style="font:700 21px Roboto; color:#F4EDE7;">Записи</span><span style="display:flex; gap:16px; font:400 13px 'JetBrains Mono',monospace; color:#7C716A;"><span>Неделя</span><span>Настройки</span></span></div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <span style="font:500 19px Roboto; color:#D6CAC2;">Пока пусто</span>
+              <span style="font:400 15px/1.6 Roboto; color:#8C8078; text-wrap:pretty;">Открой значок, скажи как есть — комком, не по пунктам. Я разберу и вернусь в нужное время.</span>
+            </div>
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#9C9088;">Без иллюстраций и кнопки «начать» — открыть запись можно только значком, о чём и говорит текст. Одна фраза объясняет и жест, и обещание продукта.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1g -->
+    <div id="1g" style="display:flex; flex-direction:column; gap:20px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:#E08757; color:#1A120D; font:500 12px 'JetBrains Mono',monospace;">1g</span>
+        <span style="font:500 18px Roboto; color:#F4EDE7;">Правки токенов и новые строки · §5.4–5.5</span>
+      </div>
+      <div style="display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap;">
+
+        <div style="width:420px; display:flex; flex-direction:column; gap:14px; padding:22px 24px; background:#161211; border:1px solid #241E1B; border-radius:16px;">
+          <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">В DESIGN-TOKENS.JSON</span>
+          <div style="font:400 13.5px/1.8 'JetBrains Mono',monospace; color:#B3A79E;">
+            motion.follow-settle · 320ms · (.2,.8,.2,1)<br>
+            motion.follow-cancel · 200ms · (.4,0,.6,1)<br>
+            gesture.swipe-start · 8dp<br>
+            gesture.swipe-commit · 96dp / 600dp·s⁻¹<br>
+            gesture.row-action-width · 88dp<br>
+            color.destructive-bg · #3C1E18<br>
+            color.destructive-fg · #E8836B<br>
+            color.status-ok · #8FB79A<br>
+            color.status-warn · #E08757<br>
+            type.verdict · 30/34 Roboto Bold<br>
+            type.metric · 26/30 Roboto Bold
+          </div>
+          <div style="font:400 13px/1.55 Roboto; color:#8C8078;">Destructive-пара — новая и единственная красная в продукте, применяется только в открытой зоне свайпа и нигде в покое.</div>
+        </div>
+
+        <div style="width:460px; display:flex; flex-direction:column; gap:14px; padding:22px 24px; background:#161211; border:1px solid #241E1B; border-radius:16px;">
+          <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#7A6E66;">НОВЫЕ СТРОКИ · В ТОНЕ PRD §4.1</span>
+          <div style="font:400 14px/1.9 Roboto; color:#B3A79E;">
+            Удалить · Удалить · 3 пункта<br>
+            Удалил запись · вернуть<br>
+            5 записей без пунктов · убрать все<br>
+            Убрал 5 записей · вернуть<br>
+            разбор выключен · включить<br>
+            Разбирать речь на пункты<br>
+            Выключу — записи останутся текстом. Пунктов и возвратов не будет.<br>
+            Когда останавливать · тихая комната / обычно / шумно<br>
+            Жду полторы секунды тишины и останавливаю запись сам.<br>
+            Петля жива · Тревога · Провал · Пока рано судить<br>
+            Считаю, но выводов пока не делаю.<br>
+            Отвечаю на возвраты · Говорю комком, а не командой<br>
+            обычно 3 пункта в записи · нет данных<br>
+            Не разобрал речь. Обычно так бывает, если далеко от телефона или вокруг шумно.<br>
+            послушать · Свайп вверх — записи · Идёт запись<br>
+            Пока пусто<br>
+            Открой значок, скажи как есть — комком, не по пунктам.
+          </div>
+        </div>
+
+        <div style="width:380px; display:flex; flex-direction:column; gap:14px; padding:22px 24px; background:#1B1512; border:1px solid #3A302B; border-radius:16px;">
+          <span style="font:500 11px 'JetBrains Mono',monospace; letter-spacing:.12em; color:#E08757;">ПОРЯДОК РАБОТ</span>
+          <div style="font:400 14px/1.7 Roboto; color:#C6BAB1;">Такт 1 — <a href="#1a">1a</a> удаление и <a href="#1b">1b</a> настройки: снимают ежедневную боль прогона, дизайна больше не ждут.<br><br>Такт 2 — <a href="#1c">1c</a> глифы (нужно решение владельца по варианту А) и <a href="#1d">1d</a> «Неделя».<br><br>Такт 3 — <a href="#1e">1e</a> моушн и <a href="#1f">1f</a> мелочи.</div>
+          <div style="font:400 13px/1.6 Roboto; color:#8C8078;">Открытый вопрос один: подтвердить вариант А по глифам. Всё остальное реализуемо по этим макетам без догадок.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showNotes&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Вид&quot;}}">
+class Component extends DCLogic {
+  state = { swipeOpen: true, mp: 0, ampOn: true };
+  els = {};
+  amp = 0; target = 0; t0 = 0; silence = 0;
+
+  componentDidMount() {
+    this.t0 = performance.now();
+    this.tick = setInterval(() => {
+      const cyc = ((performance.now() - this.t0) / 1000) % 6.5;
+      this.target = cyc < 4 ? 0.25 + Math.random() * 0.7 * (0.5 + 0.5 * Math.sin(cyc * 3.1)) : Math.random() * 0.05;
+    }, 100);
+    let last = performance.now();
+    const frame = now => {
+      this.raf = requestAnimationFrame(frame);
+      const dt = Math.min(50, now - last); last = now;
+      if (!this.state.ampOn) return;
+      const d = this.target - this.amp;
+      this.amp += d > 0 ? Math.min(d, dt / 100) : d * (1 - Math.exp(-dt / 220));
+      const a = Math.max(0, Math.min(1, this.amp)), q = a * a;
+      const e = this.els;
+      if (e.capA) e.capA.style.transform = 'scale(' + (1 + 0.06 * q).toFixed(3) + ')';
+      if (e.ringB) {
+        const s = 120 + 26 * q;
+        e.ringB.style.width = e.ringB.style.height = s.toFixed(1) + 'px';
+        e.ringB.style.borderRadius = (36 + 6 * q).toFixed(1) + 'px';
+        e.ringB.style.borderWidth = (1.5 + a).toFixed(2) + 'px';
+        e.ringB.style.opacity = (0.35 + 0.65 * a).toFixed(2);
+      }
+      if (e.dotC) e.dotC.style.height = (8 + 92 * q).toFixed(1) + '%';
+      if (e.hintB) {
+        this.silence = a < 0.08 ? this.silence + dt : 0;
+        const left = 2000 - (this.silence - 400);
+        const quiet = this.silence > 400 && left > 0;
+        e.hintB.textContent = quiet ? 'тишина · остановлю через ' + (left / 1000).toFixed(1).replace('.', ',') : 'слышу';
+        e.hintB.style.color = quiet ? '#B3A79E' : '#6E635C';
+        if (e.ringB && quiet) { e.ringB.style.borderColor = '#4A403A'; e.ringB.style.opacity = '1'; e.ringB.style.width = e.ringB.style.height = '126px'; }
+        else if (e.ringB) e.ringB.style.borderColor = '#E8836B';
+      }
+      const secs = 12 + Math.floor((now - this.t0) / 1000);
+      const txt = Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
+      ['timerA', 'timerB', 'timerC'].forEach(k => { if (e[k]) e[k].textContent = txt; });
+    };
+    this.raf = requestAnimationFrame(frame);
+  }
+  componentWillUnmount() { clearInterval(this.tick); cancelAnimationFrame(this.raf); }
+  ref(k) { return el => { this.els[k] = el; }; }
+  renderVals() {
+    const mp = this.state.mp / 100;
+    return {
+      showNotes: this.props.showNotes ?? true,
+      capARef: this.ref('capA'),
+      ringBRef: this.ref('ringB'),
+      dotCRef: this.ref('dotC'),
+      hintBRef: this.ref('hintB'),
+      timerARef: this.ref('timerA'),
+      timerBRef: this.ref('timerB'),
+      timerCRef: this.ref('timerC'),
+      ampLabel: this.state.ampOn ? 'остановить демо' : 'запустить демо',
+      toggleAmp: () => this.setState(s => ({ ampOn: !s.ampOn })),
+      swipeLabel: this.state.swipeOpen ? 'закрыть жест' : 'показать жест',
+      rowInset: this.state.swipeOpen ? '100px' : '0px',
+      toggleSwipe: () => this.setState(s => ({ swipeOpen: !s.swipeOpen })),
+      mp: this.state.mp,
+      setMp: e => this.setState({ mp: +e.target.value }),
+      captureT: 'translateY(' + (-mp * 34).toFixed(1) + '%) scale(' + (1 - mp * 0.05).toFixed(3) + ')',
+      captureO: (1 - mp * 0.75).toFixed(2),
+      feedT: 'translateY(' + ((1 - mp) * 100).toFixed(1) + '%)',
+      mpLabel: mp === 0 ? 'палец внизу' : (mp >= 0.28 ? Math.round(mp * 100) + '% · долетит' : Math.round(mp * 100) + '% · вернётся')
+    };
+  }
+}
+</script>
+</body>
+</html>
