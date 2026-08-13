@@ -226,6 +226,7 @@
     <string name="set_patience_short">коротко</string>
     <string name="set_patience_normal">обычно</string>
     <string name="set_patience_long">долго</string>
+    <string name="set_dev_kill">Kill-критерии недели</string>
     <string name="set_dev_section">Для разработчика</string>
     <plurals name="settings_notes_count">
         <item quantity="one">%1$d запись</item>
@@ -238,9 +239,12 @@
     <!-- Неделя (спека §6): вердикт словом, пороги из PRD §8 -->
     <string name="week_verdict_alive">Петля жива</string>
     <string name="week_verdict_warn">Тревога</string>
+    <string name="week_verdict_stalling">Петля буксует</string>
+    <string name="week_metric_done">Закрыл</string>
+    <string name="week_metric_dropped">Отменил как ненужное</string>
     <string name="week_verdict_fail">Провал</string>
     <string name="week_verdict_early">Пока рано судить</string>
-    <string name="week_early_note">Считаю, но выводов пока не делаю. Пороги включатся на четвёртый день.</string>
+    <string name="week_early_note">Считаю, но выводов пока не делаю — слишком мало дней.</string>
     <string name="week_metric_returns">Отвечаю на возвраты</string>
     <string name="week_metric_lump">Говорю комком, а не командой</string>
     <string name="week_metric_days">Дней с записью</string>
@@ -256,10 +260,10 @@
     <string name="week_of">%1$d из %2$d</string>
     <string name="week_threshold_returns">порог %1$d%% · ниже — возвраты не работают</string>
     <string name="week_threshold_lump">порог %1$d · ниже — это команды, не комки</string>
-    <string name="week_phrase_ok">Записываю, говорю комком, отвечаю на возвраты — как надо.</string>
-    <string name="week_phrase_returns">Записываю и говорю комком — как надо. Но на возвраты не отвечаю: петля не замыкается.</string>
-    <string name="week_phrase_lump">Возвраты работают, но записи — одиночные команды, а не комки.</string>
-    <string name="week_phrase_days">Петля настроена, но записей почти нет — жеста не случается.</string>
+    <string name="week_phrase_ok">Записи приходят, возвраты попадают в момент. Так и надо.</string>
+    <string name="week_phrase_returns">Мои возвраты чаще всего проходят мимо. Попробую приходить в другое время.</string>
+    <string name="week_phrase_lump">Записи короткие, как команды. Мне проще, когда говоришь комком — разберу сам.</string>
+    <string name="week_phrase_days">Записей почти нет. Похоже, я не попадаюсь под руку в нужный момент.</string>
     <string name="settings_notifications">Разрешить уведомления</string>
 
     <!-- Сводка недели §F-9 -->

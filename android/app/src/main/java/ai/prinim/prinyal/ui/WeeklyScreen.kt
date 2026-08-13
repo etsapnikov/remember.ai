@@ -5,8 +5,6 @@ import ai.prinim.prinyal.domain.WeeklySummary
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.Space
-import androidx.compose.foundation.Canvas
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,17 +23,28 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
 
 /**
- * «Неделя» (спека R1.1 §6): вердикт словом, фраза-объяснение, два kill-критерия
- * крупно с полосой к порогу, остальное мелко.
+ * «Неделя»: что закрыто, и как себя чувствует петля.
  *
- * Полоса — не график: она показывает только положение относительно порога.
- * Язык без голых процентов: «0 из 12», «обычно 3 пункта в записи».
+ * Экран переписан по Р-13.1. Раньше он выносил «Провал» красным, когда человек
+ * ответил меньше чем на половину возвратов. Считалось это как kill-критерий
+ * продукта — жива ли петля, — но читалось как оценка человека после трудной
+ * недели, и владелец справедливо назвал это жёстким.
+ *
+ * Теперь здесь три правила:
+ *
+ *  - **судим петлю, а не человека.** Причина всегда сформулирована как то, что
+ *    продукт сделает иначе: не «ты не отвечаешь», а «я приходил не вовремя»;
+ *  - **красного вердикта о человеке нет.** `FAIL` на этом экране выглядит так
+ *    же, как `WARN`: разница между ними важна для решения о судьбе продукта, а
+ *    не для того, кто открыл экран в пятницу вечером;
+ *  - **сделанное — числом, без процентов, полос и цели.** Полосы к порогам —
+ *    инструмент владельца, они уехали в «Для разработчика».
+ *
+ * Серий («7 дней подряд») здесь нет и не будет: сорванная серия отваживает
+ * сильнее, чем собранная мотивирует.
  */
 @Composable
 fun WeeklyScreen(vm: AppViewModel) {
@@ -51,8 +60,6 @@ fun WeeklyScreen(vm: AppViewModel) {
         return
     }
 
-    val early = data.verdict == WeeklySummary.Verdict.EARLY
-
     Column(
         Modifier
             .fillMaxSize()
@@ -62,35 +69,18 @@ fun WeeklyScreen(vm: AppViewModel) {
     ) {
         Verdict(data)
 
-        // Kill-критерии — крупно, с полосой к порогу (в обкатку полосы скрыты).
-        KillMetric(
-            label = stringResource(R.string.week_metric_returns),
-            value = if (data.returnsShown == 0) stringResource(R.string.week_no_data)
-            else stringResource(R.string.week_of, data.returnsAnswered, data.returnsShown),
-            fraction = data.returnsShare,
-            threshold = WeeklySummary.RETURNS_MIN,
-            thresholdCaption = stringResource(
-                R.string.week_threshold_returns,
-                (WeeklySummary.RETURNS_MIN * 100).roundToInt(),
-            ),
-            muted = early,
-        )
-        KillMetric(
-            label = stringResource(R.string.week_metric_lump),
-            value = data.lumpMedian?.let {
-                pluralStringResource(
-                    R.plurals.week_items_median, it.roundToInt(), it.roundToInt(),
-                )
-            } ?: stringResource(R.string.week_no_data),
-            fraction = data.lumpMedian?.let { it / (WeeklySummary.LUMP_MIN * 2) },
-            threshold = 0.5,
-            thresholdCaption = stringResource(
-                R.string.week_threshold_lump, WeeklySummary.LUMP_MIN.roundToInt(),
-            ),
-            muted = early,
-        )
+        // Единственное крупное число на экране — сделанное. Без доли, без цели:
+        // «7 из 12» превращает неделю в зачёт, «7» остаётся фактом.
+        Done(data.done)
 
-        // Остальное — мелко, строками.
+        // Отказ — тоже закрытие петли: человек ответил, продукт узнал. Стоит
+        // рядом со сделанным намеренно, чтобы не читаться как недоделанное.
+        if (data.dismissed > 0) {
+            SmallMetric(
+                stringResource(R.string.week_metric_dropped),
+                data.dismissed.toString(),
+            )
+        }
         SmallMetric(
             stringResource(R.string.week_metric_days),
             stringResource(R.string.week_of, data.daysWithCapture, data.daysWindow),
@@ -99,13 +89,24 @@ fun WeeklyScreen(vm: AppViewModel) {
             stringResource(R.string.week_metric_per_day),
             data.perDayMedian?.toString() ?: stringResource(R.string.week_no_data),
         )
-        SmallMetric(
-            stringResource(R.string.week_metric_dismissed),
-            if (data.returnsAnswered == 0) stringResource(R.string.week_no_data)
-            else stringResource(R.string.week_of, data.dismissed, data.returnsAnswered),
-        )
 
         Box(Modifier.height(Space.xl))
+    }
+}
+
+@Composable
+private fun Done(count: Int) {
+    Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
+        Text(
+            text = stringResource(R.string.week_metric_done),
+            style = Prinyal.type.body,
+            color = Prinyal.colors.inkMuted,
+        )
+        Text(
+            text = count.toString(),
+            style = Prinyal.type.metric,
+            color = Prinyal.colors.ink,
+        )
     }
 }
 
@@ -116,10 +117,11 @@ private fun Verdict(report: WeeklySummary.Report) {
             stringResource(R.string.week_verdict_early) to Prinyal.colors.inkMuted
         WeeklySummary.Verdict.ALIVE ->
             stringResource(R.string.week_verdict_alive) to Prinyal.colors.statusOk
-        WeeklySummary.Verdict.WARN ->
-            stringResource(R.string.week_verdict_warn) to Prinyal.colors.statusWarn
-        WeeklySummary.Verdict.FAIL ->
-            stringResource(R.string.week_verdict_fail) to Prinyal.colors.destructiveFg
+        // FAIL и WARN здесь неразличимы намеренно: «Провал» — слово для решения
+        // о судьбе продукта, оно живёт в «Для разработчика». Человеку остаётся
+        // «буксует» — состояние петли, а не оценка его недели.
+        WeeklySummary.Verdict.WARN, WeeklySummary.Verdict.FAIL ->
+            stringResource(R.string.week_verdict_stalling) to Prinyal.colors.statusWarn
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
@@ -139,61 +141,6 @@ private fun phrase(report: WeeklySummary.Report): String = when {
     report.problem == WeeklySummary.Problem.RETURNS -> stringResource(R.string.week_phrase_returns)
     report.problem == WeeklySummary.Problem.LUMP -> stringResource(R.string.week_phrase_lump)
     else -> stringResource(R.string.week_phrase_ok)
-}
-
-/**
- * Kill-метрика: подпись, значение крупно, полоса 4 dp с меткой порога.
- * Метка порога стоит на 60% ширины; заливка масштабируется к ней же — так
- * «на пороге» видно глазом без цифр.
- */
-@Composable
-private fun KillMetric(
-    label: String,
-    value: String,
-    fraction: Double?,
-    threshold: Double,
-    thresholdCaption: String,
-    muted: Boolean,
-) {
-    val thresholdAt = 0.6f
-
-    Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
-        Text(
-            text = label,
-            style = Prinyal.type.body,
-            color = Prinyal.colors.inkMuted,
-        )
-        Text(
-            text = value,
-            style = Prinyal.type.metric,
-            color = if (muted) Prinyal.colors.inkFaint else Prinyal.colors.ink,
-        )
-
-        if (!muted && fraction != null) {
-            val ok = fraction >= threshold
-            val fill = ((fraction / threshold) * thresholdAt).toFloat().coerceIn(0.02f, 1f)
-            val fillColor = if (ok) Prinyal.colors.statusOk else Prinyal.colors.statusWarn
-            val track = Prinyal.colors.wellSurface
-            val mark = Prinyal.colors.inkFaint
-
-            Canvas(
-                Modifier
-                    .fillMaxWidth()
-                    .height(8.dp),
-            ) {
-                val barY = size.height / 2
-                drawLine(track, Offset(0f, barY), Offset(size.width, barY), 4.dp.toPx())
-                drawLine(fillColor, Offset(0f, barY), Offset(size.width * fill, barY), 4.dp.toPx())
-                drawLine(
-                    mark,
-                    Offset(size.width * thresholdAt, 0f),
-                    Offset(size.width * thresholdAt, size.height),
-                    2.dp.toPx(),
-                )
-            }
-            MetaText(thresholdCaption, color = Prinyal.colors.inkFaint)
-        }
-    }
 }
 
 @Composable

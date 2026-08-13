@@ -43,8 +43,17 @@ class WeeklySummary(
         val daysWindow: Int,
         /** Медиана записей в активный день. null — записей не было. */
         val perDayMedian: Int?,
-        /** «Не надо»: сколько из ответов. */
+        /**
+         * «Не надо» — осознанный отказ. Считается только явный отказ; «не ответил»
+         * живёт отдельно в [missed]. Раньше они складывались в одно число, и
+         * метрика «продукт предлагает не то» портилась любым пропущенным
+         * уведомлением.
+         */
         val dismissed: Int,
+        /** Возврат показан, ответа не было. */
+        val missed: Int,
+        /** Сделано по возврату. Единственное число, которое человек видит крупно. */
+        val done: Int,
     ) {
         val returnsShare: Double? =
             if (returnsShown == 0) null else returnsAnswered.toDouble() / returnsShown
@@ -101,6 +110,8 @@ class WeeklySummary(
         val daysWithCapture: Int,
         val perDayMedian: Int?,
         val dismissed: Int,
+        val missed: Int,
+        val done: Int,
     ) {
         /** Kill-критерии, проваленные в этом окне. Нет данных — не провал. */
         fun failedKills(): Set<String> = buildSet {
@@ -127,6 +138,8 @@ class WeeklySummary(
             daysWindow = WINDOW_DAYS,
             perDayMedian = perDayMedian,
             dismissed = dismissed,
+            missed = missed,
+            done = done,
         )
     }
 
@@ -162,7 +175,9 @@ class WeeklySummary(
             lumpMedian = medianOf(itemCounts.map(Int::toDouble)),
             daysWithCapture = byDay.size,
             perDayMedian = medianOf(perDay.map(Int::toDouble))?.toInt(),
-            dismissed = answers.count { it.optString("action") in setOf("dismiss", "miss") },
+            dismissed = answers.count { it.optString("action") == "dismiss" },
+            missed = answers.count { it.optString("action") == "miss" },
+            done = answers.count { it.optString("action") == "done" },
         )
     }
 

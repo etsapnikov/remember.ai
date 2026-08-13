@@ -4,6 +4,7 @@ import ai.prinim.prinyal.BuildConfig
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.capture.SilenceWindow
 import ai.prinim.prinyal.data.Window
+import ai.prinim.prinyal.domain.WeeklySummary
 import ai.prinim.prinyal.returns.ReturnScheduler
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
@@ -32,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -399,6 +401,52 @@ private fun <T> Segments(
     }
 }
 
+/**
+ * Kill-критерии недели: числа, пороги и настоящий вердикт, включая «Провал».
+ *
+ * Здесь слово «Провал» уместно — это ответ на вопрос «продолжаем ли мы вообще»,
+ * а не оценка человека. На «Неделе» его нет намеренно (Р-13.1).
+ */
+@Composable
+private fun KillMetrics(vm: AppViewModel) {
+    val report by vm.weekly.collectAsState()
+
+    LaunchedEffect(Unit) { vm.loadWeekly() }
+
+    val data = report ?: return
+    val verdict = when (data.verdict) {
+        WeeklySummary.Verdict.EARLY -> stringResource(R.string.week_verdict_early)
+        WeeklySummary.Verdict.ALIVE -> stringResource(R.string.week_verdict_alive)
+        WeeklySummary.Verdict.WARN -> stringResource(R.string.week_verdict_warn)
+        WeeklySummary.Verdict.FAIL -> stringResource(R.string.week_verdict_fail)
+    }
+
+    val returns = if (data.returnsShown == 0) {
+        stringResource(R.string.week_no_data)
+    } else {
+        stringResource(R.string.week_of, data.returnsAnswered, data.returnsShown)
+    }
+    val lump = data.lumpMedian?.let { "%.1f".format(it) } ?: stringResource(R.string.week_no_data)
+
+    Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
+        MetaText("${stringResource(R.string.set_dev_kill)}: $verdict")
+        MetaText(
+            "${stringResource(R.string.week_metric_returns)}: $returns" +
+                " · порог ${(WeeklySummary.RETURNS_MIN * 100).toInt()}%",
+            color = Prinyal.colors.inkFaint,
+        )
+        MetaText(
+            "${stringResource(R.string.week_metric_lump)}: $lump" +
+                " · порог ${WeeklySummary.LUMP_MIN.toInt()}",
+            color = Prinyal.colors.inkFaint,
+        )
+        MetaText(
+            "«не надо» ${data.dismissed} · не ответил ${data.missed} · сделал ${data.done}",
+            color = Prinyal.colors.inkFaint,
+        )
+    }
+}
+
 /** Серверный контур и сырые числа — только для отладки. */
 @Composable
 private fun DeveloperSection(vm: AppViewModel, threshold: Int) {
@@ -421,6 +469,12 @@ private fun DeveloperSection(vm: AppViewModel, threshold: Int) {
 
         if (expanded) {
             HorizontalDivider(thickness = 1.dp, color = Prinyal.colors.hairline)
+
+            // Kill-критерии PRD §8. Живут здесь, а не на «Неделе»: по ним
+            // принимается решение о судьбе продукта, и читает их владелец в
+            // роли заказчика, а не человек в роли пользователя.
+            KillMetrics(vm)
+
             Field(stringResource(R.string.settings_server_url), urlDraft) {
                 urlDraft = it
                 vm.setServerUrl(it)

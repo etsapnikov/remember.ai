@@ -90,6 +90,23 @@ class WeeklySummaryTest {
     }
 
     @Test
+    fun `сделанное и осознанный отказ считаются отдельно от пропуска`() = runTest {
+        healthyWeek()
+        // Один возврат человек закрыл словом «не надо», другой просто не заметил.
+        write(Analytics.RETURN_FIRED, at(2, 15), mapOf("return" to "r-drop"))
+        write(Analytics.RETURN_ACTION, at(2, 16), mapOf("action" to "dismiss"))
+        write(Analytics.RETURN_FIRED, at(3, 15), mapOf("return" to "r-miss"))
+        write(Analytics.RETURN_ACTION, at(3, 16), mapOf("action" to "miss"))
+
+        val report = WeeklySummary(analytics, db, zone).build(today)
+
+        assertEquals(5, report.done)
+        // Пропуск раньше подмешивался в «не надо» и портил метрику «предлагаю не то».
+        assertEquals(1, report.dismissed)
+        assertEquals(1, report.missed)
+    }
+
+    @Test
     fun `первые три дня — рано судить`() = runTest {
         write(Analytics.CAPTURE_START, at(1))
         write(Analytics.RECEIPT_SHOWN, at(1))
