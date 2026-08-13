@@ -2,6 +2,7 @@ package ai.prinim.prinyal.ui
 
 import ai.prinim.prinyal.BuildConfig
 import ai.prinim.prinyal.R
+import ai.prinim.prinyal.capture.SilenceWindow
 import ai.prinim.prinyal.data.Window
 import ai.prinim.prinyal.returns.ReturnScheduler
 import ai.prinim.prinyal.ui.theme.MetaText
@@ -61,6 +62,7 @@ fun SettingsScreen(vm: AppViewModel) {
     val llm by vm.llmEnabled.collectAsState()
     val windows by vm.windows.collectAsState()
     val threshold by vm.silenceThreshold.collectAsState()
+    val patience by vm.silencePatience.collectAsState()
     val message by vm.message.collectAsState()
     val notes by vm.feed.collectAsState()
 
@@ -95,11 +97,14 @@ fun SettingsScreen(vm: AppViewModel) {
             Section(stringResource(R.string.settings_capture)) {
                 MetaText(stringResource(R.string.set_silence_title))
                 SilenceSegments(current = threshold, onSelect = { vm.setSilenceThreshold(it) })
+
+                // Две разные величины и две разные ручки: порог — про шум вокруг,
+                // терпение — про то, как человек говорит. Смешивать их в одну
+                // значило бы просить настроить микрофон, чтобы получить паузу.
+                MetaText(stringResource(R.string.set_patience_title))
+                PatienceSegments(current = patience, onSelect = { vm.setSilencePatience(it) })
                 Text(
-                    // Длительность тишины в продукте одна — 2 секунды (Recorder).
-                    // Спека предлагала пересчитывать число; менять длительность по
-                    // порогу громкости значило бы смешать две разные величины.
-                    text = stringResource(R.string.set_silence_note, "2"),
+                    text = stringResource(R.string.set_silence_note),
                     style = Prinyal.type.body,
                     color = Prinyal.colors.inkMuted,
                 )
@@ -344,7 +349,29 @@ private fun SilenceSegments(current: Int, onSelect: (Int) -> Unit) {
     )
     // Ближайший сегмент к текущему значению — на случай старых настроек слайдером.
     val selected = options.minByOrNull { kotlin.math.abs(it.second - current) }?.second
+    Segments(options, selected, onSelect)
+}
 
+/** Сегменты «сколько ждать паузу» (R1.3 Р-13.2). */
+@Composable
+private fun PatienceSegments(
+    current: SilenceWindow.Patience,
+    onSelect: (SilenceWindow.Patience) -> Unit,
+) {
+    val options = listOf(
+        stringResource(R.string.set_patience_short) to SilenceWindow.Patience.SHORT,
+        stringResource(R.string.set_patience_normal) to SilenceWindow.Patience.NORMAL,
+        stringResource(R.string.set_patience_long) to SilenceWindow.Patience.LONG,
+    )
+    Segments(options, current, onSelect)
+}
+
+@Composable
+private fun <T> Segments(
+    options: List<Pair<String, T>>,
+    selected: T?,
+    onSelect: (T) -> Unit,
+) {
     Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
         options.forEach { (label, value) ->
             val active = value == selected

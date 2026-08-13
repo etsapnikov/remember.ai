@@ -117,8 +117,6 @@ class Recorder(private val context: Context) {
         const val MAX_DURATION_MS = 90_000
         /** Ниже полутора секунд — случайное нажатие, такое не отправляется (§6). */
         const val MIN_DURATION_MS = 1_500L
-        /** Тишина, после которой останавливаемся сами. */
-        const val SILENCE_TO_STOP_MS = 2_000L
         /** Пока речи меньше — тишину не считаем: человек ещё собирается с мыслями. */
         const val SPEECH_BEFORE_AUTOSTOP_MS = 3_000L
 

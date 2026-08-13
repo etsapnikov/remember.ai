@@ -221,7 +221,11 @@
     <string name="set_silence_quiet">тихая комната</string>
     <string name="set_silence_normal">обычно</string>
     <string name="set_silence_noisy">шумно</string>
-    <string name="set_silence_note">Жду %1$s секунды тишины и останавливаю запись сам.</string>
+    <string name="set_silence_note">Жду паузу и останавливаю запись сам. Чем дольше говоришь, тем дольше жду — чтобы не оборвать мысль на середине.</string>
+    <string name="set_patience_title">Сколько ждать паузу</string>
+    <string name="set_patience_short">коротко</string>
+    <string name="set_patience_normal">обычно</string>
+    <string name="set_patience_long">долго</string>
     <string name="set_dev_section">Для разработчика</string>
     <plurals name="settings_notes_count">
         <item quantity="one">%1$d запись</item>

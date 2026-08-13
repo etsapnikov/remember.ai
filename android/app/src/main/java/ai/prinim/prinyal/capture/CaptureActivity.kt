@@ -137,21 +137,24 @@ class CaptureActivity : ComponentActivity() {
     }
 
     /**
-     * Таймер, амплитуда и авто-стоп в одном цикле: 2 с тишины после ≥ 3 с речи,
+     * Таймер, амплитуда и авто-стоп в одном цикле: тишина после ≥ 3 с речи,
      * потолок 90 с.
      *
-     * Отсчёт до авто-стопа виден человеку (R1.2 §13): первые [SILENCE_GRACE_MS]
-     * тишины копятся молча — это пауза между словами, — а дальше под клавишей
-     * идёт обратный отсчёт. Любое слово громче порога сбрасывает его; последние
-     * [SILENCE_LOCK_MS] необратимы: решение уже принято, дёргать индикатор
-     * туда-сюда нечестно.
+     * Окно тишины не фиксировано, а растёт по мере того, как человек говорит —
+     * [SilenceWindow]. Отсчёт до авто-стопа виден человеку (R1.2 §13): первые
+     * [SilenceWindow.GRACE_MS] тишины копятся молча, это пауза между словами, —
+     * а дальше под клавишей идёт обратный отсчёт. Слово громче порога сбрасывает
+     * его; последние [SilenceWindow.LOCK_MS] необратимы: решение уже принято,
+     * дёргать индикатор туда-сюда нечестно.
      */
     private fun startWatchdog() {
-        val threshold = PrinyalApp.of(this).settings
+        val settings = PrinyalApp.of(this).settings
         watchdog = lifecycleScope.launch {
-            val silenceThreshold = threshold.silenceThresholdNow()
+            val silenceThreshold = settings.silenceThresholdNow()
+            val patience = settings.silencePatienceNow()
             var speechMs = 0L
             var silenceMs = 0L
+            var wasSpeech = true
 
             while (recorder.isRecording) {
                 delay(TICK_MS)
@@ -161,21 +164,26 @@ class CaptureActivity : ComponentActivity() {
                 state.elapsedMs = elapsed
                 state.level = Loudness.level(amplitude)
 
-                val locked = silenceMs >= Recorder.SILENCE_TO_STOP_MS - SILENCE_LOCK_MS
-                if (amplitude >= silenceThreshold && !locked) {
+                // Окно считается от наговоренного: минута тишины в начале не
+                // должна давать право на длинную паузу.
+                val waitMs = SilenceWindow.waitMs(speechMs, patience)
+                val locked = silenceMs >= waitMs - SilenceWindow.LOCK_MS
+                wasSpeech = SilenceWindow.isSpeech(amplitude, silenceThreshold, wasSpeech)
+
+                if (wasSpeech && !locked) {
                     speechMs += TICK_MS
                     silenceMs = 0
                 } else if (speechMs >= Recorder.SPEECH_BEFORE_AUTOSTOP_MS) {
                     silenceMs += TICK_MS
                 }
 
-                state.silenceLeftMs = if (silenceMs >= SILENCE_GRACE_MS) {
-                    (Recorder.SILENCE_TO_STOP_MS - silenceMs).coerceAtLeast(0)
+                state.silenceLeftMs = if (silenceMs >= SilenceWindow.GRACE_MS) {
+                    (waitMs - silenceMs).coerceAtLeast(0)
                 } else {
                     0
                 }
 
-                if (silenceMs >= Recorder.SILENCE_TO_STOP_MS) {
+                if (silenceMs >= waitMs) {
                     finishRecording()
                     return@launch
                 }
@@ -347,10 +355,6 @@ class CaptureActivity : ComponentActivity() {
         const val EXTRA_SOURCE = "source"
         private const val TAG = "PrinyalCapture"
         private const val TICK_MS = 100L
-        /** Пауза между словами копится молча — отсчёт показываем после неё (§13). */
-        private const val SILENCE_GRACE_MS = 400L
-        /** Последние 400 мс отсчёта необратимы: решение уже принято (§13). */
-        private const val SILENCE_LOCK_MS = 400L
         private const val HINT_CANCEL = "cancel"
         private const val HINT_UP = "up"
         /** Квитанция висит 0.6 с и закрывается сама. */

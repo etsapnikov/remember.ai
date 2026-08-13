@@ -1,6 +1,7 @@
 package ai.prinim.prinyal.data
 
 import ai.prinim.prinyal.domain.Scheduler
+import ai.prinim.prinyal.capture.SilenceWindow
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.datastore.preferences.core.Preferences
@@ -58,6 +59,15 @@ class Settings(private val context: Context) {
         it[SILENCE_THRESHOLD] ?: DEFAULT_SILENCE_THRESHOLD
     }
 
+    /**
+     * Сколько ждать паузу. Отдельно от порога тишины намеренно: порог — про шум
+     * вокруг, терпение — про то, как человек говорит. Одной ручкой это не
+     * настраивается.
+     */
+    val silencePatience: Flow<SilenceWindow.Patience> = context.dataStore.data.map {
+        SilenceWindow.Patience.of(it[SILENCE_PATIENCE] ?: SilenceWindow.Patience.NORMAL.wire)
+    }
+
     val windows: Flow<Scheduler.Windows> = context.dataStore.data.map { it.toWindows() }
 
     suspend fun serverUrlNow(): String = serverUrl.first()
@@ -78,6 +88,12 @@ class Settings(private val context: Context) {
 
     suspend fun setSilenceThreshold(value: Int) {
         context.dataStore.edit { it[SILENCE_THRESHOLD] = value }
+    }
+
+    suspend fun silencePatienceNow(): SilenceWindow.Patience = silencePatience.first()
+
+    suspend fun setSilencePatience(value: SilenceWindow.Patience) {
+        context.dataStore.edit { it[SILENCE_PATIENCE] = value.wire }
     }
 
     // --- счётчики подсказок жестов (спека R1.1 §8) ---
@@ -129,6 +145,7 @@ class Settings(private val context: Context) {
         private val SERVER_URL = stringPreferencesKey("server_url")
         private val LLM_ENABLED = booleanPreferencesKey("llm_enabled")
         private val SILENCE_THRESHOLD = intPreferencesKey("silence_threshold")
+        private val SILENCE_PATIENCE = intPreferencesKey("silence_patience")
         private val W_MORNING = stringPreferencesKey("window_morning")
         private val W_DAY = stringPreferencesKey("window_day")
         private val W_EVENING = stringPreferencesKey("window_evening")

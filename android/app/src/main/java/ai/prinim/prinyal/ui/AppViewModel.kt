@@ -1,6 +1,7 @@
 package ai.prinim.prinyal.ui
 
 import ai.prinim.prinyal.PrinyalApp
+import ai.prinim.prinyal.capture.SilenceWindow
 import ai.prinim.prinyal.capture.UploadWorker
 import ai.prinim.prinyal.data.ItemType
 import ai.prinim.prinyal.data.NoteWithItems
@@ -41,6 +42,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     val silenceThreshold: StateFlow<Int> = app.settings.silenceThreshold
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 900)
+
+    val silencePatience: StateFlow<SilenceWindow.Patience> = app.settings.silencePatience
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            SilenceWindow.Patience.NORMAL,
+        )
 
     private val _health = MutableStateFlow<Boolean?>(null)
     val health: StateFlow<Boolean?> = _health
@@ -202,6 +210,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setSilenceThreshold(value: Int) =
         viewModelScope.launch { app.settings.setSilenceThreshold(value) }
+
+    fun setSilencePatience(value: SilenceWindow.Patience) =
+        viewModelScope.launch { app.settings.setSilencePatience(value) }
 
     fun checkHealth() = viewModelScope.launch {
         _health.value = null

@@ -50,7 +50,22 @@
   "capture": {
     "silenceThreshold": 0.08,
     "silenceGraceMs": 400,
-    "silenceLockMs": 400
+    "silenceLockMs": 200,
+    "silenceWait": {
+      "use": "окно тишины растёт по наговоренному: короткая просьба закрывается быстро, длинная мысль не обрывается на паузе — R1.3 Р-13.2",
+      "shortSpeechMs": 10000,
+      "midSpeechMs": 20000,
+      "longSpeechMs": 45000,
+      "shortWaitMs": 2500,
+      "midWaitMs": 4000,
+      "longWaitMs": 6000,
+      "hysteresis": 1.3
+    },
+    "patience": {
+      "short": 0.6,
+      "normal": 1.0,
+      "long": 1.5
+    }
   },
   "gesture": {
     "swipeStart": 8,
