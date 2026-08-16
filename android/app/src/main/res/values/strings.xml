@@ -271,6 +271,10 @@
     <!-- Сводка недели §F-9 -->
     <string name="weekly_title">Неделя</string>
     <string name="topics_title">Разделы</string>
+    <string name="ask_question">%1$s встречается уже дважды — кто это?</string>
+    <string name="ask_tell">рассказать</string>
+    <string name="ask_no">не надо</string>
+    <string name="ask_save">запомнить</string>
     <string name="note_collected">СОБРАНО</string>
     <string name="dict_title">Как я слышу</string>
     <string name="dict_note">Слова, которые я всё время путаю. Поправишь один раз — дальше пишу правильно.</string>

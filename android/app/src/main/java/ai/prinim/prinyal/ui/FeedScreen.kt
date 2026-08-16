@@ -57,6 +57,11 @@ import java.util.Locale
 fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
     val notes by vm.feed.collectAsState()
     val llmEnabled by vm.llmEnabled.collectAsState()
+    val ask by vm.askCandidate.collectAsState()
+
+    // Отсчёт трёх дней тишины идёт с показа, а не с ответа: увидел — значит
+    // спросили, даже если человек прошёл мимо.
+    LaunchedEffect(ask?.id) { ask?.let { vm.markAsked(it.id) } }
     val listState = rememberLazyListState()
 
     // Одновременно открыта максимум одна зона свайпа.

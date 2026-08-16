@@ -80,6 +80,7 @@ object Prompt {
         now: LocalDateTime,
         topics: List<String> = emptyList(),
         glossary: List<String> = emptyList(),
+        people: List<String> = emptyList(),
     ): String {
         val weekday = WEEKDAYS[now.dayOfWeek.value - 1]
         val stamp = "%04d-%02d-%02d %02d:%02d".format(
@@ -95,7 +96,12 @@ object Prompt {
         } else {
             "Слова, которые распознавание путает: ${glossary.joinToString("; ")}.\n"
         }
-        return "Сейчас: $stamp, $weekday.\n$known\n$terms" +
+        val whoIsWho = if (people.isEmpty()) {
+            ""
+        } else {
+            "Кто есть кто: ${people.joinToString("; ")}.\n"
+        }
+        return "Сейчас: $stamp, $weekday.\n$known\n$terms$whoIsWho" +
             "Транскрипт записи:\n$transcript"
     }
 }

@@ -85,6 +85,9 @@ class UploadWorker(
                     // Тот же словарь уходит в промпт: замена чинит написание,
                     // глоссарий — понимание.
                     glossary = Replacements.glossary(app.db.replacements().all()),
+                    // Узнанное про людей возвращается в разбор: «Юля —
+                    // воспитательница Сони» помогает верно назначить адресата.
+                    people = app.db.people().known().map { "${it.name} — ${it.fact}" },
                     now = java.time.LocalDateTime.ofInstant(
                         java.time.Instant.ofEpochMilli(note.createdAt),
                         java.time.ZoneId.systemDefault(),

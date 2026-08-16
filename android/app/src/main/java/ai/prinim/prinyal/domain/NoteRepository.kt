@@ -10,6 +10,7 @@ import ai.prinim.prinyal.data.NoteEntity
 import ai.prinim.prinyal.data.TopicEntity
 import ai.prinim.prinyal.data.TopicKind
 import ai.prinim.prinyal.data.TopicSource
+import ai.prinim.prinyal.data.PersonEntity
 import ai.prinim.prinyal.data.NoteStatus
 import ai.prinim.prinyal.data.PrinyalDb
 import ai.prinim.prinyal.data.ReturnEntity
@@ -103,6 +104,7 @@ class NoteRepository(
         items.forEach { item -> planReturn(item, recordedAt, windows, now) }
 
         val topicId = resolveTopic(note, result.topic)
+        rememberPeople(result.entities)
 
         db.notes().update(
             note.copy(
@@ -254,6 +256,34 @@ class NoteRepository(
         )
         analytics.log(Analytics.TOPIC_ASSIGNED, mapOf("topic" to clean, "new" to true))
         return db.topics().byNorm(norm)?.id
+    }
+
+    /**
+     * Учесть людей, упомянутых в записи.
+     *
+     * Считаем появления, а не заводим карточки: продукт не ведёт справочник
+     * людей, ему нужно только понять, о ком он ничего не знает и кто при этом
+     * повторяется.
+     */
+    private suspend fun rememberPeople(names: List<String>) {
+        names.forEach { name ->
+            val clean = name.trim()
+            if (clean.isEmpty()) return@forEach
+            val norm = clean.lowercase()
+            val existing = db.people().byNorm(norm)
+            if (existing == null) {
+                db.people().insert(
+                    PersonEntity(
+                        id = newId(),
+                        name = clean,
+                        nameNorm = norm,
+                        firstSeen = System.currentTimeMillis(),
+                    )
+                )
+            } else {
+                db.people().sawAgain(existing.id)
+            }
+        }
     }
 
     private suspend fun dropSchedule(noteId: String) {

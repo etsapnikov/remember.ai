@@ -12,6 +12,9 @@ import ai.prinim.prinyal.data.TopicOverview
 import ai.prinim.prinyal.data.TopicSource
 import ai.prinim.prinyal.data.ReplacementEntity
 import ai.prinim.prinyal.domain.Replacements
+import ai.prinim.prinyal.data.PersonEntity
+import ai.prinim.prinyal.data.PersonStatus
+import ai.prinim.prinyal.domain.AskPolicy
 import ai.prinim.prinyal.data.ReturnEntity
 import ai.prinim.prinyal.data.Window
 import ai.prinim.prinyal.domain.Backup
@@ -20,6 +23,7 @@ import ai.prinim.prinyal.domain.WeeklySummary
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -43,6 +47,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     val replacements: StateFlow<List<ReplacementEntity>> = app.db.replacements().watch()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * Кого спросить в ленте. Карточка одна на весь продукт: пока висит эта,
+     * следующего вопроса не появится, даже если непонятных имён накопилось три.
+     */
+    val askCandidate: StateFlow<PersonEntity?> = app.db.people().candidate()
+        .map { person ->
+            if (AskPolicy.canAsk(person, app.db.people().lastAskedAt(), System.currentTimeMillis())) {
+                person
+            } else {
+                null
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     val pendingCount: StateFlow<Int> = app.db.notes().pendingCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
@@ -115,6 +133,40 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _undo.value = UndoEvent(UndoMessage.RuleRemoved) {
             app.db.replacements().insert(rule)
         }
+    }
+
+    /** «Не надо» — закрывает имя навсегда и молча. Никаких «вы уверены». */
+    fun declinePerson(id: String) = viewModelScope.launch {
+        val person = app.db.people().byId(id) ?: return@launch
+        app.db.people().update(
+            person.copy(
+                status = PersonStatus.DECLINED.wire,
+                askedAt = System.currentTimeMillis(),
+            )
+        )
+        app.analytics.log(Analytics.ENTITY_DECLINE, mapOf("name" to person.name))
+    }
+
+    /** Ответ человека: одно слово в meta-строке пунктов, где он упомянут. */
+    fun answerPerson(id: String, fact: String) = viewModelScope.launch {
+        val person = app.db.people().byId(id) ?: return@launch
+        if (fact.isBlank()) return@launch
+        app.db.people().update(
+            person.copy(
+                status = PersonStatus.KNOWN.wire,
+                fact = fact.trim(),
+                askedAt = System.currentTimeMillis(),
+            )
+        )
+        app.analytics.log(Analytics.ENTITY_ANSWER, mapOf("name" to person.name))
+    }
+
+    /** Вопрос показан — отсчёт трёх дней идёт с этого момента. */
+    fun markAsked(id: String) = viewModelScope.launch {
+        val person = app.db.people().byId(id) ?: return@launch
+        if (person.askedAt != null) return@launch
+        app.db.people().update(person.copy(askedAt = System.currentTimeMillis()))
+        app.analytics.log(Analytics.ENTITY_ASK, mapOf("name" to person.name))
     }
 
     suspend fun topicName(id: String?): String? =
