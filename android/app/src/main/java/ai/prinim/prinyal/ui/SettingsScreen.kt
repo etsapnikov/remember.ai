@@ -124,7 +124,13 @@ fun SettingsScreen(vm: AppViewModel) {
                 // Счёт и цена — до запуска, а не после: прогон стоит секунд и
                 // денег, и решение принимает владелец, а не кнопка.
                 Text(
-                    text = stringResource(R.string.retro_note, loose, loose * 16),
+                    // Минуты, а не секунды: «около 688 секунд» — не то, как
+                    // человек считает время. 16 с на запись — медиана замера.
+                    text = stringResource(
+                        R.string.retro_note,
+                        loose,
+                        ((loose * 16) / 60).coerceAtLeast(1),
+                    ),
                     style = Prinyal.type.body,
                     color = Prinyal.colors.inkMuted,
                 )
