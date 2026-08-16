@@ -24,7 +24,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
@@ -51,6 +54,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import java.io.File
@@ -83,6 +87,30 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
     val failed = status == NoteStatus.FAILED_ASR || status == NoteStatus.FAILED_LLM
     val items = entry?.items.orEmpty()
     val degradedText = if (!failed) Phrases.degraded(context, note.degraded) else null
+
+    // Правка — не элемент списка, а отдельная раскладка на весь экран.
+    //
+    // Раньше поле жило внутри LazyColumn, и от этого шли все симптомы Р-14.6:
+    // список и поле спорили за скролл, а курсор при поднятой клавиатуре
+    // оказывался за нижним краем — экран выглядел замершим. Спека Д-6 требует
+    // обратного: «скроллится поле, не экран».
+    val editingDraft = draft
+    if (editingDraft != null && !failed) {
+        TranscriptEditing(
+            items = items,
+            value = editingDraft,
+            onValue = { draft = it },
+            onReparse = {
+                vm.saveTranscriptAndReparse(noteId, editingDraft.text)
+                draft = null
+            },
+            onCancel = {
+                if (editingDraft.text != note.transcript) vm.showDroppedEdit()
+                draft = null
+            },
+        )
+        return
+    }
 
     LazyColumn(
         contentPadding = PaddingValues(
@@ -125,16 +153,12 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
             if (items.isNotEmpty()) {
                 item { SectionTitle(stringResource(R.string.note_items)) }
                 items(items, key = { it.id }) { item ->
-                    // Во время правки пункты глохнут, но остаются на месте: видно,
-                    // что именно пересоберётся (§15).
-                    Box(Modifier.graphicsLayer { alpha = if (draft != null) 0.35f else 1f }) {
-                        ItemCard(
-                            item = item,
-                            onDone = { vm.markDone(item.id) },
-                            onDismiss = { vm.dismiss(item.id) },
-                            onEdit = { if (draft == null) editing = item },
-                        )
-                    }
+                    ItemCard(
+                        item = item,
+                        onDone = { vm.markDone(item.id) },
+                        onDismiss = { vm.dismiss(item.id) },
+                        onEdit = { editing = item },
+                    )
                 }
             } else if (status == NoteStatus.RECORDED || status == NoteStatus.QUEUED) {
                 item { MetaText(stringResource(R.string.transcript_parsing)) }
@@ -153,39 +177,20 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
                         )
                         // Вход — строкой у заголовка. Тап по самому тексту остаётся
                         // выделению и копированию: транскрипт читают чаще, чем правят.
-                        if (draft == null) {
-                            MetaText(
-                                text = stringResource(R.string.transcript_edit),
-                                color = Prinyal.colors.accentSelf,
-                                modifier = Modifier.clickable {
-                                    draft = TextFieldValue(transcript)
-                                },
-                            )
-                        }
-                    }
-                }
-                item {
-                    val current = draft
-                    if (current == null) {
-                        TranscriptBlock(transcript, items)
-                    } else {
-                        TranscriptEditor(
-                            value = current,
-                            onValue = { draft = it },
-                            itemsEdited = items.any { it.edited },
-                            onReparse = {
-                                vm.saveTranscriptAndReparse(noteId, current.text)
-                                draft = null
-                            },
-                            onCancel = {
-                                if (current.text != transcript) {
-                                    vm.showDroppedEdit()
-                                }
-                                draft = null
+                        MetaText(
+                            text = stringResource(R.string.transcript_edit),
+                            color = Prinyal.colors.accentSelf,
+                            modifier = Modifier.clickable {
+                                // Курсор в конец: чаще всего дописывают хвост (Д-6).
+                                draft = TextFieldValue(
+                                    text = transcript,
+                                    selection = TextRange(transcript.length),
+                                )
                             },
                         )
                     }
                 }
+                item { TranscriptBlock(transcript, items) }
             }
         }
 
@@ -288,8 +293,14 @@ private fun ItemCard(
     }
 }
 
+/** Отступ поля от клавиатуры — Д-6. */
+private val KEYBOARD_GAP = 12.dp
+
+/** Сколько места отдаём приглушённым пунктам, прежде чем они начнут прокручиваться. */
+private val DIMMED_ITEMS_MAX = 168.dp
+
 /**
- * Правка транскрипта (спека R1.2 §15).
+ * Правка транскрипта (спека R1.2 §15, поведение — Д-6).
  *
  * Голое поле: ни рамки, ни тулбара, ни форматирования — только курсор и
  * подчёркивание акцентом. Предупреждение стоит над кнопкой постоянно, а не
@@ -300,21 +311,54 @@ private fun ItemCard(
  * пункты ещё старые. Живая, но неверная подсветка хуже её отсутствия.
  */
 @Composable
-private fun TranscriptEditor(
+private fun TranscriptEditing(
+    items: List<ItemEntity>,
     value: TextFieldValue,
     onValue: (TextFieldValue) -> Unit,
-    itemsEdited: Boolean,
     onReparse: () -> Unit,
     onCancel: () -> Unit,
 ) {
     val focus = remember { FocusRequester() }
     val accent = Prinyal.colors.accentSelf
+    val itemsEdited = items.any { it.edited }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
 
     // Системная «назад» из правки — тот же выход, что «Отмена».
     BackHandler(enabled = true) { onCancel() }
 
-    Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = Space.screen)
+            .padding(top = Space.s, bottom = KEYBOARD_GAP),
+        verticalArrangement = Arrangement.spacedBy(Space.m),
+    ) {
+        // Пункты стоят на месте и приглушены до 35%: видно, что именно
+        // пересоберётся. Своя прокрутка нужна на случай длинного списка —
+        // она не конфликтует с полем, это отдельная область экрана.
+        if (items.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .heightIn(max = DIMMED_ITEMS_MAX)
+                    .verticalScroll(rememberScrollState())
+                    .graphicsLayer { alpha = 0.35f },
+                verticalArrangement = Arrangement.spacedBy(Space.s),
+            ) {
+                items.forEach { item ->
+                    Text(
+                        text = item.text,
+                        style = Prinyal.type.itemTitle,
+                        color = Prinyal.colors.ink,
+                    )
+                }
+            }
+        }
+
+        MetaText(stringResource(R.string.note_transcript), color = Prinyal.colors.inkFaint)
+
+        // weight(1f) даёт полю конечную высоту — и только тогда BasicTextField
+        // прокручивает текст внутри себя и держит курсор в видимой части.
+        // Без ограничения высоты поле растёт бесконечно, и курсор уезжает вниз.
         BasicTextField(
             value = value,
             onValueChange = onValue,
@@ -322,6 +366,7 @@ private fun TranscriptEditor(
             cursorBrush = SolidColor(Prinyal.colors.accentSelf),
             modifier = Modifier
                 .fillMaxWidth()
+                .weight(1f)
                 .focusRequester(focus)
                 .drawBehind {
                     val y = size.height - 1.dp.toPx()
