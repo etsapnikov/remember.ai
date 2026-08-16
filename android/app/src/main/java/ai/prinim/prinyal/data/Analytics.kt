@@ -53,5 +53,12 @@ class Analytics(context: Context) {
         const val MISS_ITEM = "miss_item"
         const val TOPIC_ASSIGNED = "topic_assigned"
         const val TOPIC_EDITED = "topic_edited"
+        const val REPLACEMENT_ADD = "replacement_add"
+        const val REPLACEMENT_HIT = "replacement_hit"
+        const val NOTE_APPEND = "note_append"
+        const val ENTITY_ASK = "entity_ask"
+        const val ENTITY_ANSWER = "entity_answer"
+        const val ENTITY_DECLINE = "entity_decline"
+        const val MD_RENDER_FAIL = "md_render_fail"
     }
 }

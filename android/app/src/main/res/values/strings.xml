@@ -271,6 +271,17 @@
     <!-- Сводка недели §F-9 -->
     <string name="weekly_title">Неделя</string>
     <string name="topics_title">Разделы</string>
+    <string name="dict_title">Как я слышу</string>
+    <string name="dict_note">Слова, которые я всё время путаю. Поправишь один раз — дальше пишу правильно.</string>
+    <string name="dict_from">Слышу</string>
+    <string name="dict_to">Писать</string>
+    <string name="dict_preview">Будет так</string>
+    <string name="dict_save">Заменять всегда</string>
+    <string name="dict_remove">Убрать</string>
+    <string name="dict_removed">Убрал правило</string>
+    <string name="dict_never">ни разу</string>
+    <string name="dict_hits">%1$d раз</string>
+    <string name="dict_empty">Пока пусто. Задержи палец на слове в «Что услышал».</string>
     <string name="topics_loose">Без раздела</string>
     <string name="topics_live">%1$d живых</string>
     <string name="topics_empty_title">Пока пусто</string>

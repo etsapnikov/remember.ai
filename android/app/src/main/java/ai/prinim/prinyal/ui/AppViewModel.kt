@@ -10,6 +10,8 @@ import ai.prinim.prinyal.data.TopicEntity
 import ai.prinim.prinyal.data.TopicKind
 import ai.prinim.prinyal.data.TopicOverview
 import ai.prinim.prinyal.data.TopicSource
+import ai.prinim.prinyal.data.ReplacementEntity
+import ai.prinim.prinyal.domain.Replacements
 import ai.prinim.prinyal.data.ReturnEntity
 import ai.prinim.prinyal.data.Window
 import ai.prinim.prinyal.domain.Backup
@@ -38,6 +40,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     val looseNotes: StateFlow<Int> = app.db.topics().looseCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    val replacements: StateFlow<List<ReplacementEntity>> = app.db.replacements().watch()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val pendingCount: StateFlow<Int> = app.db.notes().pendingCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
@@ -79,6 +84,38 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (topicId == null) app.db.notes().withoutTopic() else app.db.notes().byTopic(topicId)
 
     suspend fun liveTopics(): List<TopicEntity> = app.db.topics().live()
+
+    /**
+     * Завести правило словаря.
+     *
+     * К уже сохранённым транскриптам оно не применяется: транскрипт — это то,
+     * что было услышано тогда, и переписывать прошлое продукт не вправе
+     * (Д-2). Правило начнёт работать со следующей записи и с ближайшего
+     * переразбора этой.
+     */
+    fun addReplacement(from: String, to: String) = viewModelScope.launch {
+        if (!Replacements.fits(from) || to.isBlank()) return@launch
+        val norm = Replacements.norm(from)
+        app.db.replacements().insert(
+            ReplacementEntity(
+                id = app.db.replacements().all().firstOrNull { it.fromNorm == norm }?.id
+                    ?: app.repository.newId(),
+                fromPhrase = from.trim(),
+                fromNorm = norm,
+                toPhrase = to.trim(),
+                createdAt = System.currentTimeMillis(),
+            )
+        )
+        app.analytics.log(Analytics.REPLACEMENT_ADD, mapOf("from" to from, "to" to to))
+    }
+
+    fun removeReplacement(id: String) = viewModelScope.launch {
+        val rule = app.db.replacements().byId(id) ?: return@launch
+        app.db.replacements().delete(id)
+        _undo.value = UndoEvent(UndoMessage.RuleRemoved) {
+            app.db.replacements().insert(rule)
+        }
+    }
 
     suspend fun topicName(id: String?): String? =
         id?.let { app.db.topics().byId(it)?.name }
@@ -167,6 +204,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         data class JunkSwept(val count: Int) : UndoMessage
         data object ItemBuried : UndoMessage
         data object EditDropped : UndoMessage
+        data object RuleRemoved : UndoMessage
     }
 
     private val _undo = MutableStateFlow<UndoEvent?>(null)

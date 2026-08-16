@@ -56,6 +56,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -78,6 +81,8 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
     var picking by remember { mutableStateOf(false) }
     var topics by remember { mutableStateOf<List<TopicEntity>>(emptyList()) }
     var topicName by remember { mutableStateOf<String?>(null) }
+    // Слово, на котором задержали палец в «Что услышал» — вход в словарь (Д-2).
+    var heardWord by remember { mutableStateOf<String?>(null) }
     // Правка транскрипта (спека R1.2 §15). null — покой, иначе черновик.
     var draft by remember(noteId) { mutableStateOf<TextFieldValue?>(null) }
 
@@ -215,7 +220,13 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
                         )
                     }
                 }
-                item { TranscriptBlock(transcript, items) }
+                item {
+                    TranscriptBlock(
+                        transcript = transcript,
+                        items = items,
+                        onWord = { heardWord = it },
+                    )
+                }
             }
         }
 
@@ -236,6 +247,18 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
                 )
             }
         }
+    }
+
+    heardWord?.let { word ->
+        DictionarySheet(
+            source = word,
+            context = note.transcript.orEmpty(),
+            onSave = {
+                vm.addReplacement(word, it)
+                heardWord = null
+            },
+            onDismiss = { heardWord = null },
+        )
     }
 
     if (picking) {
@@ -462,7 +485,11 @@ private fun TranscriptEditing(
  * Это и доверие, и отладка промпта.
  */
 @Composable
-private fun TranscriptBlock(transcript: String, items: List<ItemEntity>) {
+private fun TranscriptBlock(
+    transcript: String,
+    items: List<ItemEntity>,
+    onWord: (String) -> Unit = {},
+) {
     val highlight = Prinyal.colors.accentSelfSoft
     val ink = Prinyal.colors.inkMuted
 
@@ -488,7 +515,43 @@ private fun TranscriptBlock(transcript: String, items: List<ItemEntity>) {
         }
     }
 
-    Text(text = annotated, style = Prinyal.type.body, color = ink)
+    // Долгий тап по слову открывает правило словаря (Д-2).
+    //
+    // Режимами, а не зонами: в покое транскрипт — не текстовое поле, системное
+    // выделение выключено, долгий тап наш. В режиме правки всё наоборот: поле
+    // обычное, работают выделение и копирование, наш жест выключен. Так у
+    // каждого жеста ровно один смысл в каждый момент.
+    var layout by remember(transcript) { mutableStateOf<TextLayoutResult?>(null) }
+    Text(
+        text = annotated,
+        style = Prinyal.type.body,
+        color = ink,
+        onTextLayout = { layout = it },
+        modifier = Modifier.pointerInput(transcript) {
+            detectTapGestures(
+                onLongPress = { offset ->
+                    val result = layout ?: return@detectTapGestures
+                    val at = result.getOffsetForPosition(offset)
+                    wordAt(transcript, at)?.let(onWord)
+                },
+            )
+        },
+    )
+}
+
+/**
+ * Слово под пальцем. Границы — по буквам и цифрам: дефис и апостроф внутри
+ * имени встречаются, а пробел и точка слово заканчивают.
+ */
+private fun wordAt(text: String, at: Int): String? {
+    if (at !in text.indices) return null
+    fun isWord(c: Char) = c.isLetterOrDigit() || c == '-'
+    if (!isWord(text[at])) return null
+    var start = at
+    while (start > 0 && isWord(text[start - 1])) start--
+    var end = at
+    while (end < text.length - 1 && isWord(text[end + 1])) end++
+    return text.substring(start, end + 1).takeIf { it.isNotBlank() }
 }
 
 /** Плеер: «послушать · 0:04», тап проигрывает (§3). */

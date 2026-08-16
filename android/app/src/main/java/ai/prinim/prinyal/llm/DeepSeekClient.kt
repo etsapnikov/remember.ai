@@ -39,6 +39,7 @@ class DeepSeekClient(
         now: LocalDateTime,
         zone: ZoneId,
         topics: List<String> = emptyList(),
+        glossary: List<String> = emptyList(),
     ): IngestOutcome {
         if (apiKey.isBlank()) {
             return degraded(transcript, "llm_disabled", 0)
@@ -51,7 +52,7 @@ class DeepSeekClient(
 
         for (attempt in 0..retries) {
             val response = try {
-                call(transcript, now, topics)
+                call(transcript, now, topics, glossary)
             } catch (error: Exception) {
                 when {
                     error is java.net.UnknownHostException ||
@@ -137,6 +138,7 @@ class DeepSeekClient(
         transcript: String,
         now: LocalDateTime,
         topics: List<String>,
+        glossary: List<String>,
     ): Response {
         val payload = JSONObject().apply {
             put("model", model)
@@ -144,7 +146,7 @@ class DeepSeekClient(
                 put(JSONObject().put("role", "system").put("content", Prompt.SYSTEM))
                 put(
                     JSONObject().put("role", "user")
-                        .put("content", Prompt.user(transcript, now, topics))
+                        .put("content", Prompt.user(transcript, now, topics, glossary))
                 )
             })
             put("temperature", 0.1)

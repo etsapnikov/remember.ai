@@ -117,6 +117,51 @@ fun SettingsScreen(vm: AppViewModel) {
         }
 
         item {
+            Section(stringResource(R.string.dict_title)) {
+                Text(
+                    text = stringResource(R.string.dict_note),
+                    style = Prinyal.type.body,
+                    color = Prinyal.colors.inkMuted,
+                )
+                val rules by vm.replacements.collectAsState()
+                if (rules.isEmpty()) {
+                    MetaText(stringResource(R.string.dict_empty), color = Prinyal.colors.inkFaint)
+                }
+                rules.forEach { rule ->
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "${rule.fromPhrase} → ${rule.toPhrase}",
+                            style = Prinyal.type.body,
+                            color = Prinyal.colors.ink,
+                            modifier = Modifier.weight(1f),
+                        )
+                        // «Ни разу» — повод убрать правило, поэтому счётчик виден.
+                        MetaText(
+                            text = if (rule.hits == 0) {
+                                stringResource(R.string.dict_never)
+                            } else {
+                                stringResource(R.string.dict_hits, rule.hits)
+                            },
+                            color = Prinyal.colors.inkFaint,
+                        )
+                        Text(
+                            text = stringResource(R.string.dict_remove),
+                            style = Prinyal.type.label,
+                            color = Prinyal.colors.destructiveFg,
+                            modifier = Modifier
+                                .clickable { vm.removeReplacement(rule.id) }
+                                .padding(start = Space.m),
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
             Section(stringResource(R.string.settings_parsing)) {
                 Row(
                     Modifier.fillMaxWidth(),

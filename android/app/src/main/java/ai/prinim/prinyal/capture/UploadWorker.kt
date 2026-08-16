@@ -3,6 +3,8 @@ package ai.prinim.prinyal.capture
 import ai.prinim.prinyal.PrinyalApp
 import ai.prinim.prinyal.asr.AudioDecoder
 import ai.prinim.prinyal.asr.ModelStore
+import ai.prinim.prinyal.domain.Replacements
+import ai.prinim.prinyal.data.Analytics
 import ai.prinim.prinyal.data.NoteStatus
 import ai.prinim.prinyal.net.IngestOutcome
 import ai.prinim.prinyal.returns.Notifications
@@ -80,6 +82,9 @@ class UploadWorker(
                     // Живые разделы уходят в промпт, чтобы модель выбирала из
                     // них, а не изобретала синоним уже существующего.
                     topics = app.db.topics().live().map { it.name },
+                    // Тот же словарь уходит в промпт: замена чинит написание,
+                    // глоссарий — понимание.
+                    glossary = Replacements.glossary(app.db.replacements().all()),
                     now = java.time.LocalDateTime.ofInstant(
                         java.time.Instant.ofEpochMilli(note.createdAt),
                         java.time.ZoneId.systemDefault(),
@@ -139,7 +144,19 @@ class UploadWorker(
         return try {
             val started = System.currentTimeMillis()
             val samples = AudioDecoder.decode(audio)
-            val text = if (samples.isEmpty()) "" else engine.transcribe(samples)
+            val heard = if (samples.isEmpty()) "" else engine.transcribe(samples)
+            // Словарь применяется сразу после распознавания: дальше по конвейеру
+            // текст уже считается тем, что человек сказал.
+            val rules = app.db.replacements().all()
+            val fixed = Replacements.apply(heard, rules)
+            fixed.hits.forEach { (id, times) -> app.db.replacements().addHits(id, times) }
+            if (fixed.hits.isNotEmpty()) {
+                app.analytics.log(
+                    Analytics.REPLACEMENT_HIT,
+                    mapOf("note" to noteId, "rules" to fixed.hits.size),
+                )
+            }
+            val text = fixed.text
             val took = System.currentTimeMillis() - started
 
             app.repository.saveTranscript(noteId, text, took)

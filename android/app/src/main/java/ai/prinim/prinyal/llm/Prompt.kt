@@ -67,7 +67,12 @@ object Prompt {
      * изобретает синоним уже существующего раздела — «Работа», «Рабочее»,
      * «По работе», — и структура рассыпается на второй неделе.
      */
-    fun user(transcript: String, now: LocalDateTime, topics: List<String> = emptyList()): String {
+    fun user(
+        transcript: String,
+        now: LocalDateTime,
+        topics: List<String> = emptyList(),
+        glossary: List<String> = emptyList(),
+    ): String {
         val weekday = WEEKDAYS[now.dayOfWeek.value - 1]
         val stamp = "%04d-%02d-%02d %02d:%02d".format(
             now.year, now.monthValue, now.dayOfMonth, now.hour, now.minute,
@@ -77,6 +82,12 @@ object Prompt {
         } else {
             "Существующие разделы: ${topics.joinToString(", ")}."
         }
-        return "Сейчас: $stamp, $weekday.\n$known\nТранскрипт записи:\n$transcript"
+        val terms = if (glossary.isEmpty()) {
+            ""
+        } else {
+            "Слова, которые распознавание путает: ${glossary.joinToString("; ")}.\n"
+        }
+        return "Сейчас: $stamp, $weekday.\n$known\n$terms" +
+            "Транскрипт записи:\n$transcript"
     }
 }

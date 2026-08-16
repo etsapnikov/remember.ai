@@ -220,3 +220,81 @@ data class TopicOverview(
     val liveItems: Int,
     val lastAt: Long,
 )
+
+@Dao
+interface ReplacementDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(entity: ReplacementEntity)
+
+    @Query("DELETE FROM replacements WHERE id = :id")
+    suspend fun delete(id: String)
+
+    /** От длинных фраз к коротким: иначе правило на слово съест фразу из трёх. */
+    @Query("SELECT * FROM replacements ORDER BY LENGTH(from_norm) DESC")
+    suspend fun all(): List<ReplacementEntity>
+
+    @Query("SELECT * FROM replacements ORDER BY hits DESC, created_at DESC")
+    fun watch(): Flow<List<ReplacementEntity>>
+
+    @Query("SELECT * FROM replacements WHERE id = :id")
+    suspend fun byId(id: String): ReplacementEntity?
+
+    @Query("UPDATE replacements SET hits = hits + :times WHERE id = :id")
+    suspend fun addHits(id: String, times: Int)
+}
+
+@Dao
+interface SegmentDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(entity: SegmentEntity)
+
+    @Query("SELECT * FROM note_segments WHERE note_id = :noteId ORDER BY seq ASC")
+    suspend fun forNote(noteId: String): List<SegmentEntity>
+
+    @Query("SELECT * FROM note_segments WHERE note_id = :noteId ORDER BY seq ASC")
+    fun watch(noteId: String): Flow<List<SegmentEntity>>
+
+    @Query("SELECT COALESCE(MAX(seq), -1) + 1 FROM note_segments WHERE note_id = :noteId")
+    suspend fun nextSeq(noteId: String): Int
+
+    @Query("UPDATE note_segments SET transcript = :transcript WHERE id = :id")
+    suspend fun setTranscript(id: String, transcript: String)
+}
+
+@Dao
+interface PersonDao {
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(entity: PersonEntity)
+
+    @Update
+    suspend fun update(entity: PersonEntity)
+
+    @Query("SELECT * FROM entities WHERE name_norm = :norm LIMIT 1")
+    suspend fun byNorm(norm: String): PersonEntity?
+
+    @Query("SELECT * FROM entities WHERE id = :id")
+    suspend fun byId(id: String): PersonEntity?
+
+    @Query("UPDATE entities SET seen_count = seen_count + 1 WHERE id = :id")
+    suspend fun sawAgain(id: String)
+
+    /**
+     * Кого стоит спросить: встречался дважды и больше, ничего о нём не знаем,
+     * и от него не отказались.
+     */
+    @Query(
+        "SELECT * FROM entities WHERE status = 'unknown' AND seen_count >= 2 " +
+            "ORDER BY seen_count DESC, first_seen ASC LIMIT 1"
+    )
+    fun candidate(): Flow<PersonEntity?>
+
+    @Query("SELECT * FROM entities WHERE status = 'known' AND fact IS NOT NULL")
+    suspend fun known(): List<PersonEntity>
+
+    /** Когда спрашивали в последний раз — по всем сущностям сразу. */
+    @Query("SELECT MAX(asked_at) FROM entities")
+    suspend fun lastAskedAt(): Long?
+}

@@ -150,6 +150,8 @@ data class NoteEntity(
     @ColumnInfo(name = "topic_source") val topicSource: String = TopicSource.NONE.wire,
     /** Что это за запись: список дел, идея, вопрос, факты, смесь. */
     @ColumnInfo(name = "note_kind") val noteKind: String? = null,
+    /** Тело заметки в markdown — только у идей (Р-14.5). */
+    @ColumnInfo(name = "body_md") val bodyMd: String? = null,
 )
 
 /**
@@ -219,3 +221,72 @@ data class ReturnEntity(
     /** 1 | 2 — третьего захода нет: дальше R2-разбор, а не долбёж. */
     val attempt: Int = 1,
 )
+
+/**
+ * Правило словаря автозамен (Р-14.2).
+ *
+ * Чинит не текст, а слух: распознавание стабильно ошибается на одних и тех же
+ * именах и терминах. Правило применяется к новым транскриптам и уходит
+ * глоссарием в промпт разбора — одно лечит написание, другое понимание.
+ */
+@Entity(tableName = "replacements", indices = [Index(value = ["from_norm"], unique = true)])
+data class ReplacementEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "from_phrase") val fromPhrase: String,
+    /** Нормализованный вид для поиска: нижний регистр, одиночные пробелы. */
+    @ColumnInfo(name = "from_norm") val fromNorm: String,
+    @ColumnInfo(name = "to_phrase") val toPhrase: String,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    /** Сколько раз сработало. «Ни разу» — повод убрать правило. */
+    val hits: Int = 0,
+)
+
+/**
+ * Сегмент записи (Р-14.3). Заметка становится многосегментной, когда к ней
+ * дописывают голосом; транскрипт заметки — конкатенация сегментов.
+ */
+@Entity(
+    tableName = "note_segments",
+    foreignKeys = [
+        ForeignKey(
+            entity = NoteEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["note_id"],
+            onDelete = ForeignKey.CASCADE,
+        )
+    ],
+    indices = [Index("note_id")],
+)
+data class SegmentEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "note_id") val noteId: String,
+    val seq: Int,
+    @ColumnInfo(name = "audio_path") val audioPath: String,
+    val transcript: String? = null,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+)
+
+/** Человек, упомянутый в записях (Р-14.7). */
+@Entity(tableName = "entities", indices = [Index(value = ["name_norm"], unique = true)])
+data class PersonEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    @ColumnInfo(name = "name_norm") val nameNorm: String,
+    /** `unknown` · `known` · `declined`. «Не надо» закрывает имя навсегда. */
+    val status: String = PersonStatus.UNKNOWN.wire,
+    @ColumnInfo(name = "first_seen") val firstSeen: Long,
+    @ColumnInfo(name = "seen_count") val seenCount: Int = 1,
+    /** Что человек рассказал: одно слово в meta-строке пунктов («сестра»). */
+    val fact: String? = null,
+    /** Когда спрашивали в последний раз — чаще раза в три дня нельзя. */
+    @ColumnInfo(name = "asked_at") val askedAt: Long? = null,
+)
+
+enum class PersonStatus(val wire: String) {
+    UNKNOWN("unknown"), KNOWN("known"), DECLINED("declined");
+
+    companion object {
+        fun of(wire: String?): PersonStatus =
+            entries.firstOrNull { it.wire == wire } ?: UNKNOWN
+    }
+}
