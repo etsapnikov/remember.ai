@@ -226,6 +226,7 @@
     <string name="set_patience_short">коротко</string>
     <string name="set_patience_normal">обычно</string>
     <string name="set_patience_long">долго</string>
+    <string name="set_dev_version">Структура 1.0.1</string>
     <string name="set_dev_returns">Судьба возвратов</string>
     <string name="set_dev_returns_empty">Возвратов ещё не было</string>
     <string name="set_dev_kill">Kill-критерии недели</string>

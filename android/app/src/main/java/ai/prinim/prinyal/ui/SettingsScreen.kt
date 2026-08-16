@@ -496,6 +496,39 @@ private fun KillMetrics(vm: AppViewModel) {
 }
 
 /**
+ * Что нового в 1.0.1 видно изнутри (Р-14.8).
+ *
+ * Три числа, по которым понятно, работает ли структура: сколько разделов
+ * завелось, что уходит в промпт глоссарием и как прошли последние сверки
+ * дописываний. В «Неделю» ничего из этого не добавляем осознанно: тот экран
+ * отвечает про петлю, а структура его не касается.
+ */
+@Composable
+private fun VersionState(vm: AppViewModel) {
+    val topics by vm.topics.collectAsState()
+    val loose by vm.looseNotes.collectAsState()
+    val rules by vm.replacements.collectAsState()
+
+    Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
+        MetaText(stringResource(R.string.set_dev_version))
+        MetaText(
+            "разделов ${topics.size} · без раздела $loose заметок",
+            color = Prinyal.colors.inkFaint,
+        )
+        MetaText(
+            if (rules.isEmpty()) {
+                "глоссарий пуст"
+            } else {
+                "глоссарий: " + rules.take(4).joinToString("; ") {
+                    "${it.fromPhrase}→${it.toPhrase}"
+                }
+            },
+            color = Prinyal.colors.inkFaint,
+        )
+    }
+}
+
+/**
  * Судьба последних возвратов: план → аларм → показ → ответ.
  *
  * Ради этой таблицы всё и заводилось. Она отвечает на вопрос, который три
@@ -561,6 +594,7 @@ private fun DeveloperSection(vm: AppViewModel, threshold: Int) {
             // принимается решение о судьбе продукта, и читает их владелец в
             // роли заказчика, а не человек в роли пользователя.
             KillMetrics(vm)
+            VersionState(vm)
             ReturnTrace()
 
             Field(stringResource(R.string.settings_server_url), urlDraft) {

@@ -20,7 +20,7 @@ android {
         // Минуты эпохи: код версии обязан расти, иначе установка поверх — даунгрейд,
         // и телефон её отвергнет. Ручной счётчик здесь неизбежно отстал бы.
         versionCode = (System.currentTimeMillis() / 60_000L).toInt()
-        versionName = "1.0"
+        versionName = "1.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Ключ DeepSeek едет в APK: версия работает без сервера (решение владельца,
