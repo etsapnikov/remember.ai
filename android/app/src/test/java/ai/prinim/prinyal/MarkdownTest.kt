@@ -103,6 +103,17 @@ class MarkdownTest {
     }
 
     @Test
+    fun `слово null не рендерится ни при каких обстоятельствах`() {
+        // Так в карточке и появился блок «Собрано» со словом null: промах
+        // сериализации выше по пути дошёл до экрана.
+        assertEquals("", Markdown.sanitize("null"))
+        assertEquals("", Markdown.sanitize("  NULL  "))
+        assertEquals(emptyList<Markdown.Block>(), Markdown.parse(Markdown.sanitize("null")))
+        // А вот «null» внутри осмысленного текста — обычное слово.
+        assertTrue(Markdown.sanitize("вернулось null вместо числа").contains("null"))
+    }
+
+    @Test
     fun `очень длинный текст обрезается, а не съедает память`() {
         val clean = Markdown.sanitize("а".repeat(50_000))
         assertTrue(clean.length <= 8_000)

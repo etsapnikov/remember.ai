@@ -17,7 +17,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SegmentEntity::class,
         PersonEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class PrinyalDb : RoomDatabase() {
@@ -149,10 +149,28 @@ abstract class PrinyalDb : RoomDatabase() {
             }
         }
 
+        /**
+         * v4 → v5: вычистить строку «null», записанную в тело заметки.
+         *
+         * Прежняя сборка клала в `body_md` результат `optString`, а он на
+         * значении JSON `null` возвращает **строку «null»**, а не пустоту.
+         * В карточке из-за этого появлялся блок «Собрано» со словом null.
+         * Код починен, но записанное в базу этим не исправляется — отсюда
+         * миграция.
+         */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "UPDATE notes SET body_md = NULL " +
+                        "WHERE body_md IS NOT NULL AND (TRIM(body_md) = '' OR LOWER(TRIM(body_md)) = 'null')"
+                )
+            }
+        }
+
         private fun build(context: Context): PrinyalDb =
             Room.databaseBuilder(context, PrinyalDb::class.java, "prinyal.db")
                 // Destructive-падения нет намеренно: dogfood-корпус терять нельзя.
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
 
         /** Только для тестов. */

@@ -42,6 +42,10 @@ object Markdown {
      */
     fun sanitize(raw: String?): String {
         if (raw.isNullOrBlank()) return ""
+        // Слово «null» целиком — это не текст, а промах сериализации где-то
+        // выше по пути. Рендерить его нельзя ни при каких обстоятельствах:
+        // именно так в карточке появился блок «Собрано» со словом null.
+        if (raw.trim().equals("null", ignoreCase = true)) return ""
 
         var text = raw.take(MAX_CHARS)
 
