@@ -79,8 +79,16 @@ class NoteRepositoryTest {
         return id
     }
 
-    private fun parsed(vararg items: ParsedItem) =
-        ParseResult("капли соню к лору мужу про субботу", items.toList(), null, 900, 800, 0)
+    private fun parsed(vararg items: ParsedItem, topic: String? = null) =
+        ParseResult(
+            transcript = "капли соню к лору мужу про субботу",
+            items = items.toList(),
+            topic = topic,
+            degraded = null,
+            asrMs = 900,
+            llmMs = 800,
+            llmRetries = 0,
+        )
 
     private fun item(
         type: ItemType = ItemType.DO,

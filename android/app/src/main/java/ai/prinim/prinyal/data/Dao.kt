@@ -140,3 +140,64 @@ interface ReturnDao {
     @Query("SELECT * FROM returns ORDER BY scheduled_at ASC")
     suspend fun all(): List<ReturnEntity>
 }
+
+/**
+ * Разделы. Создание идёт только через [byNorm] + [insert]: «создать впрок»
+ * в продукте нет, раздел появляется вместе с первой отнесённой к нему заметкой.
+ */
+@Dao
+interface TopicDao {
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(entity: TopicEntity)
+
+    @Update
+    suspend fun update(entity: TopicEntity)
+
+    @Query("SELECT * FROM topics WHERE archived_at IS NULL ORDER BY name COLLATE NOCASE")
+    suspend fun live(): List<TopicEntity>
+
+    @Query("SELECT * FROM topics WHERE name_norm = :norm LIMIT 1")
+    suspend fun byNorm(norm: String): TopicEntity?
+
+    @Query("SELECT * FROM topics WHERE id = :id")
+    suspend fun byId(id: String): TopicEntity?
+
+    @Query("SELECT COUNT(*) FROM topics WHERE archived_at IS NULL AND kind = 'auto'")
+    suspend fun autoCount(): Int
+
+    /**
+     * Разделы с числом заметок и живых пунктов — то, что показывает экран.
+     *
+     * Пустые не попадают в выборку по INNER JOIN: раздела без заметок в
+     * продукте не существует, показывать его было бы обещанием папки.
+     */
+    @Query(
+        """
+        SELECT t.id AS id, t.name AS name,
+               COUNT(DISTINCT n.id) AS notes,
+               COUNT(DISTINCT CASE WHEN i.state IN ('planned','returned','snoozed')
+                                   THEN i.id END) AS liveItems,
+               MAX(n.created_at) AS lastAt
+        FROM topics t
+        JOIN notes n ON n.topic_id = t.id AND n.deleted_at IS NULL
+        LEFT JOIN items i ON i.note_id = n.id
+        WHERE t.archived_at IS NULL
+        GROUP BY t.id
+        ORDER BY lastAt DESC
+        """
+    )
+    fun overview(): Flow<List<TopicOverview>>
+
+    /** Сколько заметок осталось без раздела — строка «Без раздела» внизу списка. */
+    @Query("SELECT COUNT(*) FROM notes WHERE topic_id IS NULL AND deleted_at IS NULL")
+    fun looseCount(): Flow<Int>
+}
+
+data class TopicOverview(
+    val id: String,
+    val name: String,
+    val notes: Int,
+    val liveItems: Int,
+    val lastAt: Long,
+)

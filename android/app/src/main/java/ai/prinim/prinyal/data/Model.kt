@@ -85,6 +85,34 @@ enum class ReturnAction(val wire: String) {
 }
 
 /** Источник жеста — нужен аналитике §F-9, чтобы понять, какая кнопка живёт. */
+/** Откуда взялся топик заметки. */
+enum class TopicSource(val wire: String) {
+    NONE("none"), LLM("llm"), USER("user");
+
+    companion object {
+        fun of(wire: String?): TopicSource =
+            entries.firstOrNull { it.wire == wire } ?: NONE
+    }
+}
+
+/** Что за запись — для формы карточки и будущих жанров (scope 1.0.1 Р-14.4). */
+enum class NoteKind(val wire: String) {
+    TASKS("tasks"), IDEA("idea"), QUESTION("question"), FACTS("facts"), MIXED("mixed");
+
+    companion object {
+        fun of(wire: String?): NoteKind? = entries.firstOrNull { it.wire == wire }
+    }
+}
+
+/** Как рождён раздел. */
+enum class TopicKind(val wire: String) {
+    SEEDED("seeded"), AUTO("auto"), MANUAL("manual");
+
+    companion object {
+        fun of(wire: String?): TopicKind = entries.firstOrNull { it.wire == wire } ?: AUTO
+    }
+}
+
 enum class CaptureSource(val wire: String) {
     ICON("icon"), WIDGET("widget"), TILE("tile");
 
@@ -112,6 +140,33 @@ data class NoteEntity(
      * при выходе с экрана.
      */
     @ColumnInfo(name = "deleted_at") val deletedAt: Long? = null,
+    /**
+     * Раздел, к которому отнесена запись. Топик — атрибут **заметки**: владелец
+     * диктует с ясным намерением, пункты наследуют его через `note_id` и своего
+     * поля не имеют (решение владельца 16.08, scope 1.0.1 §0).
+     */
+    @ColumnInfo(name = "topic_id") val topicId: String? = null,
+    /** Кто отнёс: `llm` · `user` · `none`. Ручной выбор машина не перезаписывает. */
+    @ColumnInfo(name = "topic_source") val topicSource: String = TopicSource.NONE.wire,
+    /** Что это за запись: список дел, идея, вопрос, факты, смесь. */
+    @ColumnInfo(name = "note_kind") val noteKind: String? = null,
+)
+
+/**
+ * Раздел. Рождается из разбора или из рук — «создать впрок» в продукте нет.
+ *
+ * `nameNorm` держит уникальность без учёта регистра и пробелов: без него
+ * «Продукт» и «продукт» разошлись бы в два раздела на второй же записи.
+ */
+@Entity(tableName = "topics", indices = [Index(value = ["name_norm"], unique = true)])
+data class TopicEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    @ColumnInfo(name = "name_norm") val nameNorm: String,
+    /** `seeded` · `auto` · `manual` — откуда взялся. */
+    val kind: String,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "archived_at") val archivedAt: Long? = null,
 )
 
 @Entity(

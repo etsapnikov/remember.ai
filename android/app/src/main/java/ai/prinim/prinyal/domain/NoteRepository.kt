@@ -7,6 +7,9 @@ import ai.prinim.prinyal.data.ItemEntity
 import ai.prinim.prinyal.data.ItemState
 import ai.prinim.prinyal.data.ItemType
 import ai.prinim.prinyal.data.NoteEntity
+import ai.prinim.prinyal.data.TopicEntity
+import ai.prinim.prinyal.data.TopicKind
+import ai.prinim.prinyal.data.TopicSource
 import ai.prinim.prinyal.data.NoteStatus
 import ai.prinim.prinyal.data.PrinyalDb
 import ai.prinim.prinyal.data.ReturnEntity
@@ -99,11 +102,22 @@ class NoteRepository(
 
         items.forEach { item -> planReturn(item, recordedAt, windows, now) }
 
+        val topicId = resolveTopic(note, result.topic)
+
         db.notes().update(
             note.copy(
                 transcript = result.transcript,
                 status = NoteStatus.PARSED.wire,
                 degraded = result.degraded,
+                topicId = topicId ?: note.topicId,
+                topicSource = when {
+                    // Ручной выбор заморожен: переразбор его не перезаписывает,
+                    // иначе правка руками стала бы вечной работой (scope §0 п.4).
+                    note.topicSource == TopicSource.USER.wire -> note.topicSource
+                    topicId != null -> TopicSource.LLM.wire
+                    else -> note.topicSource
+                },
+                noteKind = result.noteKind?.wire ?: note.noteKind,
             )
         )
         analytics.log(
@@ -201,6 +215,42 @@ class NoteRepository(
         )
         db.returns().insert(entity)
         scheduler.schedule(entity.id, safeAt)
+    }
+
+    /**
+     * Имя раздела от модели → строка в `topics`.
+     *
+     * Три правила, каждое из своей беды:
+     *  - ручной топик не трогаем вовсе — человек уже решил;
+     *  - совпадение ищем по нормализованному имени, иначе «Работа» и «работа»
+     *    разъедутся в два раздела на второй записи;
+     *  - авто-разделов не больше [MAX_AUTO_TOPICS]: без потолка модель заводит
+     *    новый почти под каждую запись, и «разделы» превращаются в шум. Упёрлись
+     *    в потолок — незнакомое имя отбрасывается, заметка остаётся без раздела.
+     *
+     * @return id раздела или null, если относить не к чему
+     */
+    private suspend fun resolveTopic(note: NoteEntity, name: String?): String? {
+        if (note.topicSource == TopicSource.USER.wire) return null
+        val clean = name?.trim().orEmpty()
+        if (clean.isEmpty()) return null
+
+        val norm = clean.lowercase().replace(Regex("\\s+"), " ")
+        db.topics().byNorm(norm)?.let { return it.id }
+
+        if (db.topics().autoCount() >= MAX_AUTO_TOPICS) return null
+
+        db.topics().insert(
+            TopicEntity(
+                id = newId(),
+                name = clean,
+                nameNorm = norm,
+                kind = TopicKind.AUTO.wire,
+                createdAt = System.currentTimeMillis(),
+            )
+        )
+        analytics.log(Analytics.TOPIC_ASSIGNED, mapOf("topic" to clean, "new" to true))
+        return db.topics().byNorm(norm)?.id
     }
 
     private suspend fun dropSchedule(noteId: String) {
@@ -430,4 +480,15 @@ class NoteRepository(
     }
 
     fun newId(): String = UUID.randomUUID().toString()
+
+    companion object {
+        /**
+         * Мягкий потолок авто-разделов (scope 1.0.1 §1).
+         *
+         * Без него модель заводит новый раздел почти под каждую запись, и
+         * структура превращается в шум — ровно то, ради чего разделы и не
+         * отдавали человеку в руки.
+         */
+        const val MAX_AUTO_TOPICS = 24
+    }
 }

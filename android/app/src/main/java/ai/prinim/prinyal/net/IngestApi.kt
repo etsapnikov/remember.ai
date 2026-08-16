@@ -3,6 +3,7 @@ package ai.prinim.prinyal.net
 import ai.prinim.prinyal.data.Confidence
 import ai.prinim.prinyal.data.DueKind
 import ai.prinim.prinyal.data.ItemType
+import ai.prinim.prinyal.data.NoteKind
 import ai.prinim.prinyal.data.Window
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -30,6 +31,12 @@ data class ParsedItem(
 data class ParseResult(
     val transcript: String,
     val items: List<ParsedItem>,
+    /** Что это за запись (Р-14.4). null — модель не сказала или ответ старый. */
+    val noteKind: NoteKind? = null,
+    /** Имя раздела как его назвала модель. Сопоставление с базой — в репозитории. */
+    val topic: String? = null,
+    /** Люди, упомянутые в записи, — сырьё для доспроса (Р-14.7). */
+    val entities: List<String> = emptyList(),
     /** Код деградации §6 или null. Строку подбирает UI из strings.xml. */
     val degraded: String?,
     val asrMs: Int,

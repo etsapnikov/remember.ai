@@ -1,5 +1,6 @@
 package ai.prinim.prinyal.llm
 
+import ai.prinim.prinyal.data.NoteKind
 import ai.prinim.prinyal.net.IngestOutcome
 import ai.prinim.prinyal.net.ParseResult
 import okhttp3.MediaType.Companion.toMediaType
@@ -33,7 +34,12 @@ class DeepSeekClient(
     private val client: OkHttpClient = defaultClient(),
 ) {
 
-    fun parse(transcript: String, now: LocalDateTime, zone: ZoneId): IngestOutcome {
+    fun parse(
+        transcript: String,
+        now: LocalDateTime,
+        zone: ZoneId,
+        topics: List<String> = emptyList(),
+    ): IngestOutcome {
         if (apiKey.isBlank()) {
             return degraded(transcript, "llm_disabled", 0)
         }
@@ -45,7 +51,7 @@ class DeepSeekClient(
 
         for (attempt in 0..retries) {
             val response = try {
-                call(transcript, now)
+                call(transcript, now, topics)
             } catch (error: Exception) {
                 when {
                     error is java.net.UnknownHostException ||
@@ -91,11 +97,12 @@ class DeepSeekClient(
                 continue
             }
 
-            val items = itemsOf(content)
-            if (items == null) {
+            val root = rootOf(content)
+            if (root == null) {
                 lastReason = "llm_error"
                 continue
             }
+            val items = itemsOf(root)
             val validated = ItemValidator.validate(items, transcript, now, zone)
 
             if (validated.items.isEmpty()) {
@@ -107,6 +114,9 @@ class DeepSeekClient(
                 ParseResult(
                     transcript = transcript,
                     items = validated.items,
+                    noteKind = NoteKind.of(root.optString("note_kind").takeIf { it.isNotBlank() }),
+                    topic = ItemValidator.topicOf(root),
+                    entities = ItemValidator.entitiesOf(root),
                     degraded = null,
                     asrMs = 0,
                     llmMs = 0,
@@ -123,12 +133,19 @@ class DeepSeekClient(
 
     private class Response(val code: Int, val body: JSONObject?)
 
-    private fun call(transcript: String, now: LocalDateTime): Response {
+    private fun call(
+        transcript: String,
+        now: LocalDateTime,
+        topics: List<String>,
+    ): Response {
         val payload = JSONObject().apply {
             put("model", model)
             put("messages", JSONArray().apply {
                 put(JSONObject().put("role", "system").put("content", Prompt.SYSTEM))
-                put(JSONObject().put("role", "user").put("content", Prompt.user(transcript, now)))
+                put(
+                    JSONObject().put("role", "user")
+                        .put("content", Prompt.user(transcript, now, topics))
+                )
             })
             put("temperature", 0.1)
             // Бюджет считается вместе с рассуждениями: модель тратит на них
@@ -165,12 +182,15 @@ class DeepSeekClient(
      * Модель обязана вернуть json_object, но обёртка в ```json``` встречается и у
      * послушных провайдеров — снимаем её, прежде чем сдаваться.
      */
-    private fun itemsOf(content: String): List<JSONObject>? {
+    private fun rootOf(content: String): JSONObject? {
         var text = content.trim()
         if (text.startsWith("```")) {
             text = text.trim('`').removePrefix("json").trim()
         }
-        val root = runCatching { JSONObject(text) }.getOrNull() ?: return null
+        return runCatching { JSONObject(text) }.getOrNull()
+    }
+
+    private fun itemsOf(root: JSONObject): List<JSONObject> {
         val array = root.optJSONArray("items") ?: return emptyList()
         return (0 until array.length()).mapNotNull { array.optJSONObject(it) }
     }

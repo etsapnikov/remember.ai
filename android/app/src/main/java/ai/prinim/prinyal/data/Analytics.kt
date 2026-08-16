@@ -51,5 +51,7 @@ class Analytics(context: Context) {
         const val RETURN_ACTION = "return_action"
         const val EDIT_ITEM = "edit_item"
         const val MISS_ITEM = "miss_item"
+        const val TOPIC_ASSIGNED = "topic_assigned"
+        const val TOPIC_EDITED = "topic_edited"
     }
 }

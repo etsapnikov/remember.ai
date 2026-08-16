@@ -77,6 +77,9 @@ class UploadWorker(
                 )
                 else -> app.llm.parse(
                     transcript = transcript,
+                    // Живые разделы уходят в промпт, чтобы модель выбирала из
+                    // них, а не изобретала синоним уже существующего.
+                    topics = app.db.topics().live().map { it.name },
                     now = java.time.LocalDateTime.ofInstant(
                         java.time.Instant.ofEpochMilli(note.createdAt),
                         java.time.ZoneId.systemDefault(),

@@ -38,6 +38,32 @@ object ItemValidator {
 
     data class Result(val items: List<ParsedItem>, val salvaged: Int)
 
+    /**
+     * Имя раздела из ответа модели.
+     *
+     * Чистим здесь, а не в клиенте: раздел с переносом строки, кавычками или в
+     * четыре слова — это тоже «мусорный пункт», просто уровнем выше. Пустое имя
+     * и «null» строкой означают «раздела нет», и это законный ответ.
+     */
+    fun topicOf(root: org.json.JSONObject): String? {
+        val raw = root.optString("topic").trim().trim('"', '«', '»')
+        if (raw.isEmpty() || raw.equals("null", ignoreCase = true)) return null
+        val words = raw.split(Regex("\\s+"))
+        if (words.size > TOPIC_MAX_WORDS) return null
+        val name = words.joinToString(" ").take(TOPIC_MAX_CHARS)
+        return name.replaceFirstChar { it.uppercase() }
+    }
+
+    /** Имена людей из ответа. Пустые и служебные строки отбрасываем. */
+    fun entitiesOf(root: org.json.JSONObject): List<String> {
+        val array = root.optJSONArray("entities") ?: return emptyList()
+        return (0 until array.length())
+            .mapNotNull { array.optString(it).trim().takeIf(String::isNotEmpty) }
+            .filterNot { it.equals("null", ignoreCase = true) }
+            .map { it.take(TOPIC_MAX_CHARS) }
+            .distinctBy { it.lowercase() }
+    }
+
     fun validate(
         raw: List<JSONObject>,
         transcript: String,
@@ -190,6 +216,10 @@ object ItemValidator {
      * Деградация §6: разбор не случился — вся запись становится одним `thought`.
      * Окно назначает планировщик, здесь только семантика «верну вечером».
      */
+    /** Раздел длиннее двух слов — это уже не раздел, а пересказ записи. */
+    private const val TOPIC_MAX_WORDS = 2
+    private const val TOPIC_MAX_CHARS = 24
+
     fun fallback(transcript: String): List<ParsedItem> = listOf(
         ParsedItem(
             type = ItemType.THOUGHT,
