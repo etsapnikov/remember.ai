@@ -6,6 +6,8 @@ import ai.prinim.prinyal.data.ItemEntity
 import ai.prinim.prinyal.data.ItemState
 import ai.prinim.prinyal.data.ItemType
 import ai.prinim.prinyal.data.NoteStatus
+import ai.prinim.prinyal.data.TopicEntity
+import ai.prinim.prinyal.data.TopicSource
 import ai.prinim.prinyal.data.Window
 import ai.prinim.prinyal.domain.Phrases
 import ai.prinim.prinyal.ui.theme.MetaText
@@ -72,6 +74,10 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
     val note = entry?.note
 
     var editing by remember { mutableStateOf<ItemEntity?>(null) }
+    // Пикер раздела: список живых разделов подтягиваем только когда открыли.
+    var picking by remember { mutableStateOf(false) }
+    var topics by remember { mutableStateOf<List<TopicEntity>>(emptyList()) }
+    var topicName by remember { mutableStateOf<String?>(null) }
     // Правка транскрипта (спека R1.2 §15). null — покой, иначе черновик.
     var draft by remember(noteId) { mutableStateOf<TextFieldValue?>(null) }
 
@@ -87,6 +93,10 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
     val failed = status == NoteStatus.FAILED_ASR || status == NoteStatus.FAILED_LLM
     val items = entry?.items.orEmpty()
     val degradedText = if (!failed) Phrases.degraded(context, note.degraded) else null
+
+    // Имя раздела читаем по id: держать его копией в заметке значило бы
+    // расходиться с `topics` после переименования.
+    LaunchedEffect(note.topicId) { topicName = vm.topicName(note.topicId) }
 
     // Правка — не элемент списка, а отдельная раскладка на весь экран.
     //
@@ -144,7 +154,22 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
                 }
             }
         } else {
-            item { AudioRow(File(note.audioPath), note.durationMs) }
+            // Чип раздела — тихий, у шапки. Пункты своего топика не имеют:
+            // раздел это свойство всей записи (scope 1.0.1 §0).
+            item {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AudioRow(File(note.audioPath), note.durationMs)
+                    TopicChip(
+                        name = topicName ?: stringResource(R.string.topics_loose),
+                        source = TopicSource.of(note.topicSource),
+                        onClick = { picking = true },
+                    )
+                }
+            }
 
             degradedText?.let { text ->
                 item { Text(text, style = Prinyal.type.voice, color = Prinyal.colors.accentSelf) }
@@ -211,6 +236,23 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
                 )
             }
         }
+    }
+
+    if (picking) {
+        LaunchedEffect(Unit) { topics = vm.liveTopics() }
+        TopicPicker(
+            topics = topics,
+            currentId = note.topicId,
+            onPick = {
+                vm.setTopic(noteId, it)
+                picking = false
+            },
+            onCreate = {
+                vm.createTopicAndAssign(noteId, it)
+                picking = false
+            },
+            onDismiss = { picking = false },
+        )
     }
 
     editing?.let { item ->

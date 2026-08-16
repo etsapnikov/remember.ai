@@ -41,7 +41,12 @@ fun AppScaffold(route: Route, onRoute: (Route) -> Unit) {
 
     // «Назад» из карточки, настроек и сводки ведёт в ленту. Без этого системный жест
     // закрывает приложение целиком — человек хотел вернуться к списку, а вышел вон.
-    BackHandler(enabled = route !is Route.Feed) { onRoute(Route.Feed) }
+    // «Назад» ведёт на шаг вверх по смыслу, а не всегда в ленту: из раздела —
+    // к списку разделов. Без этого человек, ушедший вглубь структуры, вылетал
+    // бы к времени одним жестом.
+    BackHandler(enabled = route !is Route.Feed) {
+        onRoute(if (route is Route.Topic) Route.Topics else Route.Feed)
+    }
 
     // Выход с экрана — точка невозврата для мягко удалённого (спека §2.2).
     DisposableEffect(Unit) {
@@ -63,6 +68,15 @@ fun AppScaffold(route: Route, onRoute: (Route) -> Unit) {
                     is Route.Note -> NoteScreen(vm, noteId = route.id, onBack = { onRoute(Route.Feed) })
                     is Route.Settings -> SettingsScreen(vm)
                     is Route.Weekly -> WeeklyScreen(vm)
+                    is Route.Topics -> TopicsScreen(
+                        vm,
+                        onOpen = { id, name -> onRoute(Route.Topic(id, name)) },
+                    )
+                    is Route.Topic -> TopicScreen(
+                        vm,
+                        topicId = route.id,
+                        onOpenNote = { onRoute(Route.Note(it)) },
+                    )
                 }
             }
         }
@@ -148,39 +162,53 @@ private fun undoText(message: AppViewModel.UndoMessage): String = when (message)
 
 @Composable
 private fun TopBar(route: Route, onRoute: (Route) -> Unit) {
-    val title = when (route) {
-        is Route.Feed -> stringResource(R.string.feed_title)
-        is Route.Note -> stringResource(R.string.feed_title)
-        is Route.Settings -> stringResource(R.string.settings_title)
-        is Route.Weekly -> stringResource(R.string.weekly_title)
+    // Поверхности живут словами в шапке: текущая — заголовком, соседние — тихим
+    // текстом рядом (Д-1, вариант А). Жестов взять неоткуда: вертикаль занята
+    // захватом, горизонталь — удалением строки, и разводить их по зонам экрана
+    // значило бы завести правило, которое человек обязан помнить.
+    //
+    // Прецедент на будущее: новая поверхность — ещё одно слово, а не новый жест.
+    val surfaces = listOf(
+        Route.Feed to stringResource(R.string.feed_title),
+        Route.Topics to stringResource(R.string.topics_title),
+        Route.Weekly to stringResource(R.string.weekly_title),
+    )
+    // Карточка записи и раздел живут «внутри» своей поверхности — она и подсвечена.
+    val active: Route = when (route) {
+        is Route.Note -> Route.Feed
+        is Route.Topic -> Route.Topics
+        else -> route
     }
 
     Row(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = Space.screen, vertical = Space.m),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(
-            text = title,
-            style = Prinyal.type.itemTitle,
-            color = Prinyal.colors.ink,
-            modifier = Modifier.clickable { onRoute(Route.Feed) },
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(Space.m)) {
-            Text(
-                text = stringResource(R.string.weekly_title),
-                style = Prinyal.type.meta,
-                color = if (route is Route.Weekly) Prinyal.colors.accentSelf else Prinyal.colors.inkFaint,
-                modifier = Modifier.clickable { onRoute(Route.Weekly) },
-            )
-            Text(
-                text = stringResource(R.string.settings_title),
-                style = Prinyal.type.meta,
-                color = if (route is Route.Settings) Prinyal.colors.accentSelf else Prinyal.colors.inkFaint,
-                modifier = Modifier.clickable { onRoute(Route.Settings) },
-            )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Space.m),
+            verticalAlignment = Alignment.Bottom,
+            modifier = Modifier.weight(1f),
+        ) {
+            surfaces.forEach { (target, label) ->
+                val current = target == active
+                Text(
+                    text = label,
+                    style = if (current) Prinyal.type.itemTitle else Prinyal.type.body,
+                    color = if (current) Prinyal.colors.ink else Prinyal.colors.inkFaint,
+                    modifier = Modifier.clickable { onRoute(target) },
+                )
+            }
         }
+        // Настройки — не поверхность, а служебное, поэтому знаком, а не словом.
+        Text(
+            text = "···",
+            style = Prinyal.type.itemTitle,
+            color = if (route is Route.Settings) Prinyal.colors.accentSelf
+            else Prinyal.colors.inkFaint,
+            modifier = Modifier.clickable { onRoute(Route.Settings) },
+        )
     }
 }

@@ -3,8 +3,13 @@ package ai.prinim.prinyal.ui
 import ai.prinim.prinyal.PrinyalApp
 import ai.prinim.prinyal.capture.SilenceWindow
 import ai.prinim.prinyal.capture.UploadWorker
+import ai.prinim.prinyal.data.Analytics
 import ai.prinim.prinyal.data.ItemType
 import ai.prinim.prinyal.data.NoteWithItems
+import ai.prinim.prinyal.data.TopicEntity
+import ai.prinim.prinyal.data.TopicKind
+import ai.prinim.prinyal.data.TopicOverview
+import ai.prinim.prinyal.data.TopicSource
 import ai.prinim.prinyal.data.ReturnEntity
 import ai.prinim.prinyal.data.Window
 import ai.prinim.prinyal.domain.Backup
@@ -27,6 +32,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     val feed: StateFlow<List<NoteWithItems>> = app.db.notes().feed()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val topics: StateFlow<List<TopicOverview>> = app.db.topics().overview()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val looseNotes: StateFlow<Int> = app.db.topics().looseCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     val pendingCount: StateFlow<Int> = app.db.notes().pendingCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
@@ -62,6 +73,51 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun token(): String = app.settings.token
 
     fun note(id: String) = app.db.notes().watch(id)
+
+    /** Заметки раздела; `topicId == null` — «Без раздела». */
+    fun notesOf(topicId: String?) =
+        if (topicId == null) app.db.notes().withoutTopic() else app.db.notes().byTopic(topicId)
+
+    suspend fun liveTopics(): List<TopicEntity> = app.db.topics().live()
+
+    suspend fun topicName(id: String?): String? =
+        id?.let { app.db.topics().byId(it)?.name }
+
+    /**
+     * Отнести заметку к разделу рукой.
+     *
+     * Ручной выбор замораживает топик: последующие переразборы его не
+     * перезаписывают. Иначе правка руками стала бы вечной — человек относит,
+     * машина возвращает обратно (scope 1.0.1 §0 п.4).
+     */
+    fun setTopic(noteId: String, topicId: String?) = viewModelScope.launch {
+        app.db.notes().setTopic(noteId, topicId, TopicSource.USER.wire)
+        app.analytics.log(
+            Analytics.TOPIC_EDITED,
+            mapOf("note" to noteId, "topic" to topicId),
+        )
+    }
+
+    /** Создать раздел вместе с отнесением: «создать впрок» в продукте нет. */
+    fun createTopicAndAssign(noteId: String, name: String) = viewModelScope.launch {
+        val clean = name.trim()
+        if (clean.isEmpty()) return@launch
+        val norm = clean.lowercase().replace(Regex("\\s+"), " ")
+        val existing = app.db.topics().byNorm(norm)
+        val id = existing?.id ?: app.repository.newId().also {
+            app.db.topics().insert(
+                TopicEntity(
+                    id = it,
+                    name = clean,
+                    nameNorm = norm,
+                    kind = TopicKind.MANUAL.wire,
+                    createdAt = System.currentTimeMillis(),
+                )
+            )
+        }
+        app.db.notes().setTopic(noteId, app.db.topics().byNorm(norm)?.id ?: id, TopicSource.USER.wire)
+        app.analytics.log(Analytics.TOPIC_EDITED, mapOf("note" to noteId, "topic" to clean, "new" to true))
+    }
 
     suspend fun returnsFor(itemId: String): List<ReturnEntity> =
         app.db.returns().forItem(itemId)

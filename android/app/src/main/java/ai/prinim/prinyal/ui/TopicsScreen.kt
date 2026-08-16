@@ -1,0 +1,132 @@
+package ai.prinim.prinyal.ui
+
+import ai.prinim.prinyal.R
+import ai.prinim.prinyal.data.TopicOverview
+import ai.prinim.prinyal.ui.theme.MetaText
+import ai.prinim.prinyal.ui.theme.Prinyal
+import ai.prinim.prinyal.ui.theme.Space
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+
+/**
+ * «Разделы» — третья поверхность (Д-1).
+ *
+ * Имя и счёт, больше ничего: ни иконок, ни цветных меток, ни кнопки «создать».
+ * Раздел рождается из речи или из пикера на карточке — «впрок» его завести
+ * нельзя, и это главное отличие от менеджера заметок.
+ *
+ * Пустых разделов в списке не бывает: запрос их не возвращает, потому что
+ * раздела без заметок в продукте не существует.
+ */
+@Composable
+fun TopicsScreen(vm: AppViewModel, onOpen: (String?, String) -> Unit) {
+    val topics by vm.topics.collectAsState()
+    val loose by vm.looseNotes.collectAsState()
+
+    if (topics.isEmpty() && loose == 0) {
+        Box(Modifier.fillMaxSize(), Alignment.Center) {
+            Column(
+                Modifier.padding(horizontal = Space.screen),
+                verticalArrangement = Arrangement.spacedBy(Space.s),
+            ) {
+                Text(
+                    text = stringResource(R.string.topics_empty_title),
+                    style = Prinyal.type.itemTitle,
+                    color = Prinyal.colors.ink,
+                )
+                // Ни кнопки «создать раздел», ни объяснения правил: продукт
+                // обещает разложить сам, а не просит настроить структуру.
+                Text(
+                    text = stringResource(R.string.topics_empty_body),
+                    style = Prinyal.type.voice,
+                    color = Prinyal.colors.inkMuted,
+                )
+            }
+        }
+        return
+    }
+
+    LazyColumn(
+        contentPadding = PaddingValues(
+            start = Space.screen, end = Space.screen, top = Space.s, bottom = Space.xxl,
+        ),
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        items(topics, key = { it.id }) { topic ->
+            TopicRow(
+                name = topic.name,
+                notes = topic.notes,
+                liveItems = topic.liveItems,
+                onClick = { onOpen(topic.id, topic.name) },
+            )
+            HorizontalDivider(thickness = 1.dp, color = Prinyal.colors.hairline)
+        }
+
+        // «Без раздела» — не раздел, а остаток: всегда внизу и приглушён.
+        if (loose > 0) {
+            item {
+                TopicRow(
+                    name = stringResource(R.string.topics_loose),
+                    notes = loose,
+                    liveItems = 0,
+                    muted = true,
+                    onClick = { onOpen(null, "") },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TopicRow(
+    name: String,
+    notes: Int,
+    liveItems: Int,
+    muted: Boolean = false,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = Space.sm),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = name,
+            style = Prinyal.type.itemTitle,
+            color = if (muted) Prinyal.colors.inkMuted else Prinyal.colors.ink,
+        )
+        val notesText = pluralStringResource(R.plurals.topics_notes, notes, notes)
+        MetaText(
+            // «Живых» — про невыполненные пункты: слово уже есть в речи продукта
+            // про возвраты, второго термина заводить незачем.
+            text = if (liveItems > 0) {
+                "$notesText · ${stringResource(R.string.topics_live, liveItems)}"
+            } else {
+                notesText
+            },
+            color = Prinyal.colors.inkFaint,
+        )
+    }
+}

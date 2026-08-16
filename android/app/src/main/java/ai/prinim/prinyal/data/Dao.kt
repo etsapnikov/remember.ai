@@ -36,6 +36,25 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE id = :id")
     fun watch(id: String): Flow<NoteWithItems?>
 
+    /** Заметки одного раздела — экран раздела читается ровно как лента. */
+    @Transaction
+    @Query(
+        "SELECT * FROM notes WHERE deleted_at IS NULL AND topic_id = :topicId " +
+            "ORDER BY created_at DESC"
+    )
+    fun byTopic(topicId: String): Flow<List<NoteWithItems>>
+
+    /** Заметки, которые машина не смогла отнести и человек ещё не отнёс. */
+    @Transaction
+    @Query(
+        "SELECT * FROM notes WHERE deleted_at IS NULL AND topic_id IS NULL " +
+            "ORDER BY created_at DESC"
+    )
+    fun withoutTopic(): Flow<List<NoteWithItems>>
+
+    @Query("UPDATE notes SET topic_id = :topicId, topic_source = :source WHERE id = :id")
+    suspend fun setTopic(id: String, topicId: String?, source: String)
+
     /** Что ждёт отправки: очередь переживает перезагрузку, потому что живёт в базе. */
     @Query(
         "SELECT * FROM notes WHERE deleted_at IS NULL AND status IN ('recorded', 'queued') " +

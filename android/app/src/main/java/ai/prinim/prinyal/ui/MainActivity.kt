@@ -51,5 +51,9 @@ sealed interface Route {
     data object Feed : Route
     data object Settings : Route
     data object Weekly : Route
+    /** Список разделов — третья поверхность (Д-1). */
+    data object Topics : Route
+    /** Заметки одного раздела. `id == null` — «Без раздела». */
+    data class Topic(val id: String?, val name: String) : Route
     data class Note(val id: String) : Route
 }

@@ -270,6 +270,24 @@
 
     <!-- Сводка недели §F-9 -->
     <string name="weekly_title">Неделя</string>
+    <string name="topics_title">Разделы</string>
+    <string name="topics_loose">Без раздела</string>
+    <string name="topics_live">%1$d живых</string>
+    <string name="topics_empty_title">Пока пусто</string>
+    <string name="topics_empty_body">Разделы появятся сами из записей — я разложу, когда пойму, о чём ты говоришь чаще всего.</string>
+    <string name="topic_summary_planned">%1$d в плане</string>
+    <string name="topic_summary_done">%1$d сделано</string>
+    <string name="topic_summary_gone">%1$d похоронено</string>
+    <string name="topic_summary_empty">без пунктов</string>
+    <string name="topic_pick">Отнести к…</string>
+    <string name="topic_pick_here">сейчас здесь</string>
+    <string name="topic_pick_new">новый…</string>
+    <plurals name="topics_notes">
+        <item quantity="one">%1$d заметка</item>
+        <item quantity="few">%1$d заметки</item>
+        <item quantity="many">%1$d заметок</item>
+        <item quantity="other">%1$d заметки</item>
+    </plurals>
     <string name="weekly_days">Дней с записью: %1$d из %2$d</string>
     <string name="weekly_per_day">Записей в день: %1$s</string>
     <string name="weekly_items_median">Пунктов на запись: %1$s</string>
