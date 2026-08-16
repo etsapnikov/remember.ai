@@ -123,7 +123,8 @@ class DeepSeekClient(
                     entities = ItemValidator.entitiesOf(root),
                     // Санитайзер стоит здесь, а не у рендера: в базу не должно
                     // попадать то, что мы не готовы показать.
-                    bodyMd = Markdown.sanitize(root.optString("body_md")).ifBlank { null },
+                    bodyMd = Markdown.sanitize(ItemValidator.stringOrNull(root, "body_md"))
+                        .ifBlank { null },
                     degraded = null,
                     asrMs = 0,
                     llmMs = 0,
@@ -223,8 +224,15 @@ class DeepSeekClient(
     companion object {
         const val DEFAULT_MODEL = "deepseek-v4-flash"
 
-        /** Бюджет на рассуждения и ответ вместе: рассуждений бывает до 7900. */
-        const val MAX_TOKENS = 8192
+        /**
+         * Бюджет на рассуждения и ответ вместе.
+         *
+         * Было 8192 — и на записи-идее ответ упирался в потолок: рассуждения
+         * съедали ~6700, а тело «Собрано» не помещалось в остаток, приходил
+         * `finish_reason: length` с пустым содержимым. Замер 16.08: тот же
+         * запрос при 16384 отвечает за 58 с и тратит 7315.
+         */
+        const val MAX_TOKENS = 16_384
         const val DEFAULT_BASE_URL = "https://api.deepseek.com"
 
         private val JSON = "application/json; charset=utf-8".toMediaType()

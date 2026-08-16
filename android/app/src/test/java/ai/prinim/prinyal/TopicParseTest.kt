@@ -73,6 +73,23 @@ class TopicParseTest {
     }
 
     @Test
+    fun `json null не превращается в строку «null»`() {
+        // Ловушка Android: optString на JSON null возвращает строку «null».
+        // Из-за неё в карточке появлялся блок «Собрано» со словом null —
+        // модель честно ответила body_md: null, а мы это отрисовали.
+        assertNull(ItemValidator.stringOrNull(root("""{"body_md":null}"""), "body_md"))
+        assertNull(ItemValidator.stringOrNull(root("""{}"""), "body_md"))
+        assertNull(ItemValidator.stringOrNull(root("""{"body_md":"null"}"""), "body_md"))
+        assertNull(ItemValidator.stringOrNull(root("""{"body_md":"  "}"""), "body_md"))
+        assertEquals("## Замысел", ItemValidator.stringOrNull(root("""{"body_md":"## Замысел"}"""), "body_md"))
+    }
+
+    @Test
+    fun `раздел json null тоже не становится словом`() {
+        assertNull(ItemValidator.topicOf(root("""{"topic":null}""")))
+    }
+
+    @Test
     fun `промпт версии 3 объявляет новые поля`() {
         assertEquals("3", Prompt.VERSION)
         assertTrue(Prompt.SYSTEM.contains("note_kind"))

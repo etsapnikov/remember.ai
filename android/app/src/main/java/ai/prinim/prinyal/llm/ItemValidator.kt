@@ -39,6 +39,20 @@ object ItemValidator {
     data class Result(val items: List<ParsedItem>, val salvaged: Int)
 
     /**
+     * Строковое поле ответа или null.
+     *
+     * Отдельный помощник нужен из-за ловушки Android: `optString` на значении
+     * JSON `null` возвращает **строку «null»**, а не пустоту. Из-за неё в
+     * карточке появлялся блок «Собрано» со словом «null» — модель честно
+     * ответила `body_md: null`, а мы это отрисовали.
+     */
+    fun stringOrNull(root: org.json.JSONObject, key: String): String? {
+        if (root.isNull(key)) return null
+        val value = root.optString(key).trim()
+        return value.takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
+    }
+
+    /**
      * Имя раздела из ответа модели.
      *
      * Чистим здесь, а не в клиенте: раздел с переносом строки, кавычками или в
@@ -46,8 +60,8 @@ object ItemValidator {
      * и «null» строкой означают «раздела нет», и это законный ответ.
      */
     fun topicOf(root: org.json.JSONObject): String? {
-        val raw = root.optString("topic").trim().trim('"', '«', '»')
-        if (raw.isEmpty() || raw.equals("null", ignoreCase = true)) return null
+        val raw = (stringOrNull(root, "topic") ?: return null).trim('"', '«', '»')
+        if (raw.isEmpty()) return null
         val words = raw.split(Regex("\\s+"))
         if (words.size > TOPIC_MAX_WORDS) return null
         val name = words.joinToString(" ").take(TOPIC_MAX_CHARS)

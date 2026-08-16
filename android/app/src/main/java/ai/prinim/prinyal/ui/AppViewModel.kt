@@ -25,6 +25,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -143,16 +144,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * рассуждениями, это секунды и деньги. Молчаливый фоновый прогон на два
      * десятка записей выглядел бы как зависшее приложение.
      */
-    fun retroClassify() = viewModelScope.launch {
+    fun retroClassify() = viewModelScope.launch(Dispatchers.IO) {
+        // Dispatchers.IO обязателен: `llm.parse` — синхронный сетевой вызов, а
+        // viewModelScope по умолчанию живёт на главном потоке. Из-за этого
+        // кнопка выглядела мёртвой: корутина падала с
+        // NetworkOnMainThreadException в первый же заход, молча.
+        _retro.value = RetroState(0, 0, running = true)
         val notes = app.db.notes().looseList()
         if (notes.isEmpty()) {
-            _message.value = getApplication<Application>().getString(R.string.retro_nothing)
+            _retro.value = RetroState(0, 0, running = false)
             return@launch
         }
         var done = 0
         notes.forEachIndexed { index, note ->
-            _message.value = getApplication<Application>()
-                .getString(R.string.retro_progress, index + 1, notes.size)
+            _retro.value = RetroState(index + 1, notes.size, running = true)
             val outcome = app.llm.parse(
                 transcript = note.transcript.orEmpty(),
                 now = java.time.LocalDateTime.ofInstant(
@@ -167,9 +172,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 if (app.repository.applyTopicOnly(note.id, outcome.result)) done++
             }
         }
-        _message.value = getApplication<Application>()
-            .getString(R.string.retro_done, done, notes.size)
+        _retro.value = RetroState(done, notes.size, running = false)
     }
+
+    /** Ход раскладки: без него кнопка молчит и выглядит сломанной. */
+    data class RetroState(val done: Int, val total: Int, val running: Boolean)
+
+    private val _retro = MutableStateFlow<RetroState?>(null)
+    val retro: StateFlow<RetroState?> = _retro
 
     /** Сколько заметок ждут раскладки — показываем до запуска, вместе с ценой. */
     suspend fun looseCountNow(): Int = app.db.notes().looseList().size

@@ -119,7 +119,8 @@ fun SettingsScreen(vm: AppViewModel) {
         item {
             Section(stringResource(R.string.retro_title)) {
                 var loose by remember { mutableStateOf(0) }
-                LaunchedEffect(Unit) { loose = vm.looseCountNow() }
+                val retro by vm.retro.collectAsState()
+                LaunchedEffect(retro?.running) { loose = vm.looseCountNow() }
 
                 // Счёт и цена — до запуска, а не после: прогон стоит секунд и
                 // денег, и решение принимает владелец, а не кнопка.
@@ -134,7 +135,20 @@ fun SettingsScreen(vm: AppViewModel) {
                     style = Prinyal.type.body,
                     color = Prinyal.colors.inkMuted,
                 )
-                if (loose > 0) {
+                // Ход виден строкой: прогон идёт минутами, и молчащая кнопка
+                // неотличима от сломанной.
+                retro?.let { state ->
+                    MetaText(
+                        text = if (state.running) {
+                            stringResource(R.string.retro_progress, state.done, state.total)
+                        } else {
+                            stringResource(R.string.retro_done, state.done, state.total)
+                        },
+                        color = Prinyal.colors.accentSelf,
+                    )
+                }
+
+                if (loose > 0 && retro?.running != true) {
                     Box(
                         Modifier
                             .background(Prinyal.colors.accentSelf, Radius.pill)
