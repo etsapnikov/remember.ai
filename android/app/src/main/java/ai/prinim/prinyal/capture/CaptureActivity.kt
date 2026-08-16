@@ -226,8 +226,16 @@ class CaptureActivity : ComponentActivity() {
         Haptics.receipt(this)
 
         val app = PrinyalApp.of(this)
+        val appendTo = intent.getStringExtra(EXTRA_APPEND_TO)
         lifecycleScope.launch {
-            app.analytics.log(Analytics.RECEIPT_SHOWN, mapOf("note" to noteId))
+            app.analytics.log(Analytics.RECEIPT_SHOWN, mapOf("note" to (appendTo ?: noteId)))
+            // Дописывание — не новая запись: сегмент цепляется к существующей,
+            // и разбор увидит оба куска речи как один текст.
+            if (appendTo != null) {
+                app.repository.appendSegment(appendTo, result.file, result.startedAt)
+                UploadWorker.enqueue(this@CaptureActivity, appendTo)
+                return@launch
+            }
             app.repository.createNote(
                 id = noteId,
                 audio = result.file,
@@ -353,6 +361,8 @@ class CaptureActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_SOURCE = "source"
+        /** id заметки, к которой дописываем (Р-14.3). */
+        const val EXTRA_APPEND_TO = "append_to"
         private const val TAG = "PrinyalCapture"
         private const val TICK_MS = 100L
         private const val HINT_CANCEL = "cancel"

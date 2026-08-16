@@ -11,6 +11,7 @@ import ai.prinim.prinyal.data.TopicEntity
 import ai.prinim.prinyal.data.TopicKind
 import ai.prinim.prinyal.data.TopicSource
 import ai.prinim.prinyal.data.PersonEntity
+import ai.prinim.prinyal.data.SegmentEntity
 import ai.prinim.prinyal.data.NoteStatus
 import ai.prinim.prinyal.data.PrinyalDb
 import ai.prinim.prinyal.data.ReturnEntity
@@ -265,6 +266,133 @@ class NoteRepository(
      * людей, ему нужно только понять, о ком он ничего не знает и кто при этом
      * повторяется.
      */
+    /**
+     * Дописать к заметке новый сегмент (Р-14.3).
+     *
+     * Заметка становится многосегментной: транскрипт — конкатенация сегментов с
+     * меткой времени между ними. Метка ставится начиная со второго сегмента: у
+     * первого её нет, иначе обычная запись обрастает служебной строкой ни за что.
+     */
+    suspend fun appendSegment(noteId: String, audio: File, at: Instant = Instant.now()): String {
+        val seq = db.segments().nextSeq(noteId)
+        // Первый сегмент заводится задним числом для записей, сделанных до 1.0.1.
+        if (seq == 0) {
+            val note = db.notes().byId(noteId)
+            if (note != null) {
+                db.segments().insert(
+                    SegmentEntity(
+                        id = newId(),
+                        noteId = noteId,
+                        seq = 0,
+                        audioPath = note.audioPath,
+                        transcript = note.transcript,
+                        createdAt = note.createdAt,
+                    )
+                )
+            }
+        }
+        val id = newId()
+        db.segments().insert(
+            SegmentEntity(
+                id = id,
+                noteId = noteId,
+                seq = maxOf(seq, 1),
+                audioPath = audio.absolutePath,
+                createdAt = at.toEpochMilli(),
+            )
+        )
+        // Статус возвращается в очередь: дописанное надо распознать и разобрать.
+        db.notes().setStatus(noteId, NoteStatus.RECORDED.wire)
+        return id
+    }
+
+    /** Транскрипт заметки целиком: сегменты по порядку, разделённые меткой. */
+    suspend fun joinedTranscript(noteId: String): String =
+        db.segments().forNote(noteId)
+            .mapNotNull { it.transcript?.takeIf(String::isNotBlank) }
+            .joinToString("\n")
+
+    /**
+     * Применить разбор дописанной заметки (Р-14.3).
+     *
+     * Отличается от [applyParse] одним, но решающим: старые пункты не сносятся.
+     * Полная замена здесь означала бы, что «сделал» и «не надо» стираются каждым
+     * дописыванием, — а это ровно то, ради чего человек и отвечает на возвраты.
+     *
+     * Сверка не удалась — откатываемся в безопасное: старые пункты не трогаем,
+     * добавляем только то, что модель принесла нового. Дубль человек заметит и
+     * уберёт, воскресшее закрытое дело подорвёт доверие ко всей петле.
+     */
+    suspend fun applyAppendParse(noteId: String, result: ParseResult): List<ItemEntity> {
+        val note = db.notes().byId(noteId) ?: return emptyList()
+        val existing = db.items().forNote(noteId)
+        val plan = Reconcile.plan(existing, result.items, result.items.map { it.ref })
+
+        val windows = settings.windowsNow()
+        val recordedAt = Instant.ofEpochMilli(note.createdAt)
+        val now = Instant.now()
+        var position = existing.size
+        val touched = mutableListOf<ItemEntity>()
+
+        plan.actions.forEach { action ->
+            when (action) {
+                is Reconcile.Action.Add -> {
+                    val item = ItemEntity(
+                        id = newId(),
+                        noteId = noteId,
+                        type = action.item.type.wire,
+                        text = action.item.text,
+                        who = action.item.who,
+                        dueKind = action.item.dueKind.wire,
+                        window = action.item.window?.wire,
+                        dueAt = action.item.dueAt,
+                        state = ItemState.PLANNED.wire,
+                        confidence = action.item.confidence.wire,
+                        rawSpan = action.item.rawSpan,
+                        position = position++,
+                    )
+                    db.items().insertAll(listOf(item))
+                    planReturn(item, recordedAt, windows, now)
+                    touched += item
+                }
+
+                is Reconcile.Action.Update -> {
+                    val current = db.items().byId(action.id) ?: return@forEach
+                    val updated = current.copy(
+                        text = action.item.text,
+                        window = action.item.window?.wire,
+                        dueKind = action.item.dueKind.wire,
+                        dueAt = action.item.dueAt,
+                    )
+                    db.items().update(updated)
+                    // Возврат пересчитывается: окно могло поехать.
+                    db.returns().dropPending(updated.id)
+                    planReturn(updated, recordedAt, windows, now)
+                    touched += updated
+                }
+            }
+        }
+
+        db.notes().update(
+            note.copy(
+                transcript = result.transcript,
+                status = NoteStatus.PARSED.wire,
+                degraded = result.degraded,
+                bodyMd = result.bodyMd ?: note.bodyMd,
+            )
+        )
+        analytics.log(
+            Analytics.NOTE_APPEND,
+            mapOf(
+                "note" to noteId,
+                "added" to plan.actions.count { it is Reconcile.Action.Add },
+                "updated" to plan.actions.count { it is Reconcile.Action.Update },
+                "rejected" to plan.rejected.size,
+            ),
+        )
+        return touched
+    }
+
     private suspend fun rememberPeople(names: List<String>) {
         names.forEach { name ->
             val clean = name.trim()

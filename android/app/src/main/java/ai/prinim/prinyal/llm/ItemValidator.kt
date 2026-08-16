@@ -156,6 +156,8 @@ object ItemValidator {
             dueAt = dueAt,
             confidence = confidence ?: Confidence.LOW,
             rawSpan = rawSpan,
+            // Пустая строка от модели — это «нет ссылки», а не пункт с пустым id.
+            ref = json.optString("ref").trim().takeIf { it.isNotEmpty() && it != "null" },
         ) to salvaged
     }
 

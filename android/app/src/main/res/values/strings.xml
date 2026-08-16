@@ -275,6 +275,7 @@
     <string name="ask_tell">рассказать</string>
     <string name="ask_no">не надо</string>
     <string name="ask_save">запомнить</string>
+    <string name="note_append">Дописать</string>
     <string name="note_collected">СОБРАНО</string>
     <string name="dict_title">Как я слышу</string>
     <string name="dict_note">Слова, которые я всё время путаю. Поправишь один раз — дальше пишу правильно.</string>

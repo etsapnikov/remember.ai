@@ -214,6 +214,26 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
                         )
                         // Вход — строкой у заголовка. Тап по самому тексту остаётся
                         // выделению и копированию: транскрипт читают чаще, чем правят.
+                        Row(horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+                        // «Дописать» первым: добавляют чаще, чем чинят (Д-3).
+                        MetaText(
+                            text = stringResource(R.string.note_append),
+                            color = Prinyal.colors.accentSelf,
+                            modifier = Modifier.clickable {
+                                context.startActivity(
+                                    android.content.Intent(
+                                        context,
+                                        ai.prinim.prinyal.capture.CaptureActivity::class.java,
+                                    ).apply {
+                                        putExtra(
+                                            ai.prinim.prinyal.capture.CaptureActivity.EXTRA_APPEND_TO,
+                                            noteId,
+                                        )
+                                        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                )
+                            },
+                        )
                         MetaText(
                             text = stringResource(R.string.transcript_edit),
                             color = Prinyal.colors.accentSelf,
@@ -225,6 +245,7 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
                                 )
                             },
                         )
+                        }
                     }
                 }
                 item {

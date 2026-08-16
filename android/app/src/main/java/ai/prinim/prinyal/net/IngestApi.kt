@@ -26,6 +26,8 @@ data class ParsedItem(
     val dueAt: Long?,
     val confidence: Confidence,
     val rawSpan: String?,
+    /** id существующего пункта, который модель уточняет (Р-14.3). */
+    val ref: String? = null,
 )
 
 data class ParseResult(

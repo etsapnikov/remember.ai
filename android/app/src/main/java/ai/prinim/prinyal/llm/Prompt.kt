@@ -81,6 +81,8 @@ object Prompt {
         topics: List<String> = emptyList(),
         glossary: List<String> = emptyList(),
         people: List<String> = emptyList(),
+        /** id → текст существующих пунктов: только при дописывании (Р-14.3). */
+        existing: List<Pair<String, String>> = emptyList(),
     ): String {
         val weekday = WEEKDAYS[now.dayOfWeek.value - 1]
         val stamp = "%04d-%02d-%02d %02d:%02d".format(
@@ -101,7 +103,18 @@ object Prompt {
         } else {
             "Кто есть кто: ${people.joinToString("; ")}.\n"
         }
-        return "Сейчас: $stamp, $weekday.\n$known\n$terms$whoIsWho" +
+        val known2 = if (existing.isEmpty()) {
+            ""
+        } else {
+            // Просим ссылаться, а не пересказывать: без `ref` уточнение
+            // неотличимо от нового пункта, и заметка обрастает дублями.
+            buildString {
+                append("Пункты этой заметки уже есть. Если пункт из речи — это тот же ")
+                append("самый, поставь ему поле \"ref\" с его id; новый пункт оставь без ref.\n")
+                existing.forEach { (id, text) -> append("  $id — $text\n") }
+            }
+        }
+        return "Сейчас: $stamp, $weekday.\n$known\n$terms$whoIsWho$known2" +
             "Транскрипт записи:\n$transcript"
     }
 }

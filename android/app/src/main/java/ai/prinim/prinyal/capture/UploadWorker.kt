@@ -60,9 +60,27 @@ class UploadWorker(
             app.repository.markQueued(note.id)
             app.repository.bumpAttempts(note.id)
 
+            // Дописанные сегменты распознаём отдельно и склеиваем: разбор
+            // должен видеть весь текст сразу, иначе «справка не в школе, а в
+            // поликлинике» превратится в новый пункт вместо уточнения.
+            val segments = app.db.segments().forNote(note.id)
+            val appended = segments.size > 1
+            if (appended) {
+                segments.filter { it.transcript.isNullOrBlank() }.forEach { segment ->
+                    val file = File(segment.audioPath)
+                    if (!file.exists()) return@forEach
+                    val text = transcribeLocally(app, note.id, file, store = false)
+                    if (text != null) app.db.segments().setTranscript(segment.id, text)
+                }
+            }
+
             // Распознаём на устройстве и только потом идём в сеть: аудио телефон не
             // покидает, а транскрипт появляется даже когда сети нет вовсе.
-            val transcript = note.transcript ?: transcribeLocally(app, note.id, audio)
+            val transcript = if (appended) {
+                app.repository.joinedTranscript(note.id)
+            } else {
+                note.transcript ?: transcribeLocally(app, note.id, audio)
+            }
 
             val outcome = when {
                 transcript == null -> IngestOutcome.Retryable("asr_not_ready")
@@ -88,6 +106,14 @@ class UploadWorker(
                     // Узнанное про людей возвращается в разбор: «Юля —
                     // воспитательница Сони» помогает верно назначить адресата.
                     people = app.db.people().known().map { "${it.name} — ${it.fact}" },
+                    // Существующие пункты передаём только при дописывании: на
+                    // первом разборе ссылаться не на что, а лишний контекст
+                    // сбивает модель.
+                    existing = if (appended) {
+                        app.db.items().forNote(note.id).map { it.id to it.text }
+                    } else {
+                        emptyList()
+                    },
                     now = java.time.LocalDateTime.ofInstant(
                         java.time.Instant.ofEpochMilli(note.createdAt),
                         java.time.ZoneId.systemDefault(),
@@ -99,7 +125,13 @@ class UploadWorker(
             when (outcome) {
                 is IngestOutcome.Ok -> {
                     app.repository.markSent(note.id)
-                    val items = app.repository.applyParse(note.id, outcome.result)
+                    // Дописанное идёт через сверку: закрытые пункты обязаны
+                    // пережить переразбор.
+                    val items = if (appended) {
+                        app.repository.applyAppendParse(note.id, outcome.result)
+                    } else {
+                        app.repository.applyParse(note.id, outcome.result)
+                    }
                     parsed++
                     // Одиночную запись показываем сразу; пачку после оффлайна —
                     // одной сводкой ниже, чтобы не завалить шторку.
@@ -137,6 +169,8 @@ class UploadWorker(
         app: PrinyalApp,
         noteId: String,
         audio: File,
+        /** Класть ли результат в заметку: у сегмента своё поле. */
+        store: Boolean = true,
     ): String? {
         // Веса распаковываются здесь, перед первым распознаванием: старт
         // приложения не должен ждать 326 МБ.
@@ -162,7 +196,7 @@ class UploadWorker(
             val text = fixed.text
             val took = System.currentTimeMillis() - started
 
-            app.repository.saveTranscript(noteId, text, took)
+            if (store) app.repository.saveTranscript(noteId, text, took)
             Log.i(TAG, "распознал $noteId за ${took}мс, символов ${text.length}")
             text
         } catch (e: Throwable) {
