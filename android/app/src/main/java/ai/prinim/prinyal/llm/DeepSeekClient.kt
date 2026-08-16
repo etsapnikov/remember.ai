@@ -22,7 +22,8 @@ import java.util.concurrent.TimeUnit
  * быть отдельным и с лимитом расходов.
  *
  * Логика ретраев и деградаций повторяет серверную (`app/llm.py`): один вызов,
- * non-thinking, json_object, до двух ретраев на пустой content.
+ * json_object, до двух ретраев на пустой content. Рассуждения модели включены —
+ * см. комментарий у `max_tokens`.
  */
 class DeepSeekClient(
     private val apiKey: String,
@@ -130,12 +131,21 @@ class DeepSeekClient(
                 put(JSONObject().put("role", "user").put("content", Prompt.user(transcript, now)))
             })
             put("temperature", 0.1)
-            put("max_tokens", 2048)
+            // Бюджет считается вместе с рассуждениями: модель тратит на них
+            // 6500–7900 токенов, и при прежних 2048 ответа не оставалось вовсе —
+            // приходил пустой content с `finish_reason: length`. Это была наша
+            // ошибка в бюджете, а не поведение DeepSeek.
+            put("max_tokens", MAX_TOKENS)
             put("response_format", JSONObject().put("type", "json_object"))
             put("stream", false)
-            // Non-thinking обязателен: иначе v4-flash уводит весь бюджет токенов
-            // в reasoning и возвращает пустой content (PRD §2.2).
-            put("thinking", JSONObject().put("type", "disabled"))
+            // Рассуждения включены. Прогон корпуса 16.08 (18 записей): число
+            // пунктов почти не меняется, но качество разбора заметно лучше —
+            // «камера опафаиндекс шесть» становится «узнать, на каком месте
+            // камера OPPO Find X6», событие с датой получает тип `date`, а не
+            // `fact`, и «завтра вечером» уходит в окно, а не в мнимое точное
+            // время. Расхождение в пользу рассуждений — на 10 записях из 18.
+            // Цена: медиана 16 с против 2–4. Разбор фоновый, квитанция уже
+            // показана — этих секунд человек не ждёт.
         }
 
         val request = Request.Builder()
@@ -182,13 +192,19 @@ class DeepSeekClient(
 
     companion object {
         const val DEFAULT_MODEL = "deepseek-v4-flash"
+
+        /** Бюджет на рассуждения и ответ вместе: рассуждений бывает до 7900. */
+        const val MAX_TOKENS = 8192
         const val DEFAULT_BASE_URL = "https://api.deepseek.com"
 
         private val JSON = "application/json; charset=utf-8".toMediaType()
 
         fun defaultClient(): OkHttpClient = OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
+            // Рассуждения тратят время: медиана 16 с, длинная запись — до 47.
+            // Прежних 30 секунд не хватало бы ровно на самых сложных записях,
+            // то есть там, где рассуждения и нужны.
+            .readTimeout(120, TimeUnit.SECONDS)
             .writeTimeout(20, TimeUnit.SECONDS)
             .build()
     }

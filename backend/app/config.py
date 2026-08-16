@@ -59,8 +59,8 @@ class Settings:
         default_factory=lambda: _env("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
     )
     llm_model: str = field(default_factory=lambda: _env("LLM_MODEL", "deepseek-v4-flash"))
-    llm_timeout_s: float = field(default_factory=lambda: _env_float("LLM_TIMEOUT_S", 15.0))
-    llm_max_tokens: int = field(default_factory=lambda: _env_int("LLM_MAX_TOKENS", 2048))
+    llm_timeout_s: float = field(default_factory=lambda: _env_float("LLM_TIMEOUT_S", 120.0))
+    llm_max_tokens: int = field(default_factory=lambda: _env_int("LLM_MAX_TOKENS", 8192))
     llm_temperature: float = field(default_factory=lambda: _env_float("LLM_TEMPERATURE", 0.1))
     # Документированная особенность DeepSeek: изредка пустой content (PRD §2.2).
     llm_retries: int = field(default_factory=lambda: _env_int("LLM_RETRIES", 2))

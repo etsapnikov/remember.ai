@@ -153,9 +153,11 @@ async def test_request_carries_json_mode_and_time_context():
     assert captured["response_format"] == {"type": "json_object"}
     assert captured["temperature"] == 0.1
     assert captured["stream"] is False
-    # Без этого v4-flash уводит весь бюджет токенов в reasoning и отдаёт пустой
-    # content: 21 с ожидания вместо 3 и ноль пунктов вместо трёх (PRD §2.2).
-    assert captured["thinking"] == {"type": "disabled"}
+    # Рассуждения модели не выключаем (Р-13.6): они чинят типы, окна и имена,
+    # искажённые распознаванием. Бюджет обязан вмещать их вместе с ответом —
+    # при 2048 рассуждения съедали его целиком и content приходил пустым.
+    assert "thinking" not in captured
+    assert captured["max_tokens"] >= 8192
     system, user = captured["messages"]
     # Требование провайдера: слово «json» и пример структуры обязаны быть в промпте.
     assert "json" in system["content"].lower()

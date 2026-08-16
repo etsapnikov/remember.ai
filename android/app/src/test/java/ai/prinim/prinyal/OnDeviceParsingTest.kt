@@ -178,14 +178,18 @@ class OnDeviceParsingTest {
     }
 
     @Test
-    fun `запрос уходит в non-thinking режиме`() {
+    fun `запрос уходит с рассуждениями и бюджетом под них`() {
         server.enqueue(reply("""[{"type":"do","text":"тест","due_kind":"none","confidence":"high"}]"""))
         client().parse(transcript, now, zone)
 
         val recorded = server.takeRequest(5, java.util.concurrent.TimeUnit.SECONDS)
             ?: error("запрос до DeepSeek не ушёл")
         val body = JSONObject(recorded.body.readUtf8())
-        assertEquals("disabled", body.getJSONObject("thinking").getString("type"))
+        // Рассуждения не выключаем (Р-13.6): они чинят типы, окна и искажённые
+        // распознаванием имена. Бюджет обязан вмещать их вместе с ответом —
+        // при 2048 рассуждения съедали его целиком и content приходил пустым.
+        assertTrue("рассуждения выключать не нужно", !body.has("thinking"))
+        assertTrue("бюджета не хватит на рассуждения", body.getInt("max_tokens") >= 8192)
         assertEquals("json_object", body.getJSONObject("response_format").getString("type"))
         assertEquals(false, body.getBoolean("stream"))
         // Слово «json» в промпте — требование провайдера.

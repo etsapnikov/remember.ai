@@ -54,10 +54,9 @@ async def parse_transcript(
         "max_tokens": settings.llm_max_tokens,
         "response_format": {"type": "json_object"},
         "stream": False,
-        # Non-thinking — обязательно (PRD §2.2). Без этого v4-flash уводит все
-        # `max_tokens` в reasoning, упирается в `finish_reason: length` и возвращает
-        # пустой content: замер показал 21 с и ноль пунктов вместо 3 с и трёх.
-        "thinking": {"type": "disabled"},
+        # Рассуждения включены: прогон корпуса 16.08 показал, что они чинят
+        # типы, окна и искажённые распознаванием имена. Бюджет считается вместе
+        # с ними — при 2048 ответа не оставалось вовсе.
     }
     headers = {
         "Authorization": f"Bearer {settings.deepseek_api_key}",
