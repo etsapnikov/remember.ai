@@ -52,6 +52,13 @@ interface NoteDao {
     )
     fun withoutTopic(): Flow<List<NoteWithItems>>
 
+    /** Разобранные заметки без раздела — материал для ретро-прогона. */
+    @Query(
+        "SELECT * FROM notes WHERE deleted_at IS NULL AND topic_id IS NULL " +
+            "AND transcript IS NOT NULL AND transcript != '' ORDER BY created_at DESC"
+    )
+    suspend fun looseList(): List<NoteEntity>
+
     @Query("UPDATE notes SET topic_id = :topicId, topic_source = :source WHERE id = :id")
     suspend fun setTopic(id: String, topicId: String?, source: String)
 

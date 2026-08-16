@@ -393,6 +393,26 @@ class NoteRepository(
         return touched
     }
 
+    /**
+     * Ретро-разбор: взять из ответа только раздел и вид записи.
+     *
+     * Пункты не трогаем намеренно. Старые заметки уже прожиты — часть закрыта,
+     * часть поправлена руками, — и переразбор ради структуры переписал бы всё
+     * это. Раскладываем по разделам, прошлое оставляем как есть.
+     */
+    suspend fun applyTopicOnly(noteId: String, result: ParseResult): Boolean {
+        val note = db.notes().byId(noteId) ?: return false
+        val topicId = resolveTopic(note, result.topic) ?: return false
+        db.notes().update(
+            note.copy(
+                topicId = topicId,
+                topicSource = TopicSource.LLM.wire,
+                noteKind = result.noteKind?.wire ?: note.noteKind,
+            )
+        )
+        return true
+    }
+
     private suspend fun rememberPeople(names: List<String>) {
         names.forEach { name ->
             val clean = name.trim()

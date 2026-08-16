@@ -117,6 +117,35 @@ fun SettingsScreen(vm: AppViewModel) {
         }
 
         item {
+            Section(stringResource(R.string.retro_title)) {
+                var loose by remember { mutableStateOf(0) }
+                LaunchedEffect(Unit) { loose = vm.looseCountNow() }
+
+                // Счёт и цена — до запуска, а не после: прогон стоит секунд и
+                // денег, и решение принимает владелец, а не кнопка.
+                Text(
+                    text = stringResource(R.string.retro_note, loose, loose * 16),
+                    style = Prinyal.type.body,
+                    color = Prinyal.colors.inkMuted,
+                )
+                if (loose > 0) {
+                    Box(
+                        Modifier
+                            .background(Prinyal.colors.accentSelf, Radius.pill)
+                            .clickable { vm.retroClassify() }
+                            .padding(horizontal = Space.ml, vertical = Space.sm),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.retro_run),
+                            style = Prinyal.type.label,
+                            color = Prinyal.colors.paper,
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
             Section(stringResource(R.string.dict_title)) {
                 Text(
                     text = stringResource(R.string.dict_note),

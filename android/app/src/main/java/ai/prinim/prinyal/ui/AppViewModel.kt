@@ -1,6 +1,7 @@
 package ai.prinim.prinyal.ui
 
 import ai.prinim.prinyal.PrinyalApp
+import ai.prinim.prinyal.R
 import ai.prinim.prinyal.capture.SilenceWindow
 import ai.prinim.prinyal.capture.UploadWorker
 import ai.prinim.prinyal.data.Analytics
@@ -134,6 +135,44 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             app.db.replacements().insert(rule)
         }
     }
+
+    /**
+     * Разложить по разделам заметки, сделанные до 1.0.1.
+     *
+     * Идёт по одной и вслух: каждая запись — отдельный вызов модели с
+     * рассуждениями, это секунды и деньги. Молчаливый фоновый прогон на два
+     * десятка записей выглядел бы как зависшее приложение.
+     */
+    fun retroClassify() = viewModelScope.launch {
+        val notes = app.db.notes().looseList()
+        if (notes.isEmpty()) {
+            _message.value = getApplication<Application>().getString(R.string.retro_nothing)
+            return@launch
+        }
+        var done = 0
+        notes.forEachIndexed { index, note ->
+            _message.value = getApplication<Application>()
+                .getString(R.string.retro_progress, index + 1, notes.size)
+            val outcome = app.llm.parse(
+                transcript = note.transcript.orEmpty(),
+                now = java.time.LocalDateTime.ofInstant(
+                    java.time.Instant.ofEpochMilli(note.createdAt),
+                    java.time.ZoneId.systemDefault(),
+                ),
+                zone = java.time.ZoneId.systemDefault(),
+                topics = app.db.topics().live().map { it.name },
+                glossary = Replacements.glossary(app.db.replacements().all()),
+            )
+            if (outcome is ai.prinim.prinyal.net.IngestOutcome.Ok) {
+                if (app.repository.applyTopicOnly(note.id, outcome.result)) done++
+            }
+        }
+        _message.value = getApplication<Application>()
+            .getString(R.string.retro_done, done, notes.size)
+    }
+
+    /** Сколько заметок ждут раскладки — показываем до запуска, вместе с ценой. */
+    suspend fun looseCountNow(): Int = app.db.notes().looseList().size
 
     /** «Не надо» — закрывает имя навсегда и молча. Никаких «вы уверены». */
     fun declinePerson(id: String) = viewModelScope.launch {
