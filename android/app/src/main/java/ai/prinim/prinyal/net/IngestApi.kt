@@ -37,6 +37,8 @@ data class ParseResult(
     val topic: String? = null,
     /** Люди, упомянутые в записи, — сырьё для доспроса (Р-14.7). */
     val entities: List<String> = emptyList(),
+    /** Тело заметки в markdown — только у идей (Р-14.5). */
+    val bodyMd: String? = null,
     /** Код деградации §6 или null. Строку подбирает UI из strings.xml. */
     val degraded: String?,
     val asrMs: Int,

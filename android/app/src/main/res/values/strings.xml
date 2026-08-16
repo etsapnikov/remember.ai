@@ -271,6 +271,7 @@
     <!-- Сводка недели §F-9 -->
     <string name="weekly_title">Неделя</string>
     <string name="topics_title">Разделы</string>
+    <string name="note_collected">СОБРАНО</string>
     <string name="dict_title">Как я слышу</string>
     <string name="dict_note">Слова, которые я всё время путаю. Поправишь один раз — дальше пишу правильно.</string>
     <string name="dict_from">Слышу</string>

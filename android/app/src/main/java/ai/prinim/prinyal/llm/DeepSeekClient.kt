@@ -1,6 +1,7 @@
 package ai.prinim.prinyal.llm
 
 import ai.prinim.prinyal.data.NoteKind
+import ai.prinim.prinyal.domain.Markdown
 import ai.prinim.prinyal.net.IngestOutcome
 import ai.prinim.prinyal.net.ParseResult
 import okhttp3.MediaType.Companion.toMediaType
@@ -118,6 +119,9 @@ class DeepSeekClient(
                     noteKind = NoteKind.of(root.optString("note_kind").takeIf { it.isNotBlank() }),
                     topic = ItemValidator.topicOf(root),
                     entities = ItemValidator.entitiesOf(root),
+                    // Санитайзер стоит здесь, а не у рендера: в базу не должно
+                    // попадать то, что мы не готовы показать.
+                    bodyMd = Markdown.sanitize(root.optString("body_md")).ifBlank { null },
                     degraded = null,
                     asrMs = 0,
                     llmMs = 0,

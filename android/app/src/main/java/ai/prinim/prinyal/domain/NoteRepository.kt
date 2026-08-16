@@ -118,6 +118,9 @@ class NoteRepository(
                     else -> note.topicSource
                 },
                 noteKind = result.noteKind?.wire ?: note.noteKind,
+                // Переразбор пересобирает тело: правка транскрипта обязана его
+                // инвалидировать, иначе «Собрано» будет описывать прошлый текст.
+                bodyMd = result.bodyMd,
             )
         )
         analytics.log(

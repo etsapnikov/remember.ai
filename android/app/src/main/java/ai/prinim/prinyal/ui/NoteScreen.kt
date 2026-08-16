@@ -176,6 +176,13 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
                 }
             }
 
+            // «Собрано» — сразу под шапкой: человек диктовал идею комком именно
+            // затем, чтобы получить собранное. Сырец нужен ему как источник и
+            // доказательство, а не как чтение (Д-4, ответ на вопрос 3).
+            note.bodyMd?.takeIf { it.isNotBlank() }?.let { body ->
+                item { MarkdownBody(body) }
+            }
+
             degradedText?.let { text ->
                 item { Text(text, style = Prinyal.type.voice, color = Prinyal.colors.accentSelf) }
             }
