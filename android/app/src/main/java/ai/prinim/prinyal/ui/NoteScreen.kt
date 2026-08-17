@@ -77,6 +77,9 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
     val note = entry?.note
 
     var editing by remember { mutableStateOf<ItemEntity?>(null) }
+    // Раскрытие пункта: тап показывает, а меняет — второй жест (Р-15.4).
+    var opened by remember { mutableStateOf<ItemEntity?>(null) }
+    var openedReturns by remember { mutableStateOf<List<ai.prinim.prinyal.data.ReturnEntity>>(emptyList()) }
     // Пикер раздела: список живых разделов подтягиваем только когда открыли.
     var picking by remember { mutableStateOf(false) }
     var topics by remember { mutableStateOf<List<TopicEntity>>(emptyList()) }
@@ -204,7 +207,7 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
                         item = item,
                         onDone = { vm.markDone(item.id) },
                         onDismiss = { vm.dismiss(item.id) },
-                        onEdit = { editing = item },
+                        onOpen = { opened = item },
                     )
                 }
             } else if (status == NoteStatus.RECORDED || status == NoteStatus.QUEUED ||
@@ -331,6 +334,20 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
         )
     }
 
+    opened?.let { item ->
+        LaunchedEffect(item.id) { openedReturns = vm.returnsFor(item.id) }
+        ItemDetailSheet(
+            item = item,
+            returns = openedReturns,
+            rawSpan = item.rawSpan,
+            onEdit = {
+                editing = item
+                opened = null
+            },
+            onDismiss = { opened = null },
+        )
+    }
+
     editing?.let { item ->
         EditItemSheet(
             item = item,
@@ -358,7 +375,7 @@ private fun ItemCard(
     item: ItemEntity,
     onDone: () -> Unit,
     onDismiss: () -> Unit,
-    onEdit: () -> Unit,
+    onOpen: () -> Unit,
 ) {
     val context = LocalContext.current
     val state = ItemState.of(item.state)
@@ -367,7 +384,9 @@ private fun ItemCard(
     Column(
         Modifier
             .fillMaxWidth()
-            .clickable(onClick = onEdit)
+            // Тап раскрывает, а не правит: самый дешёвый жест не должен
+            // менять данные — случайное касание не имеет права ничего испортить.
+            .clickable(onClick = onOpen)
             .padding(vertical = Space.s),
         verticalArrangement = Arrangement.spacedBy(Space.xs),
     ) {

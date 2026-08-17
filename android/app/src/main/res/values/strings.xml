@@ -276,6 +276,10 @@
     <string name="ask_tell">рассказать</string>
     <string name="ask_no">не надо</string>
     <string name="ask_save">запомнить</string>
+    <string name="item_from_speech">Из речи</string>
+    <string name="item_history">Как жил</string>
+    <string name="item_edit">Поправить</string>
+    <string name="item_close">Закрыть</string>
     <string name="note_parse_failed">не смог разобрать — повторить</string>
     <string name="note_append">Дописать</string>
     <string name="note_append_busy">разбираю — дописать можно через минуту</string>
