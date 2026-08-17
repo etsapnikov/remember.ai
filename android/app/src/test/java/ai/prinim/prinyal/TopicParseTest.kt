@@ -90,8 +90,8 @@ class TopicParseTest {
     }
 
     @Test
-    fun `промпт версии 3 объявляет новые поля`() {
-        assertEquals("3", Prompt.VERSION)
+    fun `промпт объявляет поля разбора и версионируется`() {
+        assertEquals("4", Prompt.VERSION)
         assertTrue(Prompt.SYSTEM.contains("note_kind"))
         assertTrue(Prompt.SYSTEM.contains("topic"))
         assertTrue(Prompt.SYSTEM.contains("entities"))

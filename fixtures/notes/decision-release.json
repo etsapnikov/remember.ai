@@ -1,0 +1,14 @@
+{
+  "id": "decision-release",
+  "kind": "решение",
+  "at": "2026-08-17T15:00",
+  "transcript": "созвонились с димой решили переносить релиз на октябрь",
+  "expect": {
+    "items_min": 1,
+    "items_max": 2,
+    "entities_any": [
+      "Дима"
+    ],
+    "split": false
+  }
+}

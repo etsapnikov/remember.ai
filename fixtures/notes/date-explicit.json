@@ -1,0 +1,15 @@
+{
+  "id": "date-explicit",
+  "kind": "явная дата",
+  "at": "2026-08-17T12:00",
+  "transcript": "счёт за садик оплатить десятого сентября не забыть",
+  "expect": {
+    "items_min": 1,
+    "items_max": 1,
+    "due_kind": [
+      "exact"
+    ],
+    "due_date": "2026-09-10",
+    "split": false
+  }
+}

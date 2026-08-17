@@ -1,0 +1,52 @@
+{
+ "id": "date-explicit",
+ "prompt_version": "4",
+ "recorded_at": "2026-08-17T21:43:23",
+ "took_s": 9.0,
+ "finish_reason": "stop",
+ "usage": {
+  "prompt_tokens": 1691,
+  "completion_tokens": 924,
+  "total_tokens": 2615,
+  "prompt_tokens_details": {
+   "cached_tokens": 640
+  },
+  "completion_tokens_details": {
+   "reasoning_tokens": 810
+  },
+  "prompt_cache_hit_tokens": 640,
+  "prompt_cache_miss_tokens": 1051
+ },
+ "response": {
+  "id": "7c10b0a8-f8f7-48bd-957b-45c653c18c03",
+  "object": "chat.completion",
+  "created": 1786992196,
+  "model": "deepseek-v4-flash",
+  "choices": [
+   {
+    "index": 0,
+    "message": {
+     "role": "assistant",
+     "content": "{\"note_kind\": \"tasks\", \"topic\": \"Дом\", \"entities\": [], \"body_md\": null, \"items\": [{\"type\": \"do\", \"text\": \"оплатить счёт за садик\", \"who\": null, \"due_kind\": \"exact\", \"window\": null, \"exact_local\": \"2026-09-10T09:00\", \"confidence\": \"high\", \"raw_span\": \"счёт за садик оплатить десятого сентября\"}]}",
+     "reasoning_content": "We need answer in Russian. Need parse user transcript. We need output JSON per schema. Need note_kind, topic, entities, body_md, items.\n\nTranscript: \"счёт за садик оплатить десятого сентября не забыть\" Means \"pay kindergarten bill on September 10, don't forget\". Need item type: do or buy? Pay bill => do. due_kind: exact because date named \"десятого сентября\". Current date 2026-08-17, Monday. Need exact_local: September 10, year? Current 2026, Sept 10 2026 is future. Time not named, set 09:00. So \"2026-09-10T09:00\". Window null. text \"оплатить счёт за садик\" maybe \"оплатить счёт за садик десятого сентября\". Need raw_span: \"счёт за садик оплатить десятого сентября\" or entire \"счёт за садик оплатить десятого сентября не забыть\"? raw_span should be fragment from which item taken. likely \"счёт за садик оплатить десятого сентября\". Need confidence high.\n\nNeed note_kind: tasks (a task). topic: probably \"Дом\" or \"Садик\"? Existing sections none, need create suitable. Topic short 1-2 words with capital. \"Садик\" maybe? Or \"Финансы\"? The task is payment for kindergarten. Since no sections, create \"Дом\"? Actually \"счёт за садик\" — household/child. Topic could be \"Дом\". But rule says if no existing, create suitable. Need choose. Maybe \"Садик\" is narrow but okay? \"Дом\" perhaps. Let's think. The prompt: \"Если подходит раздел из списка существующих — бери ровно его имя, не выдумывай синоним. Новый заводи, только когда ни один не подходит.\" No existing sections. So create. \"Садик\" maybe relevant, but \"Дом\" is broader. Need choose. The examples use \"Здоровье\", \"Дом\", \"Работа\", \"Дача\". Kindergarten payment is maybe \"Дом\" (family finance). But \"Садик\" not a typical section. I'd use \"Дом\". But maybe \"Финансы\" is better? The action is bill payment. Could be \"Дом\" (household). Let's set \"Дом\".\n\nEntities: none? No people mentioned. \"садик\" is not a person. So [].\n\nbody_md null.\n\nNeed ensure output JSON only. Need include all fields.\n\nLet's craft:\n{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Дом\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"оплатить счёт за садик\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2026-09-10T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"счёт за садик оплатить десятого сентября\"\n    }\n  ]\n}\n\nNeed perhaps text include date? Usually item text can include \"оплатить счёт за садик десятого сентября\" because date already in due. But instruction \"Формулируй пункт коротко и в исходных словах пользователя\" and \"Не выдумывай время.\" We can keep \"оплатить счёт за садик\". Since date is represented in due. Good.\n\nNeed maybe \"не забыть\" is a reminder not action. We ignore.\n\nLet's final."
+    },
+    "logprobs": null,
+    "finish_reason": "stop"
+   }
+  ],
+  "usage": {
+   "prompt_tokens": 1691,
+   "completion_tokens": 924,
+   "total_tokens": 2615,
+   "prompt_tokens_details": {
+    "cached_tokens": 640
+   },
+   "completion_tokens_details": {
+    "reasoning_tokens": 810
+   },
+   "prompt_cache_hit_tokens": 640,
+   "prompt_cache_miss_tokens": 1051
+  },
+  "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
+ }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "tasks-mixed-day",
+  "kind": "дела вразнобой",
+  "at": "2026-08-17T09:30",
+  "transcript": "купить капли в нос соне записать её к лору и мужу сказать что суббота занята",
+  "expect": {
+    "items_min": 3,
+    "items_max": 3,
+    "note_kind": [
+      "tasks"
+    ],
+    "types_any": [
+      "buy",
+      "do",
+      "tell"
+    ],
+    "windows_distinct_min": 2,
+    "entities_any": [
+      "Соня"
+    ],
+    "split": false
+  }
+}

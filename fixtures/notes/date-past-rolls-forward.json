@@ -1,0 +1,15 @@
+{
+  "id": "date-past-rolls-forward",
+  "kind": "дата уже прошла в этом году",
+  "at": "2026-08-17T12:00",
+  "transcript": "напомни десятого августа про страховку",
+  "expect": {
+    "items_min": 1,
+    "items_max": 1,
+    "due_kind": [
+      "exact"
+    ],
+    "due_date": "2027-08-10",
+    "split": false
+  }
+}

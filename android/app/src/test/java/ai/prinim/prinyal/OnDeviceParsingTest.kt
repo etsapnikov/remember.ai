@@ -120,7 +120,11 @@ class OnDeviceParsingTest {
             """{"type":"do","text":"стоматолог","due_kind":"exact",
                 "exact_local":"2026-08-07T19:00","confidence":"high"}"""
         )
-        val expected = LocalDateTime.parse("2026-08-07T19:00").atZone(zone).toEpochSecond()
+        // Миллисекунды. Прежде здесь стояли секунды — и тест закреплял ошибку:
+        // всё остальное читает dueAt через Instant.ofEpochMilli, то есть явная
+        // дата уезжала в январь 1970. Тест с неверной единицей хуже, чем его
+        // отсутствие: он делает баг «проверенным».
+        val expected = LocalDateTime.parse("2026-08-07T19:00").atZone(zone).toInstant().toEpochMilli()
         assertEquals(expected, result.items[0].dueAt)
         assertNull(result.items[0].window)
     }
@@ -253,6 +257,6 @@ class OnDeviceParsingTest {
     @Test
     fun `промпт на устройстве той же версии, что на сервере`() {
         // Разные версии означали бы, что два пути разбора дают разные пункты.
-        assertEquals("3", Prompt.VERSION)
+        assertEquals("4", Prompt.VERSION)
     }
 }

@@ -1,0 +1,52 @@
+{
+ "id": "date-past-rolls-forward",
+ "prompt_version": "4",
+ "recorded_at": "2026-08-17T21:43:38",
+ "took_s": 14.9,
+ "finish_reason": "stop",
+ "usage": {
+  "prompt_tokens": 1687,
+  "completion_tokens": 1954,
+  "total_tokens": 3641,
+  "prompt_tokens_details": {
+   "cached_tokens": 1664
+  },
+  "completion_tokens_details": {
+   "reasoning_tokens": 1819
+  },
+  "prompt_cache_hit_tokens": 1664,
+  "prompt_cache_miss_tokens": 23
+ },
+ "response": {
+  "id": "318c7303-b072-4dbf-ac13-a501a6502aea",
+  "object": "chat.completion",
+  "created": 1786992204,
+  "model": "deepseek-v4-flash",
+  "choices": [
+   {
+    "index": 0,
+    "message": {
+     "role": "assistant",
+     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Финансы\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"напомни десятого августа про страховку\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2027-08-10T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"напомни десятого августа про страховку\"\n    }\n  ]\n}",
+     "reasoning_content": "We need to parse the user's request. The transcription: \"напомни десятого августа про страховку\" - \"remind on the tenth of August about the insurance\". This is a reminder request. The user wants to be reminded on a specific date (August 10). Note that the current date is 2026-08-17 (Monday). So August 10 has already passed in 2026. According to rule 12: \"Год бери ближайший будущий: если названный день в этом году уже прошёл, значит речь о следующем.\" So the date is August 10, 2027? But careful: The user says \"десятого августа\" without specifying year. Since today is August 17, 2026, and August 10 has passed, the next occurrence is August 10, 2027. So exact_local should be 2027-08-10T09:00 (default time 09:00 if not specified). So due_kind: \"exact\", exact_local: \"2027-08-10T09:00\", window: null.\n\nThe item type: This is a reminder, which is a \"do\" action? Actually \"напомни\" means \"remind me\". It's a task to be reminded, but it's an action to set a reminder. Probably type: \"do\" or \"date\"? Rule says: `date` (событие с датой). This is a reminder about insurance on a specific date. But the user is asking to be reminded on that date. It's not an event itself, but a reminder. I think type: \"do\" is fine. But also could be \"date\" because it has a specific date. Hmm. Let's see: The example given: \"позвонить в поликлинику насчёт Сони\" is type \"do\". Here \"напомни десятого августа про страховку\" is essentially \"remind me about insurance on August 10\". So the item is a reminder task. I'd say type: \"do\" (сделать) because it's something to do (remind). Or maybe \"date\" because it's tied to a date. Let's check rule 12: \"Названная дата — это due_kind: \"exact\".\" That refers to the due time, not type. Type is separate. Since it's a reminder, it's an action to be performed at that time. I'll use \"do\".\n\nThe text: \"напомни десятого августа про страховку\" - clean up: \"напомни десятого августа про страховку\" -> \"напомнить десятого августа про страховку\" or \"напомни про страховку десятого августа\". I'll write: \"напомнить про страховку\" maybe? But better to keep original words: \"напомни десятого августа про страховку\" is fine. Shorten: \"напомнить про страховку\" but that loses date. Actually the item text should be the action, including date? Probably include date: \"напомнить десятого августа про страховку\". That's 40 chars, fine.\n\nwho: null, since no person mentioned.\n\nconfidence: high.\n\nraw_span: the exact fragment: \"напомни десятого августа про страховку\" - the whole transcription is that.\n\nNow note_kind: This is a task/reminder. It's an action to be done (set reminder). So note_kind: \"tasks\".\n\ntopic: This is about insurance (страховка). What topic? Since there are no existing sections, we need to create one. The example in the prompt says: \"Разделов пока нет — заведи подходящий.\" So we need to choose a topic. Insurance could be \"Финансы\" (Finances) or \"Страхование\" (Insurance). But the instruction says: \"topic: короткое имя раздела в 1–2 слова с заглавной буквы\". Existing sections are none, so we can choose something logical. \"Страховка\" is a thing. Maybe \"Документы\" or \"Финансы\"? Let's think. Since it's about insurance, I'd say \"Страховка\" or \"Финансы\". But the instruction also says: \"Если подходит раздел из списка существующих — бери ровно его имя, не выдумывай синоним. Новый заводи, только когда ни один не подходит.\" But there are none yet, so we can create one. The prompt says \"Разделов пока нет — заведи подходящий.\" So we can create \"Страховка\" or \"Финансы\". Since insurance is a financial matter, \"Финансы\" might be appropriate. But \"Страховка\" is more specific. I'll go with \"Финансы\" as a common category. But maybe \"Документы\"? Insurance is a document often. Hmm. The rule says \"короткое имя раздела в 1–2 слова с заглавной буквы\". I'll pick \"Финансы\" (Finances). Actually, let's see the example: they had \"Здоровье\". So topics are like \"Дом\", \"Работа\", etc. Insurance is not typical. I'll use \"Финансы\". Alternatively, \"Страхование\". I think \"Финансы\" is safer.\n\nentities: no people mentioned, so entities: [].\n\nbody_md: since note_kind is tasks, body_md: null.\n\nNow the response JSON should be exactly as per schema. Note that the example in the prompt has a duplicate opening and closing bracket, but that's a copy error. We'll output the clean JSON.\n\nLet's double-check the date: current 2026-08-17, so August 10 2026 is in the past. So next August 10 is 2027. So exact_local: \"2027-08-10T09:00\". Also note rule 12 says: \"Время не названо — ставь 09:00.\" So that's correct.\n\nDoes the user want a reminder at the beginning of that day? Usually \"напомни десятого августа\" means remind me on that day (maybe in the morning). But we default to 09:00.\n\nNow, is there any ambiguity? The transcription has \"напомни десятого августа про страховку\" - could be interpreted as \"remind me about the insurance on August 10\". So it's a task.\n\nThus the JSON:\n\n{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Финансы\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"напомнить десятого августа про страховку\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2027-08-10T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"напомни десятого августа про страховку\"\n    }\n  ]\n}\n\nBut is \"напомнить\" the right form? The original is \"напомни\" (imperative). We can keep it as \"напомни\" or \"напомнить\". The example uses infinitive \"позвонить\". So I'll use \"напомнить\" (to remind). Actually the instruction says \"Формулируй пункт коротко и в исходных словах пользователя, без канцелярита.\" So we should keep the original words as much as possible. \"напомни десятого августа про страховку\" is fine. But \"напомни\" is imperative, which is normal. I'll keep it as \"напомни десятого августа про страховку\". That is a sentence. Maybe we can shorten: \"напомнить про страховку 10 августа\"? But that changes order. Better to keep original. The length is 40 characters, less than 120.\n\nAlso check: The date is \"десятого августа\" - we use exact_local. The text can include the date as the user said.\n\nI think this is correct.\n\nNow, what about note_kind? It's a task, so \"tasks\". Topic: \"Финансы\" - is that acceptable? Insurance is a financial product. Yes.\n\nLet's ensure we don't output anything else.\n\nI'll output JSON."
+    },
+    "logprobs": null,
+    "finish_reason": "stop"
+   }
+  ],
+  "usage": {
+   "prompt_tokens": 1687,
+   "completion_tokens": 1954,
+   "total_tokens": 3641,
+   "prompt_tokens_details": {
+    "cached_tokens": 1664
+   },
+   "completion_tokens_details": {
+    "reasoning_tokens": 1819
+   },
+   "prompt_cache_hit_tokens": 1664,
+   "prompt_cache_miss_tokens": 23
+  },
+  "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
+ }
+}

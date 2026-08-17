@@ -225,7 +225,11 @@ object ItemValidator {
         val nowSeconds = now.atZone(zone).toEpochSecond()
         if (seconds <= nowSeconds) return null
         if (seconds - nowSeconds > MAX_HORIZON.seconds) return null
-        return seconds
+        // Миллисекунды, а не секунды. Здесь жила тихая ошибка с 1.0: наружу
+        // уходили секунды, а всё остальное читает `dueAt` через
+        // `Instant.ofEpochMilli` — любая явная дата превращалась в январь 1970,
+        // и возврат считался просроченным на полвека. Нашёл стенд фикстур.
+        return seconds * 1_000
     }
 
     /**

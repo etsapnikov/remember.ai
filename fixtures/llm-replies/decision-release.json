@@ -1,0 +1,52 @@
+{
+ "id": "decision-release",
+ "prompt_version": "4",
+ "recorded_at": "2026-08-17T21:43:52",
+ "took_s": 14.2,
+ "finish_reason": "stop",
+ "usage": {
+  "prompt_tokens": 1694,
+  "completion_tokens": 1815,
+  "total_tokens": 3509,
+  "prompt_tokens_details": {
+   "cached_tokens": 1152
+  },
+  "completion_tokens_details": {
+   "reasoning_tokens": 1695
+  },
+  "prompt_cache_hit_tokens": 1152,
+  "prompt_cache_miss_tokens": 542
+ },
+ "response": {
+  "id": "b632a92b-68c7-4331-83be-184101c3c499",
+  "object": "chat.completion",
+  "created": 1786992219,
+  "model": "deepseek-v4-flash",
+  "choices": [
+   {
+    "index": 0,
+    "message": {
+     "role": "assistant",
+     "content": "{\n  \"note_kind\": \"facts\",\n  \"topic\": \"Работа\",\n  \"entities\": [\"Дима\"],\n  \"body_md\": null,\n  \"items\": [\n    {\n      \"type\": \"fact\",\n      \"text\": \"перенесли релиз на октябрь\",\n      \"who\": null,\n      \"due_kind\": \"none\",\n      \"window\": null,\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"переносить релиз на октябрь\"\n    }\n  ]\n}",
+     "reasoning_content": "We need to parse the user's transcript: \"созвонились с димой решили переносить релиз на октябрь\"\n\nWe need to output JSON according to the schema. Let's break down.\n\nThe user said: \"созвонились с димой решили переносить релиз на октябрь\" (we talked on the phone with Dima, decided to move the release to October). This is a single statement. It contains a fact/decision: they called with Dima and decided to postpone the release to October.\n\nWe need to identify if this is a task, idea, question, facts, mixed. It's a statement of a decision made. It could be a fact about the world (release moved to October). There's no action item explicitly. But maybe it's an idea? Or a task? Actually it's more of a fact: they decided to move the release. There's no action requested. So note_kind: \"facts\" maybe? But the instruction: \"facts — сведения о мире, без действия\". So indeed.\n\nBut wait, could it be a \"tell\" type? No, they already called. It's a done deal. So it's a fact.\n\nPotential items: one item? The decision itself is a fact. But note_kind could be \"facts\". However, the example in the schema shows \"tasks\" etc. Let's see: There is a mention of \"релиз\" (release) so topic could be \"Работа\" (work). Since there are no existing sections, we can create \"Работа\" or maybe \"Проект\". The instruction says \"Разделов пока нет — заведи подходящий.\" So we can create a new topic like \"Работа\" (work). Since the release is likely a work thing.\n\nEntities: \"Дима\" is mentioned. So entities: [\"Дима\"].\n\nNow items: Should we have an item? The instruction: \"Разбери комок на отдельные пункты\". The text is a single sentence. It contains a fact about a decision. So items can be a fact type: \"перенесли релиз на октябрь\" with due_kind? There's a date mentioned: октябрь (October). But due_kind exact? The user said \"на октябрь\" – meaning the release moves to October. That is a fact with a date, but not necessarily an action item. The item type \"date\" could be used for events with date. But since it's a fact, maybe type \"fact\" is more appropriate. The schema says \"fact\" for facts about the world. So item: {\"type\": \"fact\", \"text\": \"перенесли релиз на октябрь\", \"who\": null? Actually there is Dima, but who is for tell type. So null. due_kind: \"exact\" because they said October. But we need exact_local in format YYYY-MM-DDTHH:MM. October is vague – no specific day. The instruction says: \"Названная дата — это due_kind: \"exact\". «Десятого сентября», «послезавтра в шесть», «в понедельник» — заполни exact_local в формате \"YYYY-MM-DDTHH:MM\". Год бери ближайший будущий: если названный день в этом году уже прошёл, значит речь о следующем. Время не названо — ставь 09:00. Дату не разобрал — оставь due_kind: \"none\", не выдумывай.\"\n\nHere they named \"октябрь\" (October), no specific day. So we don't have a day. So we cannot fill exact_local with a specific date. The instruction says \"Дату не разобрал — оставь due_kind: \"none\", не выдумывай.\" But \"октябрь\" is a month, not a full date. Should we fill with something? Possibly we could set due_kind: \"exact\" and exact_local to 2026-10-01T09:00? But that would be inventing a day. The instruction says time not given -> 09:00, but day not given? It says \"названный день\" – if the named day has passed. Here only month is given. So maybe we should not treat as exact. Perhaps due_kind: \"window\" with a more general window? But the window options are morning/day/evening/tomorrow_morning/weekend. October is not one of those. So due_kind: \"none\" is appropriate. So the item due_kind: \"none\".\n\nBut also note: the decision to move the release is a fact. Could it also be a thought? No.\n\nSo we have one item: {\"type\": \"fact\", \"text\": \"перенесли релиз на октябрь\", \"who\": null, \"due_kind\": \"none\", \"window\": null, \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"переносить релиз на октябрь\"}. The raw_span should be the exact fragment. The phrase is \"переносить релиз на октябрь\" but in the original it's \"переносить релиз на октябрь\". Note the transcript is without punctuation: \"созвонились с димой решили переносить релиз на октябрь\". So we can take \"переносить релиз на октябрь\" or the whole phrase? The instruction: \"Каждому пункту дай raw_span — дословный фрагмент исходника, из которого пункт взят.\" So we take the relevant fragment. The fact is the decision to move the release, so the fragment \"переносить релиз на октябрь\" is good.\n\nBut also the first part \"созвонились с димой\" – that's an action that happened, but not an item to do. It's part of the context. So one item is enough.\n\nNow note_kind: \"facts\" because it's a fact about the world (release moved). But also it's a decision, so maybe \"idea\"? No, it's already decided, not a thought. So \"facts\".\n\ntopic: \"Работа\" (work) – since release is work-related.\n\nbody_md: for facts, it's null. So body_md: null.\n\nThus JSON:\n\n{\n  \"note_kind\": \"facts\",\n  \"topic\": \"Работа\",\n  \"entities\": [\"Дима\"],\n  \"body_md\": null,\n  \"items\": [\n    {\n      \"type\": \"fact\",\n      \"text\": \"перенесли релиз на октябрь\",\n      \"who\": null,\n      \"due_kind\": \"none\",\n      \"window\": null,\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"переносить релиз на октябрь\"\n    }\n  ]\n}\n\nCheck: \"who\" only for tell type, so null. due_kind none because no specific date.\n\nBut wait: The instruction says: \"Определи, **что это за запись** целиком, — поле `note_kind`:\n   - `tasks` — дела и покупки, которые надо сделать;\n   - `idea` — замысел, который человек обдумывает вслух;\n   - `question` — прямой вопрос о факте («правда ли», «сколько стоит»);\n   - `facts` — сведения о мире, без действия;\n   - `mixed` — в записи всерьёз намешано разное.\"\n\nSo it's definitely facts.\n\nConsider if there is any action: \"созвонились\" – that's a past action, not to do. So no tasks.\n\nThus answer.\n\nBut also note: The user says \"Разделов пока нет — заведи подходящий.\" So we create topic \"Работа\". That's fine.\n\nMake sure to output only JSON."
+    },
+    "logprobs": null,
+    "finish_reason": "stop"
+   }
+  ],
+  "usage": {
+   "prompt_tokens": 1694,
+   "completion_tokens": 1815,
+   "total_tokens": 3509,
+   "prompt_tokens_details": {
+    "cached_tokens": 1152
+   },
+   "completion_tokens_details": {
+    "reasoning_tokens": 1695
+   },
+   "prompt_cache_hit_tokens": 1152,
+   "prompt_cache_miss_tokens": 542
+  },
+  "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
+ }
+}

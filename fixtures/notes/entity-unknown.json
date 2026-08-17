@@ -1,0 +1,13 @@
+{
+  "id": "entity-unknown",
+  "kind": "незнакомое имя",
+  "at": "2026-08-17T11:00",
+  "transcript": "узнать у юли размер и заказать бельё",
+  "expect": {
+    "items_min": 1,
+    "entities_any": [
+      "Юля"
+    ],
+    "split": false
+  }
+}

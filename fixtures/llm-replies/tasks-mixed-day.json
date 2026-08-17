@@ -1,0 +1,52 @@
+{
+ "id": "tasks-mixed-day",
+ "prompt_version": "4",
+ "recorded_at": "2026-08-17T21:47:32",
+ "took_s": 18.5,
+ "finish_reason": "stop",
+ "usage": {
+  "prompt_tokens": 1699,
+  "completion_tokens": 2166,
+  "total_tokens": 3865,
+  "prompt_tokens_details": {
+   "cached_tokens": 1536
+  },
+  "completion_tokens_details": {
+   "reasoning_tokens": 1918
+  },
+  "prompt_cache_hit_tokens": 1536,
+  "prompt_cache_miss_tokens": 163
+ },
+ "response": {
+  "id": "406ae7ba-15f3-47f9-918d-5bdf933d2984",
+  "object": "chat.completion",
+  "created": 1786992436,
+  "model": "deepseek-v4-flash",
+  "choices": [
+   {
+    "index": 0,
+    "message": {
+     "role": "assistant",
+     "content": "{\"note_kind\": \"tasks\", \"topic\": \"Здоровье\", \"entities\": [\"Соня\", \"муж\"], \"body_md\": null, \"items\": [{\"type\": \"buy\", \"text\": \"купить капли в нос Соне\", \"who\": null, \"due_kind\": \"window\", \"window\": \"day\", \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"купить капли в нос соне\"}, {\"type\": \"do\", \"text\": \"записать Соню к лору\", \"who\": null, \"due_kind\": \"window\", \"window\": \"morning\", \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"записать её к лору\"}, {\"type\": \"tell\", \"text\": \"сказать мужу, что суббота занята\", \"who\": \"муж\", \"due_kind\": \"window\", \"window\": \"evening\", \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"мужу сказать что суббота занята\"}]}",
+     "reasoning_content": "We need answer JSON. Need parse transcript: \"купить капли в нос соне записать её к лору и мужу сказать что суббота занята\" no punctuation. Need items.\n\nNeed identify tasks: buy nasal drops, make appointment for Sonya to ENT, tell husband that Saturday is busy.\n\nEntities: Соня, муж? Need entities list names as heard nominative. \"соне\" => Соня. \"мужу\" => муж? It's not a name but person. Rule \"Перечисли людей, упомянутых\" — include \"муж\"? likely entity \"муж\" as role? It says имена как прозвучали, в именительном падеже. \"муж\" is noun, maybe include \"Муж\" if person mentioned. But probably entities should include named persons only? Let's see examples: entities [\"Соня\"]. Муж is not name; but could be person. However \"who\" for tell should be \"мужу\" -> maybe \"муж\"? The instruction: who — имя адресата. If \"мужу\" is not name but relation. Maybe who: \"муж\" or \"мужу\"? Need decide.\n\nNeed parse items:\n\n1. \"купить капли в нос\" type buy, text \"купить капли в нос\", who null, due window? It's a purchase, likely \"day\" per rule: купить → day. raw_span \"купить капли в нос\" confidence high.\n\n2. \"соне записать её к лору\" => записать Соню к лору. Type do? \"записать её к лору\" is a task/action, type do (or date? no). due_kind: \"записаться, дозвониться, попасть в организацию (поликлиника, банк, сервис) → morning\" per rules. So window morning. raw_span \"соне записать её к лору\" maybe includes \"соне\". Need text \"записать Соню к лору\" with \"Соню\"? But person says \"соне записать её к лору\" meaning \"записать Соне (её) к лору\". We can formulate \"записать Соню к лору\" or \"записать её к лору\". \"Формулируй коротко и в исходных словах пользователя\" — \"соне записать её к лору\" is weird; better \"записать Соню к лору\". Need maybe include \"Соню\" as entity. raw_span can be \"соне записать её к лору\". Good.\n\n3. \"мужу сказать что суббота занята\" => tell husband that Saturday is busy. Type tell, who \"муж\" or \"мужу\"? The address is \"мужу\" dative; nominative \"муж\". But instruction says \"who — имя адресата\". For non-name \"муж\", maybe \"муж\" as role. Let's choose \"муж\". Text \"сказать мужу, что суббота занята\". due_kind: \"сказать, спросить, обсудить с домашними → evening\" because you'll see them at home. So window evening. raw_span \"мужу сказать что суббота занята\".\n\nNeed note_kind: tasks. topic: Need create appropriate. Sections none yet. What topic? There are health (ENT, drops), family (husband) and schedule. Maybe \"Здоровье\" or \"Семья\" or \"Дела\". Rule: Determine \"про что\" запись. It is about tasks involving health and family. Maybe \"Здоровье\" since drops/ENT. But also telling husband schedule. Could be \"Дом\"? We need choose topic if fits existing? No existing sections. We can create new \"Здоровье\" if applicable. Since majority? Actually 3 tasks: buy drops, appointment ENT (child), tell husband about Saturday. Might be family logistics. But core is health? \"капли в нос\", \"лор\" are health. \"суббота занята\" to husband could be due to health appointment? Probably. Choose \"Здоровье\". Or maybe \"Семья\". The instruction says if not sure or mixed — topic null. Is mixed? Tasks all related to health and informing husband. I'd choose \"Здоровье\". But \"сказать мужу что суббота занята\" not health directly. But because Saturday occupied maybe due to appointment? Could be. Since we don't know. Maybe topic \"Здоровье\" is reasonable.\n\nNeed confidence for each item? high because clear.\n\nNeed body_md null since tasks.\n\nNeed entities: [\"Соня\", \"муж\"]? However \"муж\" not exactly name. The instruction says \"имена как они прозвучали\" — муж is not имя. It says \"людей, упомянутых\" — so include husband as person. I think include \"Муж\" with capital? But raw lower. \"муж\" in nominative. The examples likely include Соня. Let's include \"Соня\" and \"муж\". But maybe \"муж\" isn't a proper name; still \"людей\" so ok.\n\nNeed JSON exactly.\n\nNeed \"exact_local\" null, due_kind \"window\" for all.\n\nNeed \"window\" for item1 day; item2 morning; item3 evening.\n\nLet's craft.\n\nPotential issue: \"купить капли в нос соне\" — could be one item \"купить капли в нос Соне\" and \"записать её к лору\" separate. Yes.\n\nNeed raw_span minimal fragments: \nitem1 raw_span \"купить капли в нос\"\nitem2 raw_span \"соне записать её к лору\"\nitem3 raw_span \"мужу сказать что суббота занята\"\n\nNeed text fields:\nitem1 \"купить капли в нос\" maybe \"купить капли в нос Соне\"? Wait \"соне\" belongs to both? The phrase \"купить капли в нос соне записать её к лору\" actually could parse \"купить капли в нос соне\" = buy drops for Sonya. Then \"записать её к лору\" = make appointment for her. So item1 should include \"Соне\" perhaps: \"купить капли в нос Соне\". But raw span \"купить капли в нос\" excludes соне? The user says \"купить капли в нос соне\" — it's all one phrase. Since \"соне\" modifies drops. We should include \"Соне\" in item1 text. raw_span can be \"купить капли в нос соне\". Then item2 \"записать её к лору\". raw_span \"записать её к лору\" but original has \"соне записать её...\" Actually sequence: \"купить капли в нос соне записать её к лору\" means \"buy drops in nose for Sonya, sign her up to ENT\". The word \"соне\" could be object of \"купить\" not \"записать\" because \"её\" resumptive. So item1 raw_span should include \"купить капли в нос соне\". Item2 raw_span \"записать её к лору\". Good.\n\nLet's set:\nitem1 text \"купить капли в нос Соне\" due_kind window window day raw_span \"купить капли в нос соне\". Should we capitalize Соне? Probably in text restore names: Соне. Since user said \"соне\" lower. We can write \"Соне\" in final text.\n\nitem2 text \"записать её к лору\" or \"записать Соню к лору\" But to avoid ambiguity \"её\" refers to Sonja; but in text of task \"записать Соню к лору\" is clearer. However rule says \"в исходных словах пользователя\" — \"её\" is original. But \"соне\" also present. I'd use \"записать Соню к лору\" because normal form. Could be acceptable.\n\nitem3 text \"сказать мужу, что суббота занята\".\n\nNeed who: item3 who \"муж\" or \"мужу\"? In final text \"мужу\" but who should be nominative? Rule says \"who — имя адресата\". \"мужу\" is not nominative. In example they'd use \"Соня\" for \"соню\". So use \"муж\" as nominative. But maybe \"муж\" isn't a name. We'll set \"муж\".\n\nNeed entities: [\"Соня\", \"муж\"] maybe with captial? Let's do [\"Соня\", \"муж\"].\n\nNeed topic: \"Здоровье\".\n\nNeed note_kind: \"tasks\".\n\nLet's output JSON. Ensure no markdown."
+    },
+    "logprobs": null,
+    "finish_reason": "stop"
+   }
+  ],
+  "usage": {
+   "prompt_tokens": 1699,
+   "completion_tokens": 2166,
+   "total_tokens": 3865,
+   "prompt_tokens_details": {
+    "cached_tokens": 1536
+   },
+   "completion_tokens_details": {
+    "reasoning_tokens": 1918
+   },
+   "prompt_cache_hit_tokens": 1536,
+   "prompt_cache_miss_tokens": 163
+  },
+  "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
+ }
+}

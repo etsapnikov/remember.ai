@@ -27,12 +27,25 @@ import java.util.concurrent.TimeUnit
  * json_object, до двух ретраев на пустой content. Рассуждения модели включены —
  * см. комментарий у `max_tokens`.
  */
+/**
+ * Куда уходит запрос разбора.
+ *
+ * Шов ради тестов кор-лупа (Р-15.16): в CI ответы модели берутся с плёнки, без
+ * сети и без недетерминизма. Без этого шва каждый прогон стоил бы денег и мог
+ * упасть от настроения модели — то есть тесты проверяли бы погоду, а не код.
+ */
+fun interface LlmTransport {
+    /** @return код ответа и тело */
+    fun send(payload: String): Pair<Int, String>
+}
+
 class DeepSeekClient(
     private val apiKey: String,
     private val model: String = DEFAULT_MODEL,
     private val baseUrl: String = DEFAULT_BASE_URL,
     private val retries: Int = 2,
     private val client: OkHttpClient = defaultClient(),
+    private val transport: LlmTransport? = null,
 ) {
 
     fun parse(
@@ -109,8 +122,31 @@ class DeepSeekClient(
             val items = itemsOf(root)
             val validated = ItemValidator.validate(items, transcript, now, zone)
 
+            val kind = NoteKind.of(root.optString("note_kind").takeIf { it.isNotBlank() })
+
             if (validated.items.isEmpty()) {
-                // Модель ответила, но пунктов не нашла — запись всё равно не теряем.
+                // Вопрос или факт законно не рождает дел: «правда ли, что капли
+                // не дольше пяти дней» — это не задача. Если модель назвала вид
+                // записи, разбор состоялся, и звать это деградацией нельзя —
+                // иначе карточка вопроса выглядит сломанной.
+                if (kind != null) {
+                    return IngestOutcome.Ok(
+                        ParseResult(
+                            transcript = transcript,
+                            items = emptyList(),
+                            noteKind = kind,
+                            topic = ItemValidator.topicOf(root),
+                            entities = ItemValidator.entitiesOf(root),
+                            bodyMd = Markdown.sanitize(ItemValidator.stringOrNull(root, "body_md"))
+                                .ifBlank { null },
+                            degraded = null,
+                            asrMs = 0,
+                            llmMs = 0,
+                            llmRetries = attempt,
+                        )
+                    )
+                }
+                // Вида записи нет и пунктов нет — вот это уже провал разбора.
                 return degraded(transcript, "llm_empty", attempt)
             }
 
@@ -118,7 +154,7 @@ class DeepSeekClient(
                 ParseResult(
                     transcript = transcript,
                     items = validated.items,
-                    noteKind = NoteKind.of(root.optString("note_kind").takeIf { it.isNotBlank() }),
+                    noteKind = kind,
                     topic = ItemValidator.topicOf(root),
                     entities = ItemValidator.entitiesOf(root),
                     // Санитайзер стоит здесь, а не у рендера: в базу не должно
@@ -174,6 +210,11 @@ class DeepSeekClient(
             // время. Расхождение в пользу рассуждений — на 10 записях из 18.
             // Цена: медиана 16 с против 2–4. Разбор фоновый, квитанция уже
             // показана — этих секунд человек не ждёт.
+        }
+
+        transport?.let { tape ->
+            val (code, text) = tape.send(payload.toString())
+            return Response(code, runCatching { JSONObject(text) }.getOrNull())
         }
 
         val request = Request.Builder()
