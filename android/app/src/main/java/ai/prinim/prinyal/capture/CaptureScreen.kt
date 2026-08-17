@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -51,6 +52,11 @@ class CaptureState {
     var needsPermission by mutableStateOf(false)
     var failed by mutableStateOf(false)
     var tooShort by mutableStateOf(false)
+    /**
+     * Первые слова заметки, к которой дописываем; null — обычная запись.
+     * Плашка сообщает, а не спрашивает: человек уже решил дописать (Д-3).
+     */
+    var appendHint by mutableStateOf<String?>(null)
     var elapsedMs by mutableLongStateOf(0L)
     var level by mutableFloatStateOf(0f)
     /**
@@ -96,6 +102,24 @@ fun CaptureScreen(
             state.failed -> Message(stringResource(R.string.error_asr_failed))
             state.tooShort -> Message(stringResource(R.string.capture_too_short))
             else -> Recording(state, hasNotes, onStop = onStop, onStart = onStart)
+        }
+
+        // Плашка контекста дописывания (Д-3): прижата к верху, набрана
+        // служебным моно. Она сообщает, а не спрашивает — человек уже решил
+        // дописать, и переспрашивать его на экране записи не за чем.
+        state.appendHint?.let { hint ->
+            MetaText(
+                text = if (hint.isBlank()) {
+                    stringResource(R.string.capture_append_plain)
+                } else {
+                    stringResource(R.string.capture_append, hint)
+                },
+                color = Prinyal.colors.inkFaint,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(horizontal = Space.screen, vertical = Space.m),
+            )
         }
     }
 }

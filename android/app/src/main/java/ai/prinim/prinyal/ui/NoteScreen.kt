@@ -215,6 +215,16 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
                         // Вход — строкой у заголовка. Тап по самому тексту остаётся
                         // выделению и копированию: транскрипт читают чаще, чем правят.
                         Row(horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+                        // Пока идёт разбор, дописывать нельзя: переразбор пошёл бы
+                        // по половине текста. Кнопка не исчезает и не молчит — она
+                        // прямо говорит, почему сейчас нельзя (Р-15.1).
+                        val busy = status == NoteStatus.RECORDED || status == NoteStatus.QUEUED
+                        if (busy) {
+                            MetaText(
+                                text = stringResource(R.string.note_append_busy),
+                                color = Prinyal.colors.inkFaint,
+                            )
+                        } else {
                         // «Дописать» первым: добавляют чаще, чем чинят (Д-3).
                         MetaText(
                             text = stringResource(R.string.note_append),
@@ -234,6 +244,7 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
                                 )
                             },
                         )
+                        }
                         MetaText(
                             text = stringResource(R.string.transcript_edit),
                             color = Prinyal.colors.accentSelf,

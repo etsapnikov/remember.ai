@@ -40,6 +40,8 @@ class CaptureActivity : ComponentActivity() {
     private var watchdog: Job? = null
     private var noteId: String = ""
     private var source: CaptureSource = CaptureSource.ICON
+    /** id заметки, к которой дописываем; null — обычная запись. */
+    private var appendTo: String? = null
     private var launchedAt: Long = 0
 
     private val state = CaptureState()
@@ -54,6 +56,7 @@ class CaptureActivity : ComponentActivity() {
 
         recorder = Recorder(this)
         source = CaptureSource.of(intent.getStringExtra(EXTRA_SOURCE))
+        applyAppendTarget(intent)
 
         // Запись — раньше setContent: приёмка F-1 меряет момент старта записи,
         // а не момент появления пикселей.
@@ -94,12 +97,45 @@ class CaptureActivity : ComponentActivity() {
      */
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
+        // Обязательно: без setIntent активити продолжает читать extras того
+        // интента, с которым была создана. Из-за этого «Дописать» и не
+        // работало — цель дописывания просто не доезжала (Р-15.1).
+        setIntent(intent)
+
+        val target = intent.getStringExtra(EXTRA_APPEND_TO)
+        if (target != null) {
+            // Дописывание приходит из карточки и обязано открыть запись из
+            // любого состояния экрана: и когда он стоял в покое, и когда висела
+            // квитанция, и когда шла чужая запись. Молча проигнорировать —
+            // худший исход: человек нажал и ничего не случилось.
+            if (recorder.isRecording) finishRecording()
+            applyAppendTarget(intent)
+            if (hasMic()) beginRecording() else state.needsPermission = true
+            return
+        }
+
         if (recorder.isRecording) {
             finishRecording()
         } else if (state.idle && hasMic()) {
             // Пришли с иконки/виджета, а экран стоял в idle — capture-first.
             source = CaptureSource.of(intent.getStringExtra(EXTRA_SOURCE))
             beginRecording()
+        }
+    }
+
+    /** Цель дописывания и подпись для плашки контекста. */
+    private fun applyAppendTarget(intent: android.content.Intent) {
+        appendTo = intent.getStringExtra(EXTRA_APPEND_TO)
+        val id = appendTo
+        if (id == null) {
+            state.appendHint = null
+            return
+        }
+        lifecycleScope.launch {
+            val note = PrinyalApp.of(this@CaptureActivity).db.notes().byId(id)
+            val words = note?.transcript?.takeIf { it.isNotBlank() }
+                ?.split(Regex("\\s+"))?.take(4)?.joinToString(" ")
+            state.appendHint = words ?: ""
         }
     }
 
@@ -223,10 +259,11 @@ class CaptureActivity : ComponentActivity() {
         state.recording = false
         state.silenceLeftMs = 0
         state.receipt = true
+        state.appendHint = null
         Haptics.receipt(this)
 
         val app = PrinyalApp.of(this)
-        val appendTo = intent.getStringExtra(EXTRA_APPEND_TO)
+        val appendTo = this.appendTo
         lifecycleScope.launch {
             app.analytics.log(Analytics.RECEIPT_SHOWN, mapOf("note" to (appendTo ?: noteId)))
             // Дописывание — не новая запись: сегмент цепляется к существующей,

@@ -4,3 +4,6 @@ android/app/src/main/assets/models/
 backend/models/
 backend/corpus/
 .deploy-target
+
+# Резервные копии живой базы владельца: личные данные, в git им не место.
+backups/
