@@ -134,7 +134,17 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(Space.ml),
         modifier = Modifier.fillMaxSize(),
     ) {
-        if (failed) {
+        if (status == NoteStatus.FAILED_LLM) {
+            // Речь распозналась, разбор — нет. Аудио цело, повтор осмыслен, и
+            // предлагать его надо строкой на месте пунктов, а не отдельным
+            // экраном ошибки: запись в порядке, не хватает только разбора.
+            item { AudioRow(File(note.audioPath), note.durationMs) }
+            item { ParsingFailed(onRetry = { vm.reparse(noteId) }) }
+            note.transcript?.takeIf { it.isNotBlank() }?.let { transcript ->
+                item { SectionTitle(stringResource(R.string.note_transcript)) }
+                item { TranscriptBlock(transcript, items) }
+            }
+        } else if (failed) {
             // §3: состояние ошибки — объяснение, аудио, одно действие.
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(Space.ml)) {
@@ -197,8 +207,12 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
                         onEdit = { editing = item },
                     )
                 }
-            } else if (status == NoteStatus.RECORDED || status == NoteStatus.QUEUED) {
-                item { MetaText(stringResource(R.string.transcript_parsing)) }
+            } else if (status == NoteStatus.RECORDED || status == NoteStatus.QUEUED ||
+                status == NoteStatus.SENT
+            ) {
+                // Разбор идёт около минуты — карточка не имеет права выглядеть
+                // пустой всё это время (Р-15.2).
+                item { ParsingBlock() }
             }
 
             note.transcript?.takeIf { it.isNotBlank() }?.let { transcript ->

@@ -276,6 +276,7 @@
     <string name="ask_tell">рассказать</string>
     <string name="ask_no">не надо</string>
     <string name="ask_save">запомнить</string>
+    <string name="note_parse_failed">не смог разобрать — повторить</string>
     <string name="note_append">Дописать</string>
     <string name="note_append_busy">разбираю — дописать можно через минуту</string>
     <string name="capture_append">дописываю: «%1$s…»</string>
