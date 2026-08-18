@@ -24,7 +24,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -50,7 +54,13 @@ import androidx.compose.ui.unit.dp
 fun EditItemSheet(
     item: ItemEntity,
     onDismiss: () -> Unit,
-    onSave: (text: String?, type: ItemType?, window: Window?, clear: Boolean) -> Unit,
+    onSave: (
+        text: String?,
+        type: ItemType?,
+        window: Window?,
+        exactAt: Long?,
+        clear: Boolean,
+    ) -> Unit,
     onBury: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -58,6 +68,9 @@ fun EditItemSheet(
 
     var text by remember { mutableStateOf(TextFieldValue(item.text)) }
     var type by remember { mutableStateOf(ItemType.of(item.type)) }
+    // Ручная дата: побеждает окно, потому что человек назвал конкретный день.
+    var exactAt by remember { mutableStateOf<Long?>(null) }
+    var pickingDate by remember { mutableStateOf(false) }
     var window by remember {
         mutableStateOf(
             if (DueKind.of(item.dueKind) == DueKind.WINDOW) Window.of(item.window) else null
@@ -136,12 +149,60 @@ fun EditItemSheet(
                         )
                     }
                 }
-                Chip(selected = noSchedule, onClick = { noSchedule = true; window = null }) {
+                Chip(selected = noSchedule, onClick = { noSchedule = true; window = null; exactAt = null }) {
                     Text(
                         text = stringResource(R.string.window_none),
                         style = Prinyal.type.label,
                         color = if (noSchedule) Prinyal.colors.accentSelf else Prinyal.colors.inkMuted,
                     )
+                }
+
+                // Конкретный день — первым уровнем, рядом с окнами (Д-8): это
+                // не «расширенная настройка», а такой же ответ на вопрос
+                // «когда», просто точный.
+                Chip(selected = exactAt != null, onClick = { pickingDate = true }) {
+                    Text(
+                        text = exactAt?.let { DAY.format(java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault())) }
+                            ?: stringResource(R.string.edit_pick_date),
+                        style = Prinyal.type.label,
+                        color = if (exactAt != null) Prinyal.colors.accentSelf else Prinyal.colors.inkMuted,
+                    )
+                }
+            }
+
+            if (pickingDate) {
+                val picker = rememberDatePickerState(
+                    initialSelectedDateMillis = exactAt ?: System.currentTimeMillis(),
+                    // Прошлое не выбирается: возврат в прошлом не сработает, и
+                    // предлагать его — обещать то, чего не будет (Р-15.7).
+                    selectableDates = object : SelectableDates {
+                        override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                            utcTimeMillis >= System.currentTimeMillis() - DAY_MS
+                    },
+                )
+                DatePickerDialog(
+                    onDismissRequest = { pickingDate = false },
+                    confirmButton = {
+                        Text(
+                            text = stringResource(R.string.edit_save),
+                            style = Prinyal.type.label,
+                            color = Prinyal.colors.accentSelf,
+                            modifier = Modifier
+                                .clickable {
+                                    picker.selectedDateMillis?.let { day ->
+                                        // Полдень выбранного дня: полночь читается
+                                        // как «ночью», а окно утра у нас своё.
+                                        exactAt = day + MORNING_OFFSET_MS
+                                        noSchedule = false
+                                        window = null
+                                    }
+                                    pickingDate = false
+                                }
+                                .padding(Space.m),
+                        )
+                    },
+                ) {
+                    DatePicker(state = picker)
                 }
             }
 
@@ -156,7 +217,13 @@ fun EditItemSheet(
                     Modifier
                         .background(Prinyal.colors.accentSelf, Radius.pill)
                         .clickable {
-                            onSave(text.text, type, if (noSchedule) null else window, noSchedule)
+                            onSave(
+                                text.text,
+                                type,
+                                if (noSchedule || exactAt != null) null else window,
+                                if (noSchedule) null else exactAt,
+                                noSchedule,
+                            )
                         }
                         .padding(horizontal = Space.ml, vertical = Space.sm),
                 ) {
@@ -208,3 +275,11 @@ private fun Chip(selected: Boolean, onClick: () -> Unit, content: @Composable ()
         content()
     }
 }
+
+/** День выбранной даты показываем коротко: «10 сен». */
+private val DAY: java.time.format.DateTimeFormatter =
+    java.time.format.DateTimeFormatter.ofPattern("d MMM", java.util.Locale("ru"))
+
+private const val DAY_MS = 24L * 60 * 60 * 1000
+/** Девять утра выбранного дня — то же время, что у даты из речи. */
+private const val MORNING_OFFSET_MS = 9L * 60 * 60 * 1000

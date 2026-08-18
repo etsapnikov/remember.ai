@@ -110,6 +110,52 @@ class ExactDateTest {
     }
 
     @Test
+    fun `ручная дата переживает переразбор`() = runTest {
+        // Человек сказал «верну десятого» — модель не вправе с ним спорить.
+        // Правило то же, что у топика: тронутое рукой машина не трогает.
+        val target = LocalDateTime.now().plusDays(30).withHour(9).withMinute(0)
+        val id = noteWithDate(target)
+
+        val item = db.items().forNote(id).single()
+        val hand = LocalDateTime.now().plusDays(45).withHour(9).withMinute(0)
+        db.items().update(
+            item.copy(dueAt = hand.atZone(zone).toInstant().toEpochMilli(), edited = true)
+        )
+
+        // Переразбор: модель вернула тот же пункт, но уже без даты.
+        repo.applyParse(
+            id,
+            ParseResult(
+                transcript = "оплатить счёт",
+                items = listOf(
+                    ParsedItem(
+                        type = ItemType.DO,
+                        text = "оплатить счёт",
+                        who = null,
+                        dueKind = DueKind.WINDOW,
+                        window = ai.prinim.prinyal.data.Window.DAY,
+                        dueAt = null,
+                        confidence = Confidence.HIGH,
+                        rawSpan = "оплатить счёт",
+                    )
+                ),
+                degraded = null,
+                asrMs = 0,
+                llmMs = 0,
+                llmRetries = 0,
+            ),
+        )
+
+        val after = db.items().forNote(id).single()
+        assertEquals(DueKind.EXACT.wire, after.dueKind)
+        assertEquals(
+            hand.toLocalDate(),
+            Instant.ofEpochMilli(after.dueAt!!).atZone(zone).toLocalDate(),
+        )
+        assertTrue("пометка не переехала — следующий переразбор сотрёт дату", after.edited)
+    }
+
+    @Test
     fun `возврат никогда не назначается в прошлое`() = runTest {
         // Возврат в прошлом не «сработает сразу» — он не сработает вовсе или
         // прозвонит ночью.

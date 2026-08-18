@@ -181,6 +181,7 @@
     <string name="window_evening">вечером</string>
     <string name="window_tomorrow_morning">завтра утром</string>
     <string name="window_weekend">в выходные</string>
+    <string name="edit_pick_date">выбрать день</string>
     <string name="window_none">не возвращать</string>
 
     <!-- Настройки -->

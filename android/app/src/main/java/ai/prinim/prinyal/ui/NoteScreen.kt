@@ -392,8 +392,8 @@ fun NoteScreen(
         EditItemSheet(
             item = item,
             onDismiss = { editing = null },
-            onSave = { text, type, window, clear ->
-                vm.editItem(item.id, text, type, window, clear)
+            onSave = { text, type, window, exactAt, clear ->
+                vm.editItem(item.id, text, type, window, exactAt, clear)
                 editing = null
             },
             onBury = {

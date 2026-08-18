@@ -78,6 +78,20 @@ class NoteRepository(
      */
     suspend fun applyParse(noteId: String, result: ParseResult): List<ItemEntity> {
         val note = db.notes().byId(noteId) ?: return emptyList()
+
+        // Что человек поставил рукой, переразбор не имеет права стереть.
+        //
+        // Переразбор пересоздаёт пункты с нуля — иначе правленый транскрипт дал
+        // бы смесь старого и нового. Но ручная дата это не разбор, а решение
+        // человека: он сказал «верну десятого», и модель не вправе с ним
+        // спорить. Правило то же, что у топика (Р-15.7).
+        //
+        // Сверяем по нормализованному тексту: id у нового пункта другой, а
+        // формулировка после переразбора обычно та же.
+        val handSet = db.items().forNote(noteId)
+            .filter { it.edited && DueKind.of(it.dueKind) == DueKind.EXACT && it.dueAt != null }
+            .associateBy({ normalizeText(it.text) }, { it.dueAt!! })
+
         dropSchedule(noteId)
 
         val windows = settings.windowsNow()
@@ -85,19 +99,23 @@ class NoteRepository(
         val now = Instant.now()
 
         val items = result.items.mapIndexed { index, parsed ->
+            val kept = handSet[normalizeText(parsed.text)]
             ItemEntity(
                 id = newId(),
                 noteId = noteId,
                 type = parsed.type.wire,
                 text = parsed.text,
                 who = parsed.who,
-                dueKind = parsed.dueKind.wire,
-                window = parsed.window?.wire,
-                dueAt = parsed.dueAt,
+                dueKind = if (kept != null) DueKind.EXACT.wire else parsed.dueKind.wire,
+                window = if (kept != null) null else parsed.window?.wire,
+                dueAt = kept ?: parsed.dueAt,
                 state = ItemState.PLANNED.wire,
                 confidence = parsed.confidence.wire,
                 rawSpan = parsed.rawSpan,
                 position = index,
+                // Пометка переезжает вместе с датой: иначе следующий переразбор
+                // сочтёт пункт нетронутым и сотрёт то, что мы только что спасли.
+                edited = kept != null,
             )
         }
         db.items().insertAll(items)
@@ -540,6 +558,8 @@ class NoteRepository(
         text: String? = null,
         type: ItemType? = null,
         window: Window? = null,
+        /** Ручная дата возврата (Р-15.7). Побеждает окно: человек назвал день. */
+        exactAt: Long? = null,
         clearSchedule: Boolean = false,
     ) {
         val item = db.items().byId(itemId) ?: return
@@ -550,15 +570,22 @@ class NoteRepository(
             type = type?.wire ?: item.type,
             window = when {
                 clearSchedule -> null
+                exactAt != null -> null
                 window != null -> window.wire
                 else -> item.window
             },
             dueKind = when {
                 clearSchedule -> DueKind.NONE.wire
+                exactAt != null -> DueKind.EXACT.wire
                 window != null -> DueKind.WINDOW.wire
                 else -> item.dueKind
             },
-            dueAt = if (clearSchedule || window != null) null else item.dueAt,
+            dueAt = when {
+                clearSchedule -> null
+                exactAt != null -> exactAt
+                window != null -> null
+                else -> item.dueAt
+            },
             edited = true,
         )
         db.items().update(updated)
@@ -750,6 +777,10 @@ class NoteRepository(
     }
 
     fun newId(): String = UUID.randomUUID().toString()
+
+    /** Сравниваем формулировки по смыслу: регистр и знаки роли не играют. */
+    private fun normalizeText(text: String): String =
+        text.lowercase().replace(Regex("[^\\p{L}\\p{N} ]"), "").replace(Regex("\\s+"), " ").trim()
 
     companion object {
         /**

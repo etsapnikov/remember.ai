@@ -273,10 +273,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun bury(itemId: String) = viewModelScope.launch { app.repository.buryItem(itemId) }
 
-    fun editItem(itemId: String, text: String?, type: ItemType?, window: Window?, clear: Boolean) =
-        viewModelScope.launch {
-            app.repository.editItem(itemId, text, type, window, clear)
-        }
+    fun editItem(
+        itemId: String,
+        text: String?,
+        type: ItemType?,
+        window: Window?,
+        exactAt: Long? = null,
+        clear: Boolean,
+    ) = viewModelScope.launch {
+        app.repository.editItem(itemId, text, type, window, exactAt, clear)
+    }
 
     /**
      * Сохранить правленый транскрипт и переразобрать (спека R1.2 §15).
