@@ -121,10 +121,12 @@ private fun TopicRow(
         MetaText(
             // «Живых» — про невыполненные пункты: слово уже есть в речи продукта
             // про возвраты, второго термина заводить незачем.
+            // Ноль живых — это «всё закрыто», а не отсутствие данных: раньше
+            // сегмент просто пропадал, и строка выглядела недосчитанной.
             text = if (liveItems > 0) {
-                "$notesText · ${stringResource(R.string.topics_live, liveItems)}"
+                "$notesText · ${pluralStringResource(R.plurals.topics_live, liveItems, liveItems)}"
             } else {
-                notesText
+                "$notesText · ${stringResource(R.string.topics_all_closed)}"
             },
             color = Prinyal.colors.inkFaint,
         )

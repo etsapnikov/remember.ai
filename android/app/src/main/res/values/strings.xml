@@ -309,7 +309,13 @@
     <string name="dict_hits">%1$d раз</string>
     <string name="dict_empty">Пока пусто. Задержи палец на слове в «Что услышал».</string>
     <string name="topics_loose">Без раздела</string>
-    <string name="topics_live">%1$d живых</string>
+    <plurals name="topics_live">
+        <item quantity="one">%1$d живая</item>
+        <item quantity="few">%1$d живых</item>
+        <item quantity="many">%1$d живых</item>
+        <item quantity="other">%1$d живых</item>
+    </plurals>
+    <string name="topics_all_closed">всё закрыто</string>
     <string name="topics_empty_title">Пока пусто</string>
     <string name="topics_empty_body">Разделы появятся сами из записей — я разложу, когда пойму, о чём ты говоришь чаще всего.</string>
     <string name="topic_summary_planned">%1$d в плане</string>

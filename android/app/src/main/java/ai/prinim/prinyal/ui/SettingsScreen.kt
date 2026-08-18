@@ -150,18 +150,17 @@ fun SettingsScreen(vm: AppViewModel) {
                 }
 
                 if (loose > 0 && retro?.running != true) {
-                    Box(
-                        Modifier
-                            .background(Prinyal.colors.accentSelf, Radius.pill)
+                    // Строкой, а не залитой пилюлей: залитая кнопка в продукте
+                    // означает ответ на возврат и главное действие экрана —
+                    // а это служебная разовая операция (аудит Д-7, п. 15).
+                    Text(
+                        text = stringResource(R.string.retro_run),
+                        style = Prinyal.type.label,
+                        color = Prinyal.colors.accentSelf,
+                        modifier = Modifier
                             .clickable { vm.retroClassify() }
-                            .padding(horizontal = Space.ml, vertical = Space.sm),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.retro_run),
-                            style = Prinyal.type.label,
-                            color = Prinyal.colors.paper,
-                        )
-                    }
+                            .padding(vertical = Space.s),
+                    )
                 }
             }
         }

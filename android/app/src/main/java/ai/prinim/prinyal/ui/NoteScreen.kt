@@ -337,9 +337,13 @@ fun NoteScreen(
                     }
                 }
                 item {
+                    // Без подсветки: в покое она заливала две трети абзаца и
+                    // читалась как маркер по всему тексту. Подсветка нужна,
+                    // когда человек спросил «откуда это» — то есть в раскрытии
+                    // пункта (аудит Д-7, п. 12).
                     TranscriptBlock(
                         transcript = transcript,
-                        items = items,
+                        items = emptyList(),
                         onWord = { heardWord = it },
                     )
                 }
