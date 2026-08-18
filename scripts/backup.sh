@@ -23,11 +23,17 @@ export PATH="/opt/homebrew/share/android-commandlinetools/platform-tools:$PATH"
 
 say() { printf '%s\n' "$*" >&2; }
 
-device="$(adb devices | awk 'NR>1 && $2=="device" {print $1; exit}')"
+# Эмулятор исключаем явно. Он бывает подключён одновременно с телефоном, и
+# копия с него прошла бы все проверки: база открывается, таблицы на месте,
+# целостность в порядке — только это чужая база. Такая копия опаснее пустой,
+# потому что выглядит настоящей.
+device="$(adb devices | awk 'NR>1 && $2=="device" && $1 !~ /^emulator-/ {print $1; exit}')"
 if [ -z "$device" ]; then
   say "телефон не найден: разбуди его и включи «Отладку по Wi-Fi»"
+  say "(эмулятор для копии не годится — на нём не дневник)"
   exit 1
 fi
+say "снимаю с $device"
 
 target="$ROOT/backups/$(date +%Y-%m-%d-%H%M)"
 mkdir -p "$target"
