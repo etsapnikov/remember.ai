@@ -133,6 +133,24 @@ class Settings(private val context: Context) {
         }
     }
 
+    // --- починка структуры (Р-15.12) ---
+    // Здесь живёт такт: когда продукт в последний раз просил навести порядок и
+    // по каким темам ему уже сказали «не надо».
+
+    suspend fun lastStructureOffer(): Long? =
+        context.dataStore.data.first()[longPreferencesKey("structure_last")]
+
+    suspend fun structureOffered(at: Long) {
+        context.dataStore.edit { it[longPreferencesKey("structure_last")] = at }
+    }
+
+    suspend fun structureRefusedAt(key: String): Long? =
+        context.dataStore.data.first()[longPreferencesKey("structure_no_$key")]
+
+    suspend fun structureRefused(key: String, at: Long) {
+        context.dataStore.edit { it[longPreferencesKey("structure_no_$key")] = at }
+    }
+
     suspend fun setWindow(window: Window, time: LocalTime) {
         val key = when (window) {
             Window.MORNING, Window.TOMORROW_MORNING -> W_MORNING

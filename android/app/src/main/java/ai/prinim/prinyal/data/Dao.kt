@@ -382,4 +382,8 @@ interface LinkDao {
 
     @Query("SELECT COUNT(*) FROM links")
     suspend fun count(): Int
+
+    /** Все связи парами — сырьё для поиска кластеров (Р-15.12). */
+    @Query("SELECT * FROM links")
+    suspend fun pairs(): List<LinkEntity>
 }

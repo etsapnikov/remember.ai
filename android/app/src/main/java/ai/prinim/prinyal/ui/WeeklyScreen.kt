@@ -1,6 +1,7 @@
 package ai.prinim.prinyal.ui
 
 import ai.prinim.prinyal.R
+import ai.prinim.prinyal.domain.StructureRepair
 import ai.prinim.prinyal.domain.WeeklyFacts
 import ai.prinim.prinyal.domain.WeeklySummary
 import ai.prinim.prinyal.ui.theme.MetaText
@@ -16,6 +17,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,6 +59,7 @@ import androidx.compose.ui.res.stringResource
 fun WeeklyScreen(vm: AppViewModel) {
     val report by vm.weekly.collectAsState()
     val facts by vm.weeklyFacts.collectAsState()
+    val structure by vm.structure.collectAsState()
 
     LaunchedEffect(Unit) { vm.loadWeekly() }
 
@@ -167,4 +176,64 @@ private fun phrase(report: WeeklySummary.Report): String = when {
     report.problem == WeeklySummary.Problem.RETURNS -> stringResource(R.string.week_phrase_returns)
     report.problem == WeeklySummary.Problem.LUMP -> stringResource(R.string.week_phrase_lump)
     else -> stringResource(R.string.week_phrase_ok)
+}
+
+
+/**
+ * «В „Идеях" пять записей про маркдаун — выделить раздел?» (Р-15.12).
+ *
+ * Два действия и ни одного третьего: «потом» здесь означало бы, что продукт
+ * спросит снова, а он не спросит — отказ закрывает тему на месяц. Имя раздела
+ * подставлено словом, которым группа держится, и его можно поправить: продукт
+ * нашёл группу, но как её назвать — знает человек.
+ */
+@Composable
+private fun StructureOffer(vm: AppViewModel, offer: StructureRepair.Offer) {
+    val suggested = when (offer) {
+        is StructureRepair.Offer.Split -> offer.word
+        is StructureRepair.Offer.Gather -> offer.word
+    }.replaceFirstChar { it.uppercase() }
+    var name by remember(offer) { mutableStateOf(suggested) }
+
+    val text = when (offer) {
+        is StructureRepair.Offer.Split -> pluralStringResource(
+            R.plurals.repair_split, offer.noteIds.size, offer.noteIds.size, offer.topicName,
+        )
+        is StructureRepair.Offer.Gather ->
+            pluralStringResource(R.plurals.repair_gather, offer.noteIds.size, offer.noteIds.size)
+    }
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(Prinyal.colors.wellSurface, Radius.control)
+            .padding(Space.m),
+        verticalArrangement = Arrangement.spacedBy(Space.sm),
+    ) {
+        Text(text, style = Prinyal.type.body, color = Prinyal.colors.ink)
+        BasicTextField(
+            value = name,
+            onValueChange = { name = it.take(24) },
+            singleLine = true,
+            textStyle = Prinyal.type.itemTitle.copy(color = Prinyal.colors.ink),
+            cursorBrush = SolidColor(Prinyal.colors.accentSelf),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
+            Text(
+                text = stringResource(R.string.repair_yes),
+                style = Prinyal.type.label,
+                color = if (name.isBlank()) Prinyal.colors.inkFaint else Prinyal.colors.accentSelf,
+                modifier = Modifier.clickable(enabled = name.isNotBlank()) {
+                    vm.acceptStructure(name)
+                },
+            )
+            Text(
+                text = stringResource(R.string.repair_no),
+                style = Prinyal.type.label,
+                color = Prinyal.colors.inkMuted,
+                modifier = Modifier.clickable { vm.refuseStructure() },
+            )
+        }
+    }
 }

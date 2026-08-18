@@ -13,6 +13,7 @@ import ai.prinim.prinyal.data.TopicOverview
 import ai.prinim.prinyal.data.TopicSource
 import ai.prinim.prinyal.data.ReplacementEntity
 import ai.prinim.prinyal.domain.Replacements
+import ai.prinim.prinyal.domain.StructureRepair
 import ai.prinim.prinyal.data.PersonEntity
 import ai.prinim.prinyal.data.PersonStatus
 import ai.prinim.prinyal.domain.AskPolicy
@@ -93,6 +94,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _weekly = MutableStateFlow<WeeklySummary.Report?>(null)
     val weekly: StateFlow<WeeklySummary.Report?> = _weekly
+
+    /** Предложение починить структуру (Р-15.12). null — продукт молчит. */
+    private val _structure = MutableStateFlow<StructureRepair.Offer?>(null)
+    val structure: StateFlow<StructureRepair.Offer?> = _structure
 
     /** Наблюдения недели (Р-15.9). Пусто — значит рассказывать нечего. */
     private val _weeklyFacts = MutableStateFlow<List<WeeklyFacts.Fact>>(emptyList())
@@ -470,6 +475,72 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun loadWeekly() = viewModelScope.launch {
         _weekly.value = WeeklySummary(app.analytics, app.db).build()
         _weeklyFacts.value = WeeklyFacts.facts(WeekSignal(app.db).build())
+        _structure.value = findStructureOffer()
+    }
+
+    /**
+     * Что предложить по структуре — или ничего.
+     *
+     * Такт проверяется **до** поиска: иначе находка начинает оправдывать
+     * нарушение тишины, и продукт превращается в того, кто требует навести
+     * порядок (Р-15.12).
+     */
+    private suspend fun findStructureOffer(): StructureRepair.Offer? {
+        val now = System.currentTimeMillis()
+        if (!StructureRepair.maySpeak(app.settings.lastStructureOffer(), now)) return null
+
+        val notes = app.db.notes().all().filter { !it.transcript.isNullOrBlank() }
+        val byTopic = notes.filter { it.topicId != null }.groupBy { it.topicId!! }
+        val names = app.db.topics().live().associate { it.id to it.name }
+
+        val refused = buildSet {
+            byTopic.keys.forEach { id ->
+                if (StructureRepair.refusalHolds(app.settings.structureRefusedAt(id), now)) add(id)
+            }
+            if (StructureRepair.refusalHolds(
+                    app.settings.structureRefusedAt(StructureRepair.ORPHANS_KEY), now,
+                )
+            ) {
+                add(StructureRepair.ORPHANS_KEY)
+            }
+        }
+
+        fun repairNotes(list: List<ai.prinim.prinyal.data.NoteEntity>) =
+            list.map { StructureRepair.Note(it.id, it.transcript.orEmpty()) }
+
+        return StructureRepair.offer(
+            bigTopics = byTopic.mapNotNull { (id, list) ->
+                names[id]?.let { StructureRepair.Topic(id, it) to repairNotes(list) }
+            },
+            orphans = repairNotes(notes.filter { it.topicId == null }),
+            linked = app.db.links().pairs().map { it.fromNoteId to it.toNoteId }.toSet(),
+            refused = refused,
+        )
+    }
+
+    /** «Да»: заметки кластера переезжают в новый раздел, названный его словом. */
+    fun acceptStructure(name: String) = viewModelScope.launch {
+        val offer = _structure.value ?: return@launch
+        val ids = when (offer) {
+            is StructureRepair.Offer.Split -> offer.noteIds
+            is StructureRepair.Offer.Gather -> offer.noteIds
+        }
+        app.repository.moveToNewTopic(ids, name)
+        app.settings.structureOffered(System.currentTimeMillis())
+        _structure.value = null
+    }
+
+    /** «Не надо»: тема закрывается на месяц, а не до перезапуска. */
+    fun refuseStructure() = viewModelScope.launch {
+        val offer = _structure.value ?: return@launch
+        val key = when (offer) {
+            is StructureRepair.Offer.Split -> offer.topicId
+            is StructureRepair.Offer.Gather -> StructureRepair.ORPHANS_KEY
+        }
+        val now = System.currentTimeMillis()
+        app.settings.structureRefused(key, now)
+        app.settings.structureOffered(now)
+        _structure.value = null
     }
 
     fun showMessage(text: String?) {

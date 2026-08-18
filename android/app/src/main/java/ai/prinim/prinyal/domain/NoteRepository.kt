@@ -242,6 +242,34 @@ class NoteRepository(
         )
     }
 
+    /**
+     * Переезд группы заметок в новый раздел (Р-15.12).
+     *
+     * Источник помечается как `repair`, а не `user`: человек согласился с
+     * предложением, но раскладку придумал продукт, и через месяц разницу между
+     * «я так решил» и «я не возражал» будет видно только по этой пометке.
+     */
+    suspend fun moveToNewTopic(noteIds: List<String>, name: String) {
+        val clean = name.trim().replaceFirstChar { it.uppercase() }
+        if (clean.isBlank() || noteIds.isEmpty()) return
+        val norm = Replacements.norm(clean)
+        val topic = db.topics().byNorm(norm) ?: TopicEntity(
+            id = newId(),
+            name = clean,
+            nameNorm = norm,
+            kind = TopicKind.MANUAL.wire,
+            createdAt = Instant.now().toEpochMilli(),
+        ).also { db.topics().insert(it) }
+
+        noteIds.forEach { id ->
+            db.notes().setTopic(id, topic.id, TopicSource.REPAIR.wire)
+        }
+        analytics.log(
+            "structure_repair",
+            mapOf("topic" to topic.name, "notes" to noteIds.size),
+        )
+    }
+
     // --- планирование ---
 
     private suspend fun planReturn(

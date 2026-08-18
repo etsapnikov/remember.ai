@@ -253,6 +253,23 @@
     <string name="week_verdict_warn">Тревога</string>
     <string name="week_verdict_stalling">Петля буксует</string>
     <string name="week_block_label">ЗА НЕДЕЛЮ</string>
+
+    <!-- Починка структуры (Р-15.12). Вопрос, а не указание: раскладка
+         принадлежит человеку, продукт только заметил. -->
+    <plurals name="repair_split">
+        <item quantity="one">В «%2$s» %1$d запись про одно. Выделить в свой раздел?</item>
+        <item quantity="few">В «%2$s» %1$d записи про одно. Выделить в свой раздел?</item>
+        <item quantity="many">В «%2$s» %1$d записей про одно. Выделить в свой раздел?</item>
+        <item quantity="other">В «%2$s» %1$d записи про одно. Выделить в свой раздел?</item>
+    </plurals>
+    <plurals name="repair_gather">
+        <item quantity="one">%1$d запись без раздела про одно. Собрать в раздел?</item>
+        <item quantity="few">%1$d записи без раздела про одно. Собрать в раздел?</item>
+        <item quantity="many">%1$d записей без раздела про одно. Собрать в раздел?</item>
+        <item quantity="other">%1$d записи без раздела про одно. Собрать в раздел?</item>
+    </plurals>
+    <string name="repair_yes">Выделить</string>
+    <string name="repair_no">Не надо</string>
     <string name="week_metric_done">Закрыл</string>
     <string name="week_metric_dropped">Отменил как ненужное</string>
     <string name="week_verdict_fail">Провал</string>

@@ -94,7 +94,10 @@ enum class ReturnAction(val wire: String) {
 /** Источник жеста — нужен аналитике §F-9, чтобы понять, какая кнопка живёт. */
 /** Откуда взялся топик заметки. */
 enum class TopicSource(val wire: String) {
-    NONE("none"), LLM("llm"), USER("user");
+    NONE("none"), LLM("llm"), USER("user"),
+
+    /** Раскладка предложена починкой структуры, человек согласился (Р-15.12). */
+    REPAIR("repair");
 
     companion object {
         fun of(wire: String?): TopicSource =
