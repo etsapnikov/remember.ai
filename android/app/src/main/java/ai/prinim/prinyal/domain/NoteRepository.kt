@@ -6,6 +6,7 @@ import ai.prinim.prinyal.data.DueKind
 import ai.prinim.prinyal.data.ItemEntity
 import ai.prinim.prinyal.data.ItemState
 import ai.prinim.prinyal.data.ItemType
+import ai.prinim.prinyal.data.LinkEntity
 import ai.prinim.prinyal.data.NoteEntity
 import ai.prinim.prinyal.data.TopicEntity
 import ai.prinim.prinyal.data.TopicKind
@@ -144,6 +145,7 @@ class NoteRepository(
                 bodyMd = result.bodyMd,
             )
         )
+        applyLinks(noteId, result.links)
         result.second?.let { second -> splitOff(note, second, recordedAt, windows, now) }
 
         analytics.log(
@@ -208,6 +210,37 @@ class NoteRepository(
         db.notes().setStatus(noteId, NoteStatus.SENT.wire)
 
     suspend fun bumpAttempts(noteId: String) = db.notes().bumpAttempts(noteId)
+
+    /**
+     * Связи, найденные разбором (Р-15.11).
+     *
+     * Перед записью сносим прежние связи **этой** заметки — переразбор обязан
+     * пересобрать их так же, как пункты, иначе исправленный транскрипт оставит
+     * за собой связь, которой в нём уже нет. Сносим только те, где заметка —
+     * источник: связь, найденная с другого конца, принадлежит той заметке, и
+     * стирать чужой вывод мы не вправе.
+     */
+    private suspend fun applyLinks(noteId: String, links: List<LinkValidator.Link>) {
+        db.links().dropFrom(noteId)
+        if (links.isEmpty()) return
+        val now = Instant.now().toEpochMilli()
+        db.links().insertAll(
+            links.mapNotNull { link ->
+                // Кандидат мог быть удалён, пока шёл разбор: минута — достаточно
+                // долго, чтобы человек успел смахнуть запись.
+                db.notes().byId(link.ref)?.let {
+                    LinkEntity(
+                        id = newId(),
+                        fromNoteId = noteId,
+                        toNoteId = link.ref,
+                        reason = link.reason.wire,
+                        confidence = link.confidence.wire,
+                        createdAt = now,
+                    )
+                }
+            }
+        )
+    }
 
     // --- планирование ---
 

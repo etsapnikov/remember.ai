@@ -1,5 +1,6 @@
 package ai.prinim.prinyal.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Embedded
 import androidx.room.Insert
@@ -339,4 +340,46 @@ interface PersonDao {
     /** Когда спрашивали в последний раз — по всем сущностям сразу. */
     @Query("SELECT MAX(asked_at) FROM entities")
     suspend fun lastAskedAt(): Long?
+}
+
+/** Заметка на другом конце связи — всё, что нужно строке блока «Связано». */
+data class LinkedNote(
+    val id: String,
+    val reason: String,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    val transcript: String?,
+)
+
+@Dao
+interface LinkDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(links: List<LinkEntity>)
+
+    @Query("DELETE FROM links WHERE from_note_id = :noteId")
+    suspend fun dropFrom(noteId: String)
+
+    /**
+     * Обе стороны одной связи.
+     *
+     * `UNION ALL` вместо двух запросов: связь хранится одной строкой, и заметке
+     * всё равно, с какого конца она в ней записана. Удалённые мягко —
+     * отсеиваются здесь: каскад до них не доходит, пока живёт снекбар.
+     */
+    @Query(
+        "SELECT n.id AS id, l.reason AS reason, n.created_at AS created_at, " +
+            "n.transcript AS transcript FROM links l " +
+            "JOIN notes n ON n.id = l.to_note_id " +
+            "WHERE l.from_note_id = :noteId AND n.deleted_at IS NULL " +
+            "UNION ALL " +
+            "SELECT n.id AS id, l.reason AS reason, n.created_at AS created_at, " +
+            "n.transcript AS transcript FROM links l " +
+            "JOIN notes n ON n.id = l.from_note_id " +
+            "WHERE l.to_note_id = :noteId AND n.deleted_at IS NULL " +
+            "ORDER BY created_at DESC"
+    )
+    fun forNote(noteId: String): Flow<List<LinkedNote>>
+
+    @Query("SELECT COUNT(*) FROM links")
+    suspend fun count(): Int
 }

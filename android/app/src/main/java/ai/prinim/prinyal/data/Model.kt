@@ -307,3 +307,59 @@ enum class PersonStatus(val wire: String) {
             entries.firstOrNull { it.wire == wire } ?: UNKNOWN
     }
 }
+
+/**
+ * Связь между заметками (Р-15.11).
+ *
+ * Хранится **одной строкой на связь**, а не двумя: обе стороны читают одну и ту
+ * же запись, просто с разных концов. Две строки означали бы, что связь можно
+ * рассинхронизировать — снять с одной стороны и забыть о другой, — а такой
+ * связи не бывает.
+ *
+ * Каскад по обоим концам: удалённая заметка не должна оставлять за собой
+ * ссылку в никуда. Мягкое удаление каскада не вызывает, поэтому выборки
+ * дополнительно отсеивают заметки с `deleted_at`.
+ */
+@Entity(
+    tableName = "links",
+    foreignKeys = [
+        ForeignKey(
+            entity = NoteEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["from_note_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+        ForeignKey(
+            entity = NoteEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["to_note_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("from_note_id"), Index("to_note_id")],
+)
+data class LinkEntity(
+    @PrimaryKey val id: String,
+    /** Новая заметка — та, при разборе которой связь нашлась. */
+    @ColumnInfo(name = "from_note_id") val fromNoteId: String,
+    @ColumnInfo(name = "to_note_id") val toNoteId: String,
+    val reason: String,
+    val confidence: String,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+)
+
+/** Чем одна заметка приходится другой. */
+enum class LinkReason(val wire: String) {
+    /** Продолжает начатое — самый частый случай. */
+    CONTINUES("continues"),
+
+    /** Отвечает на прозвучавший раньше вопрос. */
+    ANSWERS("answers"),
+
+    /** Спорит с прежним: человек передумал. */
+    DISPUTES("disputes");
+
+    companion object {
+        fun of(wire: String?): LinkReason? = entries.firstOrNull { it.wire == wire }
+    }
+}

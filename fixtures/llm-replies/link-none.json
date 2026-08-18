@@ -1,0 +1,52 @@
+{
+ "id": "link-none",
+ "prompt_version": "7",
+ "recorded_at": "2026-08-18T22:41:15",
+ "took_s": 19.4,
+ "finish_reason": "stop",
+ "usage": {
+  "prompt_tokens": 2546,
+  "completion_tokens": 2391,
+  "total_tokens": 4937,
+  "prompt_tokens_details": {
+   "cached_tokens": 2304
+  },
+  "completion_tokens_details": {
+   "reasoning_tokens": 2238
+  },
+  "prompt_cache_hit_tokens": 2304,
+  "prompt_cache_miss_tokens": 242
+ },
+ "response": {
+  "id": "360b10fd-3972-4033-b2bf-ff632b5071ee",
+  "object": "chat.completion",
+  "created": 1787082058,
+  "model": "deepseek-v4-flash",
+  "choices": [
+   {
+    "index": 0,
+    "message": {
+     "role": "assistant",
+     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Здоровье\",\n  \"entities\": [\"Соня\"],\n  \"body_md\": null,\n  \"second\": null,\n  \"links\": [],\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"записать Соню к стоматологу\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2026-08-19T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"записать соню к стоматологу\"\n    }\n  ]\n}",
+     "reasoning_content": "We need to parse the user's transcript. The transcript is: \"напомни завтра утром записать соню к стоматологу\"\n\nWe need to extract items. The user says \"напомни завтра утром записать соню к стоматологу\" which means \"remind me tomorrow morning to sign up Sonya to the dentist\". So it's a task to do. Type: do, text: \"записать Соню к стоматологу\" or \"записать соню к стоматологу\" (proper capitalization). The user said \"напомни\" so it's a reminder, but the actual task is to sign up. So we can have one item.\n\nImportant: Rule 12: Named date means due_kind exact. Here \"завтра утром\" is a specific time window but not an exact time. However, rule 2 says if time is not explicitly said, choose a reasonable window. But here \"завтра утром\" is said explicitly, so it's a named time. Rule 12 says \"Названная дата — это due_kind: exact\". But it also says \"Время не названо — ставь 09:00\". So \"завтра утром\" gives a date (tomorrow) and a part of day (morning). But due_kind exact expects a specific datetime like \"YYYY-MM-DDTHH:MM\". Since only morning is specified, we should set exact_local to tomorrow at 09:00? Or should we treat \"завтра утром\" as a window? The rules: Rule 2 says if time is not explicit, choose a window. But here time is explicit (\"завтра утром\"), so we have an exact date (tomorrow) and a time of day (morning). According to rule 12, \"Названная дата\" — named date — is due_kind exact. So yes, due_kind exact, exact_local = \"2026-08-19T09:00\" because tomorrow is 2026-08-19 (since today is 2026-08-18 Tuesday). Morning implies 09:00.\n\nBut wait, rule 2 also says \"Если срок не прозвучал — подбери разумное окно\" and then lists windows. But here the user explicitly says \"завтра утром\", so we have a specific window that corresponds to \"tomorrow_morning\" from rule 2. However, rule 12 is more specific: \"Названная дата\" means the user called a date. \"Завтра\" is a date. So it should be exact. And rule 12 says if time not specified, set 09:00. So exact_local = 2026-08-19T09:00.\n\nBut also, there is a window \"tomorrow_morning\" in rule 2, which is specifically for \"не забыть утром\", \"с утра первым делом\". So maybe due_kind could be \"window\" with window \"tomorrow_morning\"? But rule 12 says named date -> exact. The examples in rule 12: «Десятого сентября», «послезавтра в шесть», «в понедельник» — these are exact. \"Завтра утром\" is similar to \"в понедельник\" but with a part of day. So I think exact is appropriate.\n\nAlternatively, rule 2 says: \"Ориентиры: ... «не забыть утром», «с утра первым делом» → `tomorrow_morning`\". That suggests that if the user says \"don't forget in the morning\", we use window tomorrow_morning. But \"завтра утром\" is literally \"tomorrow morning\" and is a specific time. The rule 2 is for when no explicit time is given, we infer a window. But here time is explicit. So I'll go with exact.\n\nLet's check the surrounding context: The user said \"напомни завтра утром записать соню к стоматологу\". This is a reminder request. So the item type is \"do\". The text should be \"записать Соню к стоматологу\". The who? That's for tell type. Not relevant. So who null.\n\nraw_span: \"записать соню к стоматологу\" or the whole phrase? The item is derived from \"записать соню к стоматологу\". But the reminder word \"напомни\" is not part of the task. So raw_span should be the fragment that the item is taken from. I'll use \"записать соню к стоматологу\".\n\nEntities: mention of \"соня\" - Sonya, so entities: [\"Соня\"].\n\nnote_kind: It's a task, so \"tasks\".\n\ntopic: What section? \"Здоровье\" (health) is appropriate since it's about dentist appointment. So topic: \"Здоровье\".\n\nNow, there are previous records. We need to see if this one is related. The previous records: n-md (markdown support), n-lego (lego space sets), n-work (meeting about team reorg). None of these relate to dentist appointment or Sonya. So links should be empty.\n\nAlso note_kind is tasks, so body_md is null, second is null.\n\nNow the output JSON.\n\nWe need to ensure proper JSON, no markdown. Also, we need to check if the user said \"напомни завтра утром\" which might be a reminder with a specific time. But we only have one item.\n\nPotential issue: \"напомни\" could be interpreted as a request to set a reminder, but that is the action itself. So the task is to remind, but the underlying task is to sign up Sonya. So I think the item is \"записать Соню к стоматологу\" and due is tomorrow morning.\n\nNow the date: Today is 2026-08-18, so tomorrow is 2026-08-19. Morning at 09:00. So exact_local: \"2026-08-19T09:00\".\n\ndue_kind: \"exact\".\n\nconfidence: high.\n\nNow, is there any possibility of multiple items? The phrase is simple, no lists.\n\nSo final JSON.\n\nBut wait, rule 13: One note. Only one topic, so no split.\n\nNow the response format: We need to output only JSON.\n\nAlso, we might want to include \"who\": null. In the example, they have \"who\": null.\n\nLet's structure the output.\n\n{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Здоровье\",\n  \"entities\": [\"Соня\"],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"записать Соню к стоматологу\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2026-08-19T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"записать соню к стоматологу\"\n    }\n  ]\n}\n\nCheck that we have all fields. In the schema, there is also \"window\" which is null because due_kind is exact. Also, we have \"links\"? The example doesn't include links, but the schema in the prompt says: \"Схема ответа (верни ровно такой json, без markdown-обёртки): {\"note_kind\": \"tasks\", \"topic\": \"Здоровье\", \"entities\": [\"Соня\"], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"do\", \"text\": \"позвонить в поликлинику насчёт Сони\", \"who\": null, \"due_kind\": \"window\", \"window\": \"day\", \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"соню к лору записать\"}]}\" Wait, that example has a typo: it has a trailing \"]\" and also a \"}\"? Actually it shows something weird. But from the instruction, there is no \"links\" field in the response. Actually later they talk about links, but the schema doesn't include it. Wait, re-read: \"Если рядом дан список прежних записей, посмотри, не связана ли эта с какой-то из них, — поле `links`\" So we need to include \"links\" field. The schema in the beginning didn't include it, but later they mention it. Probably we should include \"links\" in the response. Let's check the example again: The example is \"Схема ответа (верни ровно такой json, без markdown-обёртки): {\"note_kind\": \"tasks\", \"topic\": \"Здоровье\", \"entities\": [\"Соня\"], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"do\", \"text\": \"позвонить в поликлинику насчёт Сони\", \"who\": null, \"due_kind\": \"window\", \"window\": \"day\", \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"соню к лору записать\"}]}\" There is no links, but that might be just an example, not exhaustive. Actually the instruction says \"Схема ответа\" and shows only that. But later they say \"Если рядом дан список прежних записей, посмотри, не связана ли эта с какой-то из них, — поле `links`\". So we should include links field. Since there is no relevant link, we return \"links\": [].\n\nAlso, there is a mention of \"second\": null, so we have that.\n\nSo final JSON includes \"links\": [].\n\nLet's also consider the \"window\" field: In our case, we set due_kind exact, so window should be null. In the example they used window \"day\" but that's when due_kind is window.\n\nEverything else fine.\n\nNow, we need to output only JSON, no markdown wrapping.\n\nLet's craft it."
+    },
+    "logprobs": null,
+    "finish_reason": "stop"
+   }
+  ],
+  "usage": {
+   "prompt_tokens": 2546,
+   "completion_tokens": 2391,
+   "total_tokens": 4937,
+   "prompt_tokens_details": {
+    "cached_tokens": 2304
+   },
+   "completion_tokens_details": {
+    "reasoning_tokens": 2238
+   },
+   "prompt_cache_hit_tokens": 2304,
+   "prompt_cache_miss_tokens": 242
+  },
+  "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
+ }
+}

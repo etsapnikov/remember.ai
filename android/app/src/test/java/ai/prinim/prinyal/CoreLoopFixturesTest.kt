@@ -80,10 +80,17 @@ class CoreLoopFixturesTest {
             apiKey = "test",
             transport = tape(reply.getJSONObject("response").toString()),
         )
+        val candidates = fixture.optJSONArray("candidates")?.let { array ->
+            (0 until array.length()).map { i ->
+                val pair = array.getJSONArray(i)
+                pair.getString(0) to pair.getString(1)
+            }
+        }.orEmpty()
         return client.parse(
             transcript = fixture.getString("transcript"),
             now = LocalDateTime.parse(fixture.getString("at")),
             zone = zone,
+            candidates = candidates,
         )
     }
 
@@ -237,6 +244,29 @@ class CoreLoopFixturesTest {
                 "$id: ждали кого-то из $wanted, нашли $found",
                 wanted.any { name -> found.any { it.startsWith(name.lowercase().take(3)) } },
             )
+        }
+    }
+
+    @Test
+    fun `связь находится там, где она есть, и не выдумывается там, где нет`() {
+        // Обе стороны приёмки Р-15.11 в одном тесте: продолжение прежней мысли
+        // обязано слинковаться, а несвязанная запись при живых кандидатах —
+        // остаться без связей. Второе важнее: блок «Связано» из вежливости
+        // утверждал бы то, чего в записи нет.
+        fixtures().forEach { (fixture, reply) ->
+            val id = fixture.getString("id")
+            val expect = fixture.getJSONObject("expect")
+            val links = (parse(fixture, reply) as IngestOutcome.Ok).result.links
+
+            expect.optString("links_to").takeIf { it.isNotBlank() }?.let { ref ->
+                assertEquals("$id: связь не с той записью", ref, links.firstOrNull()?.ref)
+                expect.optString("link_reason").takeIf { it.isNotBlank() }?.let { reason ->
+                    assertEquals("$id: причина связи", reason, links.first().reason.wire)
+                }
+            }
+            if (expect.optBoolean("links_empty")) {
+                assertTrue("$id: выдумана связь — $links", links.isEmpty())
+            }
         }
     }
 

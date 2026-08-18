@@ -110,6 +110,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun note(id: String) = app.db.notes().watch(id)
 
+    /** Связи заметки — обе стороны сразу (Р-15.11). */
+    fun linked(id: String) = app.db.links().forNote(id)
+
     /**
      * Заметки раздела; `topicId == null` — «Без раздела», [DECISIONS] — решения.
      *

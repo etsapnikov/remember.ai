@@ -16,8 +16,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ReplacementEntity::class,
         SegmentEntity::class,
         PersonEntity::class,
+        LinkEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 abstract class PrinyalDb : RoomDatabase() {
@@ -28,6 +29,7 @@ abstract class PrinyalDb : RoomDatabase() {
     abstract fun replacements(): ReplacementDao
     abstract fun segments(): SegmentDao
     abstract fun people(): PersonDao
+    abstract fun links(): LinkDao
 
     companion object {
         @Volatile
@@ -174,10 +176,29 @@ abstract class PrinyalDb : RoomDatabase() {
             }
         }
 
+        /** v6 → v7: связи между заметками (Р-15.11). */
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS links (" +
+                        "id TEXT NOT NULL PRIMARY KEY, " +
+                        "from_note_id TEXT NOT NULL, " +
+                        "to_note_id TEXT NOT NULL, " +
+                        "reason TEXT NOT NULL, " +
+                        "confidence TEXT NOT NULL, " +
+                        "created_at INTEGER NOT NULL, " +
+                        "FOREIGN KEY(from_note_id) REFERENCES notes(id) ON DELETE CASCADE, " +
+                        "FOREIGN KEY(to_note_id) REFERENCES notes(id) ON DELETE CASCADE)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_links_from_note_id ON links(from_note_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_links_to_note_id ON links(to_note_id)")
+            }
+        }
+
         private fun build(context: Context): PrinyalDb =
             Room.databaseBuilder(context, PrinyalDb::class.java, "prinyal.db")
                 // Destructive-падения нет намеренно: dogfood-корпус терять нельзя.
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .build()
 
         /** Только для тестов. */

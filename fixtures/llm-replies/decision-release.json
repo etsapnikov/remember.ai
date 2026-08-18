@@ -1,51 +1,51 @@
 {
  "id": "decision-release",
- "prompt_version": "6",
- "recorded_at": "2026-08-18T19:32:47",
- "took_s": 11.8,
+ "prompt_version": "7",
+ "recorded_at": "2026-08-18T22:37:40",
+ "took_s": 7.4,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2126,
-  "completion_tokens": 1484,
-  "total_tokens": 3610,
+  "prompt_tokens": 2465,
+  "completion_tokens": 645,
+  "total_tokens": 3110,
   "prompt_tokens_details": {
-   "cached_tokens": 2048
+   "cached_tokens": 512
   },
   "completion_tokens_details": {
-   "reasoning_tokens": 1342
+   "reasoning_tokens": 523
   },
-  "prompt_cache_hit_tokens": 2048,
-  "prompt_cache_miss_tokens": 78
+  "prompt_cache_hit_tokens": 512,
+  "prompt_cache_miss_tokens": 1953
  },
  "response": {
-  "id": "77770143-bc06-4f25-9d9f-ae6211d7f002",
+  "id": "88986e30-6236-4e28-8277-54fdcb2f460f",
   "object": "chat.completion",
-  "created": 1787070757,
+  "created": 1787081854,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"decision\",\n  \"topic\": \"Работа\",\n  \"entities\": [\"Дима\"],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"decision\",\n      \"text\": \"перенести релиз на октябрь\",\n      \"who\": \"Дима\",\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2026-10-01T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"решили переносить релиз на октябрь\"\n    }\n  ]\n}",
-     "reasoning_content": "We need to process the user's transcript: \"созвонились с димой решили переносить релиз на октябрь\"\n\nWe need to output JSON according to the given schema rules.\n\nThe transcript is: \"созвонились с димой решили переносить релиз на октябрь\"\n\nInterpretation: They had a call with Dima and decided to move the release to October. This is a decision. According to rule 14: if a decision or agreement is made, produce one item type \"decision\": the formulation of the decision in the person's words, who - with whom the agreement was made if named, due_kind \"exact\" and exact_local if a date is named in the decision. Here \"на октябрь\" is a named date (October). Rule 12: named date → due_kind \"exact\", exact_local in YYYY-MM-DDTHH:MM. Year: nearest future. Current date: 2026-08-17, Monday. October of 2026 is in the future, so October 1, 2026 at 09:00 (since no time specified). So exact_local: \"2026-10-01T09:00\". Window should be null.\n\nAlso rule 14: \"Решение уже принято, напоминать о нём нечего.\" So just decision item. The action from the decision is not to be invented: \"переносить релиз\" is the decision itself, not a separate task.\n\nSo items: one item, type \"decision\", text: \"перенести релиз на октябрь\" (or maybe \"переносим релиз на октябрь\" - but need short formulation in original words). The raw span: the entire phrase or part? We should take the fragment from which the item is taken. The decision is \"решили переносить релиз на октябрь\". Perhaps raw_span: \"переносить релиз на октябрь\" or \"решили переносить релиз на октябрь\". The rule says \"дословный фрагмент исходника, из которого пункт взят\". So we can take \"решили переносить релиз на октябрь\" or just \"переносить релиз на октябрь\". I'll use the full clause.\n\nwho: \"Дима\" (in nominative: \"Дима\"). The transcript has \"димой\" (instrumental case), but rule 10 says \"имена как они прозвучали, в именительном падеже\". So we transform to \"Дима\".\n\nEntities: list of people mentioned: [\"Дима\"].\n\nnote_kind: decision (since it's a decision). Rule 8: decision — \"человек сообщает, что уже решено или о чём договорились\". So note_kind: \"decision\".\n\ntopic: This is about release/work. The list of existing sections is not given, but we can infer. It says \"Разделов пока нет — заведи подходящий.\" So we create a topic. The transcript is about work/project management. Topic: \"Работа\" (since it's a work-related release). So topic: \"Работа\".\n\nbody_md: for decision, rule 11 says body_md for idea or mixed only, so null.\n\nsecond: null.\n\nconfidence: high, because we are confident.\n\ndue_kind: \"exact\", exact_local: \"2026-10-01T09:00\", window: null.\n\nNote: The date \"октябрь\" is a named month, so exact. Year: nearest future, i.e., 2026. Time not mentioned, so 09:00.\n\nNow, we need to output exactly JSON without markdown wrapper.\n\nLet's construct JSON.\n\n{\n  \"note_kind\": \"decision\",\n  \"topic\": \"Работа\",\n  \"entities\": [\"Дима\"],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"decision\",\n      \"text\": \"перенести релиз на октябрь\",\n      \"who\": \"Дима\",\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2026-10-01T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"решили переносить релиз на октябрь\"\n    }\n  ]\n}\n\nBut we should double-check rule 14: \"сделай один пункт type: decision: сама формулировка решения словами человека\". The person said \"переносить релиз на октябрь\". So text: \"переносим релиз на октябрь\" or \"перенести релиз на октябрь\". It says \"в исходных словах пользователя\" but also \"коротко и в исходных словах пользователя, без канцелярита\". I'll use \"перенести релиз на октябрь\" as it's a decision statement. Alternatively \"переносим релиз на октябрь\" is closer. The decision is \"переносить релиз на октябрь\". I'll use \"перенести релиз на октябрь\" but that changes verb mood. Better to keep \"переносить релиз на октябрь\" as is. Actually, it's a decision \"решили переносить\" so the decision is to move. So text: \"переносить релиз на октябрь\" is fine.\n\nAlso we have to include \"созвонились с димой\" as part of the context? The decision is the main point. The item should reflect the decision. We could include \"созвонились с Димой и решили перенести релиз на октябрь\" but that's longer. The rule says \"коротко и в исходных словах\". So I'll set text: \"переносим релиз на октябрь\" — actually the transcription is \"переносить\" not \"переносим\". So \"перенести релиз на октябрь\" or \"решили перенести релиз на октябрь\". I think \"перенести релиз на октябрь\" is good.\n\nI'll use \"перенести релиз на октябрь\".\n\nAlso, confidence: high.\n\nNow, check if there are any other items? No, just one decision.\n\nSo output as above."
+     "content": "{\"note_kind\": \"decision\", \"topic\": \"Работа\", \"entities\": [\"Дима\"], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"decision\", \"text\": \"переносим релиз на октябрь\", \"who\": \"Дима\", \"due_kind\": \"exact\", \"window\": null, \"exact_local\": \"2026-10-01T09:00\", \"confidence\": \"high\", \"raw_span\": \"решили переносить релиз на октябрь\"}]}",
+     "reasoning_content": "We need answer only JSON. Need analyze. Need follow rules. Need think.\n\nWe have current date 2026-08-17 15:00 Monday. Transcript: \"созвонились с димой решили переносить релиз на октябрь\". Need parse.\n\nNeed determine note_kind likely decision? \"созвонились с димой решили переносить релиз на октябрь\" = We got in touch with Dima, decided to move release to October. This is decision. Rule 14: decision made — one item type decision, who Dima, due_kind exact with exact_local if date named. \"на октябрь\" named month/year? \"октябрь\" likely next October? Current Aug 2026, October 2026 is near future. Exact date for month? Need produce exact_local maybe 2026-10-01T09:00? Rule 12: Названная дата — exact. «переносим релиз на октябрь» → первое октября. So exact_local 2026-10-01T09:00. due_kind exact, window null.\n\nNeed items: decision text \"переносим релиз на октябрь\", who \"Дима\" maybe normalized from \"димой\" to \"Дима\". entities [\"Дима\"]. topic? Work? Release/релиз likely \"Работа\". note_kind \"decision\". body_md null. second null.\n\nNeed maybe note_kind decision. confidence high. raw_span \"решили переносить релиз на октябрь\" or entire? Need raw_span дословный фрагмент исходника, из которого пункт взят. Decision fragment: \"решили переносить релиз на октябрь\". Could include \"созвонились с димой\"? But decision = \"переносить релиз на октябрь\". If action \"созвонились\" is completed? \"созвонились с димой\" is fact/previous action, decision. The rule says one item decision. So raw_span \"решили переносить релиз на октябрь\".\n\nNeed maybe type \"decision\". Who should be \"Дима\" (nominated). Entities list.\n\nNeed perhaps exact_local: 2026-10-01T09:00.\n\nNote: if due_kind exact, window null. exact_local \"2026-10-01T09:00\".\n\nNeed output JSON exactly. No markdown.\n\nLet's craft."
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2126,
-   "completion_tokens": 1484,
-   "total_tokens": 3610,
+   "prompt_tokens": 2465,
+   "completion_tokens": 645,
+   "total_tokens": 3110,
    "prompt_tokens_details": {
-    "cached_tokens": 2048
+    "cached_tokens": 512
    },
    "completion_tokens_details": {
-    "reasoning_tokens": 1342
+    "reasoning_tokens": 523
    },
-   "prompt_cache_hit_tokens": 2048,
-   "prompt_cache_miss_tokens": 78
+   "prompt_cache_hit_tokens": 512,
+   "prompt_cache_miss_tokens": 1953
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

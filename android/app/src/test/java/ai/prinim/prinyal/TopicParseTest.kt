@@ -91,7 +91,7 @@ class TopicParseTest {
 
     @Test
     fun `промпт объявляет поля разбора и версионируется`() {
-        assertEquals("6", Prompt.VERSION)
+        assertEquals("7", Prompt.VERSION)
         assertTrue(Prompt.SYSTEM.contains("note_kind"))
         assertTrue(Prompt.SYSTEM.contains("topic"))
         assertTrue(Prompt.SYSTEM.contains("entities"))

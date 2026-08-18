@@ -153,7 +153,7 @@ def test_meta_carries_the_numbers_analytics_needs(client, m4a):
     meta = post(client, m4a).json()["meta"]
     assert meta["asr_ms"] >= 0 and meta["llm_ms"] >= 0
     assert meta["duration_ms"] == pytest.approx(3000, abs=250)
-    assert meta["prompt_version"] == "6"
+    assert meta["prompt_version"] == "7"
     assert meta["segments"] >= 1
 
 
@@ -161,7 +161,7 @@ def test_health_reports_the_stack(client):
     body = client.get("/health").json()
     assert body["ok"] is True
     assert body["asr"] == "stub"
-    assert body["prompt_version"] == "6"
+    assert body["prompt_version"] == "7"
 
 
 # --- путь для ASR на устройстве ---

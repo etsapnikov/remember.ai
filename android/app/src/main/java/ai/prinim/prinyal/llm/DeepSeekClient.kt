@@ -1,6 +1,7 @@
 package ai.prinim.prinyal.llm
 
 import ai.prinim.prinyal.data.NoteKind
+import ai.prinim.prinyal.domain.LinkValidator
 import ai.prinim.prinyal.domain.Markdown
 import ai.prinim.prinyal.net.IngestOutcome
 import ai.prinim.prinyal.net.ParseResult
@@ -56,6 +57,8 @@ class DeepSeekClient(
         glossary: List<String> = emptyList(),
         people: List<String> = emptyList(),
         existing: List<Pair<String, String>> = emptyList(),
+        /** Прежние записи, среди которых модель ищет связь (Р-15.11). */
+        candidates: List<Pair<String, String>> = emptyList(),
     ): IngestOutcome {
         if (apiKey.isBlank()) {
             return degraded(transcript, "llm_disabled", 0)
@@ -68,7 +71,7 @@ class DeepSeekClient(
 
         for (attempt in 0..retries) {
             val response = try {
-                call(transcript, now, topics, glossary, people, existing)
+                call(transcript, now, topics, glossary, people, existing, candidates)
             } catch (error: Exception) {
                 when {
                     error is java.net.UnknownHostException ||
@@ -161,6 +164,11 @@ class DeepSeekClient(
                     // попадать то, что мы не готовы показать.
                     bodyMd = Markdown.sanitize(ItemValidator.stringOrNull(root, "body_md"))
                         .ifBlank { null },
+                    links = LinkValidator.validate(
+                        root.optJSONArray("links"),
+                        candidates.map { it.first }.toSet(),
+                        selfId = "",
+                    ),
                     second = secondOf(root, transcript, now, zone),
                     degraded = null,
                     asrMs = 0,
@@ -185,6 +193,7 @@ class DeepSeekClient(
         glossary: List<String>,
         people: List<String>,
         existing: List<Pair<String, String>>,
+        candidates: List<Pair<String, String>>,
     ): Response {
         val payload = JSONObject().apply {
             put("model", model)
@@ -192,7 +201,12 @@ class DeepSeekClient(
                 put(JSONObject().put("role", "system").put("content", Prompt.SYSTEM))
                 put(
                     JSONObject().put("role", "user")
-                        .put("content", Prompt.user(transcript, now, topics, glossary, people, existing))
+                        .put(
+                            "content",
+                            Prompt.user(
+                                transcript, now, topics, glossary, people, existing, candidates,
+                            ),
+                        )
                 )
             })
             put("temperature", 0.1)

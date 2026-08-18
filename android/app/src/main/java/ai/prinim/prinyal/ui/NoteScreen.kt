@@ -3,6 +3,9 @@ package ai.prinim.prinyal.ui
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.data.Confidence
 import ai.prinim.prinyal.data.ItemEntity
+import ai.prinim.prinyal.domain.LinkCandidates
+import ai.prinim.prinyal.data.LinkedNote
+import ai.prinim.prinyal.data.LinkReason
 import ai.prinim.prinyal.data.ItemState
 import ai.prinim.prinyal.data.ItemType
 import ai.prinim.prinyal.data.NoteStatus
@@ -80,6 +83,7 @@ fun NoteScreen(
 ) {
     val entry by vm.note(noteId).collectAsState(initial = null)
     val note = entry?.note
+    val linked by vm.linked(noteId).collectAsState(initial = emptyList())
 
     var editing by remember { mutableStateOf<ItemEntity?>(null) }
     // Раскрытие пункта: тап показывает, а меняет — второй жест (Р-15.4).
@@ -227,6 +231,15 @@ fun NoteScreen(
                             modifier = Modifier.clickable { vm.mergeSiblings(noteId) },
                         )
                     }
+                }
+            }
+
+            // «Связано» (Р-15.11). Блока нет, когда связей нет: пустой заголовок
+            // обещал бы, что продукт что-то нашёл, и не нашёл бы ничего.
+            if (linked.isNotEmpty()) {
+                item { SectionTitle(stringResource(R.string.note_linked)) }
+                items(linked, key = { it.id }) { link ->
+                    LinkRow(link, onClick = { onOpenNote(link.id) })
                 }
             }
 
@@ -723,3 +736,36 @@ private fun noteStamp(millis: Long): String =
     java.time.Instant.ofEpochMilli(millis)
         .atZone(java.time.ZoneId.systemDefault())
         .format(NOTE_STAMP)
+
+
+/**
+ * Строка блока «Связано» (Р-15.11).
+ *
+ * Причина, начало записи, дата — и ничего больше. Оценки связи («сильная»,
+ * проценты уверенности) здесь нет намеренно: человеку важно, о чём та запись, а
+ * не насколько машина в себе уверена. Неуверенные связи до экрана не доходят
+ * вовсе — их отсекает валидатор.
+ */
+@Composable
+private fun LinkRow(link: LinkedNote, onClick: () -> Unit) {
+    val reason = when (LinkReason.of(link.reason)) {
+        LinkReason.ANSWERS -> R.string.link_answers
+        LinkReason.DISPUTES -> R.string.link_disputes
+        else -> R.string.link_continues
+    }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = Space.xs),
+        verticalArrangement = Arrangement.spacedBy(Space.xs),
+    ) {
+        MetaText(stringResource(reason), color = Prinyal.colors.accentSelf)
+        Text(
+            text = LinkCandidates.opening(link.transcript),
+            style = Prinyal.type.body,
+            color = Prinyal.colors.ink,
+        )
+        MetaText(noteStamp(link.createdAt), color = Prinyal.colors.inkFaint)
+    }
+}

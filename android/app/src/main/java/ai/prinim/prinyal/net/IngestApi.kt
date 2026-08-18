@@ -46,6 +46,8 @@ data class ParseResult(
      * null — обычный случай, и он же случай по умолчанию.
      */
     val second: ParseResult? = null,
+    /** Связи с прежними записями (Р-15.11). Пусто — обычный и хороший случай. */
+    val links: List<ai.prinim.prinyal.domain.LinkValidator.Link> = emptyList(),
     /** Код деградации §6 или null. Строку подбирает UI из strings.xml. */
     val degraded: String?,
     val asrMs: Int,

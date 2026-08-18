@@ -43,7 +43,7 @@ def api_key() -> str:
     raise SystemExit("ключа нет в backend/.env")
 
 
-def ask(transcript: str, now: datetime, key: str) -> dict:
+def ask(transcript: str, now: datetime, key: str, candidates=None) -> dict:
     payload = {
         "model": MODEL,
         "max_tokens": MAX_TOKENS,
@@ -52,7 +52,7 @@ def ask(transcript: str, now: datetime, key: str) -> dict:
         "stream": False,
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": build_user_prompt(transcript, now)},
+            {"role": "user", "content": build_user_prompt(transcript, now, candidates=candidates)},
         ],
     }
     request = urllib.request.Request(
@@ -81,7 +81,15 @@ def main() -> None:
                 continue
 
         started = time.time()
-        body = ask(fixture["transcript"], datetime.fromisoformat(fixture["at"]), key)
+        body = ask(
+            fixture["transcript"],
+            datetime.fromisoformat(fixture["at"]),
+            key,
+            # Кандидаты на связь пишутся в фикстуру как список [id, начало]:
+            # плёнка обязана записываться тем же запросом, каким она потом
+            # воспроизводится (Р-15.11).
+            candidates=[tuple(c) for c in fixture.get("candidates", [])],
+        )
         choice = body["choices"][0]
         took = time.time() - started
 

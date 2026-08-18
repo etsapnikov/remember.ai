@@ -90,6 +90,12 @@
     <string name="transcript_parsing">Разбираю…</string>
     <string name="transcript_edit_dropped">Не сохранил правку</string>
     <string name="note_items">Что понял</string>
+    <!-- Связи между записями (Р-15.11). Причина названа словом, а не стрелкой:
+         человеку важно, чем та запись приходится этой. -->
+    <string name="note_linked">Связано</string>
+    <string name="link_continues">продолжает</string>
+    <string name="link_answers">отвечает на это</string>
+    <string name="link_disputes">спорит с этим</string>
     <string name="note_returns">Возвраты</string>
     <string name="note_play">Слушать</string>
     <string name="note_pause">Пауза</string>

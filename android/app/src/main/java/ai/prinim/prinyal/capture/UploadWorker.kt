@@ -3,6 +3,7 @@ package ai.prinim.prinyal.capture
 import ai.prinim.prinyal.PrinyalApp
 import ai.prinim.prinyal.asr.AudioDecoder
 import ai.prinim.prinyal.asr.ModelStore
+import ai.prinim.prinyal.domain.LinkCandidates
 import ai.prinim.prinyal.domain.Replacements
 import ai.prinim.prinyal.data.Analytics
 import ai.prinim.prinyal.data.NoteStatus
@@ -109,6 +110,11 @@ class UploadWorker(
                     // Существующие пункты передаём только при дописывании: на
                     // первом разборе ссылаться не на что, а лишний контекст
                     // сбивает модель.
+                    // Прежние записи для поиска связей (Р-15.11). Отбор наш,
+                    // решение модели: чего нет в списке, того не будет и в
+                    // ответе — поэтому кандидаты и есть половина качества.
+                    candidates = LinkCandidates.of(note, app.db.notes().all())
+                        .map { it.id to LinkCandidates.opening(it.transcript) },
                     existing = if (appended) {
                         app.db.items().forNote(note.id).map { it.id to it.text }
                     } else {
