@@ -180,12 +180,15 @@ fun NoteScreen(
             // Чип раздела — тихий, у шапки. Пункты своего топика не имеют:
             // раздел это свойство всей записи (scope 1.0.1 §0).
             item {
+                // Шапка карточки: когда записано и к чему отнесено. Раздел
+                // правят только здесь — а показывали его до этого только в
+                // ленте (аудит Д-7, п. 5).
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    AudioRow(File(note.audioPath), note.durationMs)
+                    MetaText(noteStamp(note.createdAt), color = Prinyal.colors.inkFaint)
                     TopicChip(
                         name = topicName ?: stringResource(R.string.topics_loose),
                         source = TopicSource.of(note.topicSource),
@@ -193,6 +196,8 @@ fun NoteScreen(
                     )
                 }
             }
+
+            item { AudioRow(File(note.audioPath), note.durationMs) }
 
             // «Собрано» — сразу под шапкой: человек диктовал идею комком именно
             // затем, чтобы получить собранное. Сырец нужен ему как источник и
@@ -236,8 +241,23 @@ fun NoteScreen(
                         item = item,
                         onDone = { vm.markDone(item.id) },
                         onDismiss = { vm.dismiss(item.id) },
-                        onOpen = { opened = item },
+                        onOpen = { opened = if (opened?.id == item.id) null else item },
                     )
+                    // Раскрытие живёт под своим пунктом: соседние остаются на
+                    // экране, и видно, откуда взялось (аудит Д-7, п. 4).
+                    if (opened?.id == item.id) {
+                        LaunchedEffect(item.id) { openedReturns = vm.returnsFor(item.id) }
+                        ItemDetail(
+                            item = item,
+                            returns = openedReturns,
+                            rawSpan = item.rawSpan,
+                            onEdit = {
+                                editing = item
+                                opened = null
+                            },
+                            onDismiss = { opened = null },
+                        )
+                    }
                 }
             } else if (status == NoteStatus.RECORDED || status == NoteStatus.QUEUED ||
                 status == NoteStatus.SENT
@@ -371,20 +391,6 @@ fun NoteScreen(
                 picking = false
             },
             onDismiss = { picking = false },
-        )
-    }
-
-    opened?.let { item ->
-        LaunchedEffect(item.id) { openedReturns = vm.returnsFor(item.id) }
-        ItemDetailSheet(
-            item = item,
-            returns = openedReturns,
-            rawSpan = item.rawSpan,
-            onEdit = {
-                editing = item
-                opened = null
-            },
-            onDismiss = { opened = null },
         )
     }
 
@@ -704,3 +710,12 @@ private fun AudioRow(file: File, durationMs: Long) {
         MetaText("· %d:%02d".format(durationMs / 60_000, (durationMs / 1000) % 60))
     }
 }
+
+/** Когда записано: дата и время служебным моно в шапке карточки. */
+private val NOTE_STAMP: java.time.format.DateTimeFormatter =
+    java.time.format.DateTimeFormatter.ofPattern("d MMM · HH:mm", java.util.Locale("ru"))
+
+private fun noteStamp(millis: Long): String =
+    java.time.Instant.ofEpochMilli(millis)
+        .atZone(java.time.ZoneId.systemDefault())
+        .format(NOTE_STAMP)

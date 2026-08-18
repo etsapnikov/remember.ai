@@ -50,7 +50,7 @@ import java.util.Locale
  * это до сих пор висит».
  */
 @Composable
-fun ItemDetailSheet(
+fun ItemDetail(
     item: ItemEntity,
     returns: List<ReturnEntity>,
     rawSpan: String?,
@@ -59,25 +59,24 @@ fun ItemDetailSheet(
 ) {
     val context = LocalContext.current
     val state = ItemState.of(item.state)
+    // Закрытое неприкосновенно — это несущее правило сверки. Предлагать
+    // править сделанное значит обещать то, чего продукт не сделает (Д-7).
+    val closed = state in setOf(ItemState.DONE, ItemState.DISMISSED, ItemState.EXPIRED)
 
-    Dialog(onDismissRequest = onDismiss) {
-        Box(
-            Modifier
-                .background(Prinyal.colors.surface, Radius.control)
-                .padding(Space.ml),
-        ) {
-            Column(
-                Modifier
-                    .heightIn(max = 520.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(Space.m),
-            ) {
-                Text(
-                    text = item.text,
-                    style = Prinyal.type.itemTitle,
-                    color = Prinyal.colors.ink,
-                )
-
+    // Раскрытие на месте, а не модалкой (аудит Д-7, п. 4).
+    //
+    // Модалка была первой в продукте: шесть версий обходились без диалогов, и
+    // затемнение с карточкой по центру ломает пластику. Хуже другое — теряется
+    // место: не видно, какой это пункт из четырёх и что вокруг. А раскрытие как
+    // раз про «откуда это взялось».
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(start = Space.m, top = Space.s, bottom = Space.m),
+        verticalArrangement = Arrangement.spacedBy(Space.m),
+    ) {
+        run {
+            Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
                 // Состояние и срок — одной строкой тем же языком, что в карточке.
                 MetaText(
                     // Дату печатает сама фраза плана — второй раз не повторяем.
@@ -116,12 +115,14 @@ fun ItemDetailSheet(
 
                 // Единственный выход в изменение — явный и подписанный словом.
                 Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
-                    Text(
-                        text = stringResource(R.string.item_edit),
-                        style = Prinyal.type.label,
-                        color = Prinyal.colors.accentSelf,
-                        modifier = Modifier.clickable(onClick = onEdit),
-                    )
+                    if (!closed) {
+                        Text(
+                            text = stringResource(R.string.item_edit),
+                            style = Prinyal.type.label,
+                            color = Prinyal.colors.accentSelf,
+                            modifier = Modifier.clickable(onClick = onEdit),
+                        )
+                    }
                     Text(
                         text = stringResource(R.string.item_close),
                         style = Prinyal.type.label,
