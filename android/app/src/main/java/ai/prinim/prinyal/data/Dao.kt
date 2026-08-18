@@ -387,3 +387,16 @@ interface LinkDao {
     @Query("SELECT * FROM links")
     suspend fun pairs(): List<LinkEntity>
 }
+
+@Dao
+interface QuestionDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(entity: QuestionEntity)
+
+    @Query("SELECT * FROM questions WHERE note_id = :noteId ORDER BY asked_at ASC")
+    suspend fun forNote(noteId: String): List<QuestionEntity>
+
+    @Query("SELECT * FROM questions WHERE note_id = :noteId ORDER BY asked_at ASC")
+    fun watch(noteId: String): Flow<List<QuestionEntity>>
+}

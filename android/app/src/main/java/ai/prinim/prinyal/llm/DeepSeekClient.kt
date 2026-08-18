@@ -1,6 +1,7 @@
 package ai.prinim.prinyal.llm
 
 import ai.prinim.prinyal.data.NoteKind
+import ai.prinim.prinyal.domain.InterviewPolicy
 import ai.prinim.prinyal.domain.LinkValidator
 import ai.prinim.prinyal.domain.Markdown
 import ai.prinim.prinyal.net.IngestOutcome
@@ -184,7 +185,62 @@ class DeepSeekClient(
         return degraded(transcript, lastReason, retries)
     }
 
+    /**
+     * Вопрос по идее (Р-15.14).
+     *
+     * Отдельный вызов, не расширение разбора: ответ здесь — строка, а не json,
+     * и деградации у него нет. Не получилось — молчим; пустой или негодный
+     * вопрос человеку хуже, чем отсутствие вопроса.
+     *
+     * @return вопрос, или null — спрашивать нечего
+     */
+    fun interview(idea: String, asked: List<String>): String? {
+        if (apiKey.isBlank()) return null
+        val user = buildString {
+            append("Запись:\n").append(idea).append('\n')
+            if (asked.isNotEmpty()) {
+                append("\nУже спрашивали:\n")
+                asked.forEach { append("  ").append(it).append('\n') }
+            }
+        }
+        val payload = JSONObject().apply {
+            put("model", model)
+            put("messages", JSONArray().apply {
+                put(JSONObject().put("role", "system").put("content", Prompt.INTERVIEW))
+                put(JSONObject().put("role", "user").put("content", user))
+            })
+            put("temperature", 0.4)
+            put("max_tokens", MAX_TOKENS)
+            put("stream", false)
+        }
+        val response = runCatching { post(payload) }.getOrNull() ?: return null
+        if (response.code != 200) return null
+        val text = response.body
+            ?.optJSONArray("choices")?.optJSONObject(0)
+            ?.optJSONObject("message")?.optString("content")
+            .orEmpty().trim().trim('"', '«', '»')
+        val question = text.takeIf { it.isNotBlank() } ?: return null
+        return question.takeIf { InterviewPolicy.accepts(it, idea, asked) }
+    }
+
     private class Response(val code: Int, val body: JSONObject?)
+
+    /** Один запрос к модели: плёнка в тестах, сеть в жизни. */
+    private fun post(payload: JSONObject): Response {
+        transport?.let { tape ->
+            val (code, text) = tape.send(payload.toString())
+            return Response(code, runCatching { JSONObject(text) }.getOrNull())
+        }
+        val request = Request.Builder()
+            .url("${baseUrl.trimEnd('/')}/chat/completions")
+            .addHeader("Authorization", "Bearer $apiKey")
+            .post(payload.toString().toRequestBody(JSON))
+            .build()
+        client.newCall(request).execute().use { http ->
+            val text = http.body?.string().orEmpty()
+            return Response(http.code, runCatching { JSONObject(text) }.getOrNull())
+        }
+    }
 
     private fun call(
         transcript: String,

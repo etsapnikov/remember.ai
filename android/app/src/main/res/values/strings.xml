@@ -93,6 +93,12 @@
     <!-- Связи между записями (Р-15.11). Причина названа словом, а не стрелкой:
          человеку важно, чем та запись приходится этой. -->
     <string name="note_linked">Связано</string>
+    <!-- Интервьюер (Р-15.14). Глагол приглашает, а не обещает результат:
+         продукт спрашивает, думает по-прежнему человек. -->
+    <string name="interview_start">Покрутить</string>
+    <string name="interview_thinking">Думаю, о чём спросить…</string>
+    <string name="interview_answer">Ответить голосом</string>
+    <string name="interview_enough">Хватит</string>
     <string name="link_continues">продолжает</string>
     <string name="link_answers">отвечает на это</string>
     <string name="link_disputes">спорит с этим</string>

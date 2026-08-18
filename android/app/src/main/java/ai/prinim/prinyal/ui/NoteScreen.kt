@@ -8,6 +8,7 @@ import ai.prinim.prinyal.data.LinkedNote
 import ai.prinim.prinyal.data.LinkReason
 import ai.prinim.prinyal.data.ItemState
 import ai.prinim.prinyal.data.ItemType
+import ai.prinim.prinyal.data.NoteKind
 import ai.prinim.prinyal.data.NoteStatus
 import ai.prinim.prinyal.data.TopicEntity
 import ai.prinim.prinyal.data.TopicSource
@@ -84,6 +85,7 @@ fun NoteScreen(
     val entry by vm.note(noteId).collectAsState(initial = null)
     val note = entry?.note
     val linked by vm.linked(noteId).collectAsState(initial = emptyList())
+    val question by vm.question.collectAsState()
 
     var editing by remember { mutableStateOf<ItemEntity?>(null) }
     // Раскрытие пункта: тап показывает, а меняет — второй жест (Р-15.4).
@@ -231,6 +233,22 @@ fun NoteScreen(
                             modifier = Modifier.clickable { vm.mergeSiblings(noteId) },
                         )
                     }
+                }
+            }
+
+            // «Покрутить» (Р-15.14) — только у идей: у списка покупок крутить
+            // нечего, а кнопка, которая иногда бессмысленна, учит её не замечать.
+            if (NoteKind.of(note.noteKind) == NoteKind.IDEA) {
+                item {
+                    Interview(
+                        question = question,
+                        onAsk = { vm.askAboutIdea(noteId) },
+                        // Отвечают тем же жестом, каким записывают: ответ
+                        // становится сегментом заметки по механике Р-14.3, а не
+                        // отдельной сущностью «ответ на вопрос».
+                        onAnswer = { openAppend(context, noteId) },
+                        onClose = { vm.closeInterview() },
+                    )
                 }
             }
 
@@ -767,5 +785,74 @@ private fun LinkRow(link: LinkedNote, onClick: () -> Unit) {
             color = Prinyal.colors.ink,
         )
         MetaText(noteStamp(link.createdAt), color = Prinyal.colors.inkFaint)
+    }
+}
+
+
+/** Экран записи в режиме дописывания — общий вход для «Дописать» и ответа. */
+private fun openAppend(context: android.content.Context, noteId: String) {
+    context.startActivity(
+        android.content.Intent(
+            context,
+            ai.prinim.prinyal.capture.CaptureActivity::class.java,
+        ).apply {
+            putExtra(ai.prinim.prinyal.capture.CaptureActivity.EXTRA_APPEND_TO, noteId)
+            // NEW_TASK | CLEAR_TASK — по той же причине, что и у «Дописать»
+            // (Р-15.1): интент не должен попасть в умирающую задачу.
+            addFlags(
+                android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                    android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+            )
+        }
+    )
+}
+
+/**
+ * Режим «покрутить» (Р-15.14).
+ *
+ * Один вопрос на экране и два выхода: ответить голосом тем же жестом, каким
+ * человек и записывает, или закрыть. Списка прошлых вопросов нет — это не
+ * переписка, а разговор, у которого есть только текущая реплика.
+ */
+@Composable
+private fun Interview(
+    question: String?,
+    onAsk: () -> Unit,
+    onAnswer: () -> Unit,
+    onClose: () -> Unit,
+) {
+    when {
+        question == null -> MetaText(
+            text = stringResource(R.string.interview_start),
+            color = Prinyal.colors.accentSelf,
+            modifier = Modifier.clickable(onClick = onAsk),
+        )
+
+        question.isBlank() -> MetaText(
+            text = stringResource(R.string.interview_thinking),
+            color = Prinyal.colors.inkFaint,
+        )
+
+        else -> Column(
+            Modifier
+                .fillMaxWidth()
+                .background(Prinyal.colors.wellSurface, Radius.control)
+                .padding(Space.m),
+            verticalArrangement = Arrangement.spacedBy(Space.sm),
+        ) {
+            Text(question, style = Prinyal.type.body, color = Prinyal.colors.ink)
+            Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
+                MetaText(
+                    text = stringResource(R.string.interview_answer),
+                    color = Prinyal.colors.accentSelf,
+                    modifier = Modifier.clickable(onClick = onAnswer),
+                )
+                MetaText(
+                    text = stringResource(R.string.interview_enough),
+                    color = Prinyal.colors.inkMuted,
+                    modifier = Modifier.clickable(onClick = onClose),
+                )
+            }
+        }
     }
 }

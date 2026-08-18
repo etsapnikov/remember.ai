@@ -97,6 +97,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _weekly = MutableStateFlow<WeeklySummary.Report?>(null)
     val weekly: StateFlow<WeeklySummary.Report?> = _weekly
 
+    /**
+     * Вопрос интервьюера по открытой заметке (Р-15.14).
+     *
+     * `null` — режим закрыт; пустая строка — режим открыт, вопрос ещё идёт.
+     */
+    private val _question = MutableStateFlow<String?>(null)
+    val question: StateFlow<String?> = _question
+
     /** Предложение починить структуру (Р-15.12). null — продукт молчит. */
     private val _structure = MutableStateFlow<StructureRepair.Offer?>(null)
     val structure: StateFlow<StructureRepair.Offer?> = _structure
@@ -570,6 +578,42 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         app.settings.structureRefused(key, now)
         app.settings.structureOffered(now)
         _structure.value = null
+    }
+
+    /**
+     * «Покрутить»: спросить об идее (Р-15.14).
+     *
+     * Негодный вопрос не показывается вовсе — режим просто закрывается. Пустой
+     * или общий вопрос человеку хуже, чем его отсутствие: он сообщает, что
+     * продукт не читал записи.
+     */
+    fun askAboutIdea(noteId: String) = viewModelScope.launch {
+        _question.value = ""
+        val question = withContext(Dispatchers.IO) {
+            val note = app.db.notes().byId(noteId) ?: return@withContext null
+            val idea = app.repository.joinedTranscript(noteId).ifBlank {
+                note.transcript.orEmpty()
+            }
+            if (idea.isBlank()) return@withContext null
+            val asked = app.db.questions().forNote(noteId).map { it.text }
+            val fresh = app.llm.interview(idea, asked) ?: return@withContext null
+            app.db.questions().insert(
+                ai.prinim.prinyal.data.QuestionEntity(
+                    id = java.util.UUID.randomUUID().toString(),
+                    noteId = noteId,
+                    text = fresh,
+                    askedAt = System.currentTimeMillis(),
+                )
+            )
+            fresh
+        }
+        _question.value = question
+        if (question == null) _message.value = null
+    }
+
+    /** Выход из режима — в любой момент и без последствий. */
+    fun closeInterview() {
+        _question.value = null
     }
 
     fun showMessage(text: String?) {

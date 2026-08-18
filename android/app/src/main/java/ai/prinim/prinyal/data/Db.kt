@@ -17,8 +17,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SegmentEntity::class,
         PersonEntity::class,
         LinkEntity::class,
+        QuestionEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 abstract class PrinyalDb : RoomDatabase() {
@@ -30,6 +31,7 @@ abstract class PrinyalDb : RoomDatabase() {
     abstract fun segments(): SegmentDao
     abstract fun people(): PersonDao
     abstract fun links(): LinkDao
+    abstract fun questions(): QuestionDao
 
     companion object {
         @Volatile
@@ -195,10 +197,27 @@ abstract class PrinyalDb : RoomDatabase() {
             }
         }
 
+        /** v7 → v8: вопросы интервьюера (Р-15.14). */
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS questions (" +
+                        "id TEXT NOT NULL PRIMARY KEY, " +
+                        "note_id TEXT NOT NULL, " +
+                        "text TEXT NOT NULL, " +
+                        "asked_at INTEGER NOT NULL, " +
+                        "FOREIGN KEY(note_id) REFERENCES notes(id) ON DELETE CASCADE)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_questions_note_id ON questions(note_id)"
+                )
+            }
+        }
+
         private fun build(context: Context): PrinyalDb =
             Room.databaseBuilder(context, PrinyalDb::class.java, "prinyal.db")
                 // Destructive-падения нет намеренно: dogfood-корпус терять нельзя.
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .build()
 
         /** Только для тестов. */

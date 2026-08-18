@@ -366,3 +366,28 @@ enum class LinkReason(val wire: String) {
         fun of(wire: String?): LinkReason? = entries.firstOrNull { it.wire == wire }
     }
 }
+
+/**
+ * Вопрос интервьюера (Р-15.14).
+ *
+ * Хранится, а не держится в памяти экрана: без истории второй круг задаёт то
+ * же самое другими словами, и «покрутить» превращается в допрос по кругу.
+ */
+@Entity(
+    tableName = "questions",
+    foreignKeys = [
+        ForeignKey(
+            entity = NoteEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["note_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("note_id")],
+)
+data class QuestionEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "note_id") val noteId: String,
+    val text: String,
+    @ColumnInfo(name = "asked_at") val askedAt: Long,
+)
