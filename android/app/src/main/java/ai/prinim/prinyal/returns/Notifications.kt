@@ -107,6 +107,40 @@ object Notifications {
         notify(context, ID_BATCH, notification)
     }
 
+    /**
+     * Контекст-пак собран (Р-15.13).
+     *
+     * Уведомление, а не молчание: команду человек сказал голосом и экрана перед
+     * собой не держит. Тап открывает системное «Поделиться» — файл нужен не в
+     * приложении, а снаружи, ради этого пак и собирался.
+     */
+    fun showPack(context: Context, topic: String, file: java.io.File) {
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            context, "${context.packageName}.files", file,
+        )
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/markdown"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_TITLE, file.name)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        val chooser = Intent.createChooser(send, null)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val pending = PendingIntent.getActivity(
+            context, file.name.hashCode(), chooser,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val notification = base(context, CHANNEL_UNDERSTANDING)
+            .setContentTitle(context.getString(R.string.pack_ready, topic))
+            .setContentText(context.getString(R.string.pack_share))
+            .setContentIntent(pending)
+            .setAutoCancel(true)
+            .build()
+        notify(context, ID_PACK, notification)
+    }
+
+    private const val ID_PACK = 7714
+
     /** Возврат (F-6): текст айтема, причина и три действия. */
     fun showReturn(
         context: Context,

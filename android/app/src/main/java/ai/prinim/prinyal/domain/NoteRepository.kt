@@ -243,6 +243,37 @@ class NoteRepository(
     }
 
     /**
+     * Запись оказалась командой, а не заметкой (Р-15.13).
+     *
+     * Аудио и транскрипт удаляются: команда своей ценности не имеет, а её след
+     * в ленте — мусор. Событие в аналитике остаётся: по нему видно, что человек
+     * командой пользуется, даже когда результат его не устроил.
+     */
+    suspend fun markCommand(noteId: String, topic: String): List<ContextPack.Source> {
+        val note = db.notes().byId(noteId) ?: return emptyList()
+        analytics.log("voice_command", mapOf("note" to noteId, "topic" to topic))
+        runCatching { File(note.audioPath).delete() }
+        db.notes().delete(noteId)
+
+        // Тема названа голосом и в косвенном падеже — сопоставляем по основе.
+        // Точного совпадения имён ждать нельзя: «по авторизации» никогда не
+        // совпадёт с разделом «Авторизация» буква в букву.
+        val stem = topic.lowercase().take(STEM)
+        val topicId = db.topics().live()
+            .firstOrNull { it.name.lowercase().take(STEM) == stem }
+            ?.id
+        val notes = db.notes().all().filter {
+            if (topicId != null) it.topicId == topicId
+            // Раздел не нашёлся — ищем по словам самих записей: тема могла
+            // никогда не становиться разделом, а материал по ней есть.
+            else it.transcript.orEmpty().lowercase().contains(stem)
+        }
+        return notes.map { ContextPack.Source(it, db.items().forNote(it.id)) }
+    }
+
+
+
+    /**
      * Переезд группы заметок в новый раздел (Р-15.12).
      *
      * Источник помечается как `repair`, а не `user`: человек согласился с
@@ -851,6 +882,9 @@ class NoteRepository(
          * структура превращается в шум — ровно то, ради чего разделы и не
          * отдавали человеку в руки.
          */
+        /** По скольким буквам сличаем тему из речи с именем раздела (Р-15.13). */
+        const val STEM = 4
+
         const val MAX_AUTO_TOPICS = 24
     }
 }

@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -39,12 +40,31 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun TopicScreen(vm: AppViewModel, topicId: String?, onOpenNote: (String) -> Unit) {
     val notes by vm.notesOf(topicId).collectAsState(initial = emptyList())
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // Заголовок пака — имя раздела: там падеж правильный по определению, в
+    // отличие от темы, названной голосом (Р-15.13).
+    val loose = stringResource(R.string.topics_loose)
+    var title by androidx.compose.runtime.remember(topicId) {
+        androidx.compose.runtime.mutableStateOf(loose)
+    }
+    androidx.compose.runtime.LaunchedEffect(topicId) {
+        if (topicId != null) {
+            title = vm.liveTopics().firstOrNull { it.id == topicId }?.name ?: loose
+        }
+    }
 
     if (notes.isEmpty()) {
         Box(Modifier.fillMaxSize(), Alignment.Center) {
             MetaText(stringResource(R.string.feed_empty))
         }
         return
+    }
+
+    // Контекст-пак (Р-15.13): всё, что известно по разделу, одним файлом. Кнопка
+    // служебная и стоит над списком, а не парит над ним: она нужна редко и не
+    // должна перекрывать записи.
+    if (topicId != AppViewModel.DECISIONS) {
+        PackButton(vm, topicId, title, context)
     }
 
     LazyColumn(
@@ -122,4 +142,50 @@ private fun summary(context: android.content.Context, entry: NoteWithItems): Str
         if (gone > 0) add(context.getString(R.string.topic_summary_gone, gone))
     }
     return parts.joinToString(" · ").ifEmpty { stringResource(R.string.topic_summary_empty) }
+}
+
+
+/**
+ * «Собрать контекст» — файл уходит в системный «Поделиться».
+ *
+ * Копирования отдельной кнопкой нет: системный лист умеет и то, и другое, а
+ * две кнопки рядом заставляли бы выбирать до того, как человек увидел файл.
+ */
+@Composable
+private fun PackButton(
+    vm: AppViewModel,
+    topicId: String?,
+    title: String,
+    context: android.content.Context,
+) {
+    val name = title
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Space.screen, vertical = Space.xs),
+    ) {
+        MetaText(
+            text = stringResource(R.string.pack_build),
+            color = Prinyal.colors.accentSelf,
+            modifier = Modifier.clickable {
+                vm.contextPack(topicId, name) { file, _ -> sharePack(context, file) }
+            },
+        )
+    }
+}
+
+private fun sharePack(context: android.content.Context, file: java.io.File) {
+    val uri = androidx.core.content.FileProvider.getUriForFile(
+        context, "${context.packageName}.files", file,
+    )
+    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = "text/markdown"
+        putExtra(android.content.Intent.EXTRA_STREAM, uri)
+        putExtra(android.content.Intent.EXTRA_TITLE, file.name)
+        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    context.startActivity(
+        android.content.Intent.createChooser(send, null)
+            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    )
 }

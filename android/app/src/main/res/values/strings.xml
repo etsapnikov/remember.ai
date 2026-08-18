@@ -372,6 +372,12 @@
     <string name="dict_empty">Пока пусто. Задержи палец на слове в «Что услышал».</string>
     <string name="topics_loose">Без раздела</string>
     <string name="topics_decisions">Решения</string>
+    <!-- Контекст-пак (Р-15.13): глагол, а не существительное — кнопка обещает
+         действие, а не раздел. -->
+    <string name="pack_build">Собрать контекст</string>
+    <string name="pack_ready">Собрал контекст по «%1$s»</string>
+    <string name="pack_share">Нажми — поделиться файлом</string>
+    <string name="pack_empty">Записей по этой теме нет</string>
     <plurals name="topics_live">
         <item quantity="one">%1$d живая</item>
         <item quantity="few">%1$d живых</item>

@@ -12,6 +12,8 @@ import ai.prinim.prinyal.data.TopicKind
 import ai.prinim.prinyal.data.TopicOverview
 import ai.prinim.prinyal.data.TopicSource
 import ai.prinim.prinyal.data.ReplacementEntity
+import ai.prinim.prinyal.domain.ContextPack
+import kotlinx.coroutines.withContext
 import ai.prinim.prinyal.domain.Replacements
 import ai.prinim.prinyal.domain.StructureRepair
 import ai.prinim.prinyal.data.PersonEntity
@@ -459,6 +461,33 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             app.api.health(url, token)
         }
     }
+
+    /**
+     * Контекст-пак по разделу (Р-15.13).
+     *
+     * Собирается кодом из корпуса; модель не участвует, потому что бумагу
+     * человек уносит наружу и там за неё отвечает уже он.
+     *
+     * @param topicId раздел; null — заметки без раздела
+     */
+    fun contextPack(topicId: String?, title: String, onDone: (File, String) -> Unit) =
+        viewModelScope.launch {
+            val notes = withContext(Dispatchers.IO) {
+                val all = app.db.notes().all()
+                val picked = if (topicId == null) {
+                    all.filter { it.topicId == null }
+                } else {
+                    all.filter { it.topicId == topicId }
+                }
+                picked.map { ContextPack.Source(it, app.db.items().forNote(it.id)) }
+            }
+            val markdown = ContextPack.build(title, notes)
+            val file = withContext(Dispatchers.IO) {
+                val dir = File(getApplication<Application>().filesDir, "exports").apply { mkdirs() }
+                File(dir, ContextPack.fileName(title)).apply { writeText(markdown) }
+            }
+            onDone(file, markdown)
+        }
 
     /** Страховка dogfood-данных: вся база одним файлом (F-8). */
     fun export(onDone: (File) -> Unit) = viewModelScope.launch {

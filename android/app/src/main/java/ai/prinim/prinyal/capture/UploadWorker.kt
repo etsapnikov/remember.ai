@@ -5,6 +5,8 @@ import ai.prinim.prinyal.asr.AudioDecoder
 import ai.prinim.prinyal.asr.ModelStore
 import ai.prinim.prinyal.domain.LinkCandidates
 import ai.prinim.prinyal.domain.Replacements
+import ai.prinim.prinyal.domain.ContextPack
+import ai.prinim.prinyal.domain.VoiceCommand
 import ai.prinim.prinyal.data.Analytics
 import ai.prinim.prinyal.data.NoteStatus
 import ai.prinim.prinyal.net.IngestOutcome
@@ -81,6 +83,22 @@ class UploadWorker(
                 app.repository.joinedTranscript(note.id)
             } else {
                 note.transcript ?: transcribeLocally(app, note.id, audio)
+            }
+
+            // Команда над корпусом — не заметка (Р-15.13). Разбирать её незачем,
+            // а оставлять в ленте нельзя: от каждой попытки собрать пак иначе
+            // остаётся запись «собери контекст по авторизации», и продукт
+            // превращает собственную функцию в мусор, который человек убирает
+            // руками.
+            val command = transcript?.let { VoiceCommand.packOf(it) }
+            if (command != null && !appended) {
+                val sources = app.repository.markCommand(note.id, command.topic)
+                val markdown = ContextPack.build(command.topic, sources)
+                val dir = File(applicationContext.filesDir, "exports").apply { mkdirs() }
+                val file = File(dir, ContextPack.fileName(command.topic))
+                    .apply { writeText(markdown) }
+                Notifications.showPack(applicationContext, command.topic, file)
+                continue
             }
 
             val outcome = when {
