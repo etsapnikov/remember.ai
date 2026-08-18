@@ -270,6 +270,41 @@
     <string name="week_phrase_returns">Мои возвраты чаще всего проходят мимо. Попробую приходить в другое время.</string>
     <string name="week_phrase_lump">Записи короткие, как команды. Мне проще, когда говоришь комком — разберу сам.</string>
     <string name="week_phrase_days">Записей почти нет. Похоже, я не попадаюсь под руку в нужный момент.</string>
+
+    <!--
+      Факты недели (Р-15.9). Ровно то, что видно в данных, и ни слова оценки:
+      ни «молодец», ни «всего-то». Продукт рассказывает, а не хвалит.
+    -->
+    <plurals name="week_fact_closed_old">
+        <item quantity="one">Закрылось %1$d дело из тех, что ждали дольше двух недель.</item>
+        <item quantity="few">Закрылись %1$d дела из тех, что ждали дольше двух недель.</item>
+        <item quantity="many">Закрылись %1$d дел из тех, что ждали дольше двух недель.</item>
+        <item quantity="other">Закрылись %1$d дела из тех, что ждали дольше двух недель.</item>
+    </plurals>
+    <plurals name="week_fact_topic_moved">
+        <item quantity="one">Раздел «%2$s» двигался %1$d день.</item>
+        <item quantity="few">Раздел «%2$s» двигался %1$d дня.</item>
+        <item quantity="many">Раздел «%2$s» двигался %1$d дней.</item>
+        <item quantity="other">Раздел «%2$s» двигался %1$d дня.</item>
+    </plurals>
+    <plurals name="week_fact_topic_repeated">
+        <item quantity="one">%1$d запись об одном — «%2$s».</item>
+        <item quantity="few">%1$d записи об одном — «%2$s». Возможно, зреет затея.</item>
+        <item quantity="many">%1$d записей об одном — «%2$s». Возможно, зреет затея.</item>
+        <item quantity="other">%1$d записи об одном — «%2$s». Возможно, зреет затея.</item>
+    </plurals>
+    <plurals name="week_fact_oldest">
+        <item quantity="one">Самое старое живое дело ждёт %1$d день.</item>
+        <item quantity="few">Самое старое живое дело ждёт %1$d дня.</item>
+        <item quantity="many">Самое старое живое дело ждёт %1$d дней.</item>
+        <item quantity="other">Самое старое живое дело ждёт %1$d дня.</item>
+    </plurals>
+    <plurals name="week_fact_dropped">
+        <item quantity="one">%1$d раз ответил «не надо» — значит, я предлагал не то.</item>
+        <item quantity="few">%1$d раза ответил «не надо» — значит, я предлагал не то.</item>
+        <item quantity="many">%1$d раз ответил «не надо» — значит, я предлагал не то.</item>
+        <item quantity="other">%1$d раза ответил «не надо» — значит, я предлагал не то.</item>
+    </plurals>
     <string name="settings_notifications">Разрешить уведомления</string>
 
     <!-- Сводка недели §F-9 -->

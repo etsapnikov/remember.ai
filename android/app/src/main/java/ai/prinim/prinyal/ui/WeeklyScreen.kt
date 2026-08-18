@@ -1,6 +1,7 @@
 package ai.prinim.prinyal.ui
 
 import ai.prinim.prinyal.R
+import ai.prinim.prinyal.domain.WeeklyFacts
 import ai.prinim.prinyal.domain.WeeklySummary
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
@@ -10,10 +11,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -24,7 +23,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 
 /**
@@ -51,6 +50,7 @@ import androidx.compose.ui.res.stringResource
 @Composable
 fun WeeklyScreen(vm: AppViewModel) {
     val report by vm.weekly.collectAsState()
+    val facts by vm.weeklyFacts.collectAsState()
 
     LaunchedEffect(Unit) { vm.loadWeekly() }
 
@@ -86,27 +86,38 @@ fun WeeklyScreen(vm: AppViewModel) {
             // единственным числом на экране: продукт большим кеглем сообщал
             // человеку, что тот не сделал ничего.
             if (data.done > 0) Done(data.done)
+
+            // Наблюдения (Р-15.9). Их может не быть вовсе — тогда экран
+            // честно короткий. Натянуть факт на пустую неделю значит начать
+            // врать в мелочи, а верят продукту целиком.
+            facts.forEach { fact ->
+                Text(
+                    text = factText(fact),
+                    style = Prinyal.type.body,
+                    color = Prinyal.colors.inkMuted,
+                )
+            }
         }
 
-        // Отказ — тоже закрытие петли: человек ответил, продукт узнал. Стоит
-        // рядом со сделанным намеренно, чтобы не читаться как недоделанное.
-        if (data.dismissed > 0) {
-            SmallMetric(
-                stringResource(R.string.week_metric_dropped),
-                data.dismissed.toString(),
-            )
-        }
-        SmallMetric(
-            stringResource(R.string.week_metric_days),
-            stringResource(R.string.week_of, data.daysWithCapture, data.daysWindow),
-        )
-        SmallMetric(
-            stringResource(R.string.week_metric_per_day),
-            data.perDayMedian?.toString() ?: stringResource(R.string.week_no_data),
-        )
-
-        Box(Modifier.height(Space.xl))
     }
+}
+
+/**
+ * Слова факта. Здесь только перевод в строку — что рассказывать, решил
+ * [WeeklyFacts], и решил по данным.
+ */
+@Composable
+private fun factText(fact: WeeklyFacts.Fact): String = when (fact) {
+    is WeeklyFacts.Fact.ClosedOld ->
+        pluralStringResource(R.plurals.week_fact_closed_old, fact.count, fact.count)
+    is WeeklyFacts.Fact.TopicMoved ->
+        pluralStringResource(R.plurals.week_fact_topic_moved, fact.days, fact.days, fact.topic)
+    is WeeklyFacts.Fact.TopicRepeated ->
+        pluralStringResource(R.plurals.week_fact_topic_repeated, fact.notes, fact.notes, fact.topic)
+    is WeeklyFacts.Fact.OldestWaiting ->
+        pluralStringResource(R.plurals.week_fact_oldest, fact.days, fact.days)
+    is WeeklyFacts.Fact.Dropped ->
+        pluralStringResource(R.plurals.week_fact_dropped, fact.count, fact.count)
 }
 
 @Composable
@@ -157,16 +168,3 @@ private fun phrase(report: WeeklySummary.Report): String = when {
     report.problem == WeeklySummary.Problem.LUMP -> stringResource(R.string.week_phrase_lump)
     else -> stringResource(R.string.week_phrase_ok)
 }
-
-@Composable
-private fun SmallMetric(label: String, value: String) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, style = Prinyal.type.body, color = Prinyal.colors.inkMuted)
-        Text(value, style = Prinyal.type.label, color = Prinyal.colors.ink)
-    }
-}
-

@@ -20,6 +20,8 @@ import ai.prinim.prinyal.data.ReturnEntity
 import ai.prinim.prinyal.data.Window
 import ai.prinim.prinyal.domain.Backup
 import ai.prinim.prinyal.domain.Scheduler
+import ai.prinim.prinyal.domain.WeekSignal
+import ai.prinim.prinyal.domain.WeeklyFacts
 import ai.prinim.prinyal.domain.WeeklySummary
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -91,6 +93,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _weekly = MutableStateFlow<WeeklySummary.Report?>(null)
     val weekly: StateFlow<WeeklySummary.Report?> = _weekly
+
+    /** Наблюдения недели (Р-15.9). Пусто — значит рассказывать нечего. */
+    private val _weeklyFacts = MutableStateFlow<List<WeeklyFacts.Fact>>(emptyList())
+    val weeklyFacts: StateFlow<List<WeeklyFacts.Fact>> = _weeklyFacts
 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
@@ -443,6 +449,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadWeekly() = viewModelScope.launch {
         _weekly.value = WeeklySummary(app.analytics, app.db).build()
+        _weeklyFacts.value = WeeklyFacts.facts(WeekSignal(app.db).build())
     }
 
     fun showMessage(text: String?) {

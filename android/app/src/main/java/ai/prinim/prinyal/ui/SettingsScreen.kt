@@ -520,6 +520,16 @@ private fun KillMetrics(vm: AppViewModel) {
             "«не надо» ${data.dismissed} · не ответил ${data.missed} · сделал ${data.done}",
             color = Prinyal.colors.inkFaint,
         )
+        // Счётчики петли переехали сюда с «Недели» (Р-15.9) как есть: экран
+        // недели теперь рассказывает наблюдения, а мерить петлю — работа
+        // владельца, не читателя.
+        MetaText(
+            "${stringResource(R.string.week_metric_days)}: " +
+                stringResource(R.string.week_of, data.daysWithCapture, data.daysWindow) +
+                " · ${stringResource(R.string.week_metric_per_day)} " +
+                (data.perDayMedian?.toString() ?: stringResource(R.string.week_no_data)),
+            color = Prinyal.colors.inkFaint,
+        )
     }
 }
 
