@@ -141,6 +141,32 @@ object Notifications {
 
     private const val ID_PACK = 7714
 
+    /** Пункт переписан (Р-15.8): человек должен увидеть, во что превратилось дело. */
+    fun showReworded(context: Context, noteId: String, text: String) {
+        val notification = base(context, CHANNEL_UNDERSTANDING)
+            .setContentTitle(context.getString(R.string.fork_reworded))
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setContentIntent(openNote(context, noteId))
+            .setAutoCancel(true)
+            .build()
+        notify(context, ID_REWORD, notification)
+    }
+
+    /**
+     * Уменьшить не вышло. Сообщаем прямо: молчание после нажатия неотличимо от
+     * поломки, а выдуманный «малый шаг» хуже отсутствия шага.
+     */
+    fun showReworkFailed(context: Context, itemId: String) {
+        val notification = base(context, CHANNEL_UNDERSTANDING)
+            .setContentTitle(context.getString(R.string.fork_failed))
+            .setAutoCancel(true)
+            .build()
+        notify(context, ID_REWORD + itemId.hashCode() % 7, notification)
+    }
+
+    private const val ID_REWORD = 7715
+
     /** Возврат (F-6): текст айтема, причина и три действия. */
     fun showReturn(
         context: Context,

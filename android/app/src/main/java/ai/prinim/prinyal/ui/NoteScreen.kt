@@ -477,6 +477,12 @@ private fun ItemCard(
             // Низкая уверенность — приглушённо: продукт не притворяется уверенным.
             color = if (uncertain) Prinyal.colors.inkMuted else Prinyal.colors.ink,
         )
+        // Прежняя формулировка, если пункт уменьшали (Р-15.8). Замена без следа
+        // неотличима от подмены: продукт переписал слова человека и обязан
+        // показать, какие именно.
+        item.previousText?.let { was ->
+            MetaText(stringResource(R.string.item_previous, was), color = Prinyal.colors.inkFaint)
+        }
         if (ItemType.of(item.type) == ItemType.TELL) {
             item.who?.let { MetaText(it) }
         }

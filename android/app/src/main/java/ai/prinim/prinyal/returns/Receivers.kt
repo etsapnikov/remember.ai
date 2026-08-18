@@ -97,17 +97,37 @@ class ReturnActionReceiver : BroadcastReceiver() {
                         app.repository.recordAction(returnId, "miss")
                         Notifications.cancel(context, returnId)
                     }
-                    // «Уменьшить» и «сказать иначе» открывают карточку: малый шаг
-                    // придумывает модель, и человек должен его увидеть до замены.
-                    // Молча подменять текст дела продукт не вправе — это его
-                    // слова, а не наши (Р-15.8).
+                    // «Уменьшить» и «сказать иначе»: формулировку меняет модель,
+                    // но прежняя остаётся в пункте и видна на карточке. Замена
+                    // без следа неотличима от подмены — это слова человека, а
+                    // не наши (Р-15.8).
                     SHRINK, REPHRASE -> {
+                        val way = if (action == SHRINK) {
+                            StuckPolicy.Way.SHRINK
+                        } else {
+                            StuckPolicy.Way.REPHRASE
+                        }
                         app.repository.recordAction(returnId, "later")
+                        Notifications.cancel(context, returnId)
+
+                        val item = app.db.items().byId(itemId)
+                        val fresh = item?.let { app.llm.rework(it.text, way) }
+                        if (item != null && fresh != null) {
+                            app.repository.reword(itemId, fresh)
+                            Notifications.showReworded(context, item.noteId, fresh)
+                        } else {
+                            // Годного шага не нашлось. Молчим: подменять дело
+                            // отговоркой хуже, чем оставить как было.
+                            Notifications.showReworkFailed(context, itemId)
+                        }
                         app.analytics.log(
                             Analytics.RETURN_ACTION,
-                            mapOf("item" to itemId, "action" to if (action == SHRINK) "shrink" else "rephrase"),
+                            mapOf(
+                                "item" to itemId,
+                                "action" to if (action == SHRINK) "shrink" else "rephrase",
+                                "ok" to (fresh != null),
+                            ),
                         )
-                        Notifications.cancel(context, returnId)
                     }
                     IGNORED -> {
                         app.repository.recordAction(returnId, "ignored")

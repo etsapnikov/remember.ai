@@ -95,6 +95,11 @@
     <string name="note_linked">Связано</string>
     <!-- Интервьюер (Р-15.14). Глагол приглашает, а не обещает результат:
          продукт спрашивает, думает по-прежнему человек. -->
+    <!-- Развилка застрявших (Р-15.8): результат замены и честная неудача. -->
+    <string name="fork_reworded">Переписал дело</string>
+    <string name="fork_failed">Не придумал, как уменьшить — оставил как было</string>
+    <string name="item_previous">было: %1$s</string>
+
     <string name="interview_start">Покрутить</string>
     <string name="interview_thinking">Думаю, о чём спросить…</string>
     <string name="interview_answer">Ответить голосом</string>

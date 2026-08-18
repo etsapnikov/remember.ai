@@ -243,6 +243,29 @@ class NoteRepository(
     }
 
     /**
+     * Новая формулировка застрявшего пункта (Р-15.8).
+     *
+     * Прежняя не теряется: она уходит в `previous_text` и остаётся видна на
+     * карточке. Пункт помечается как тронутый рукой — переразбор не имеет права
+     * вернуть старую формулировку, иначе развилка отменялась бы сама собой.
+     *
+     * Возвраты не перепланируются: человек попросил другое дело, а не другое
+     * время, и назначать напоминание самим значило бы решать за него.
+     */
+    suspend fun reword(itemId: String, text: String) {
+        val item = db.items().byId(itemId) ?: return
+        db.items().update(
+            item.copy(
+                text = text,
+                previousText = item.previousText ?: item.text,
+                edited = true,
+                state = ItemState.PLANNED.wire,
+            )
+        )
+        analytics.log("item_reworded", mapOf("item" to itemId, "was" to item.text.length))
+    }
+
+    /**
      * Запись оказалась командой, а не заметкой (Р-15.13).
      *
      * Аудио и транскрипт удаляются: команда своей ценности не имеет, а её след

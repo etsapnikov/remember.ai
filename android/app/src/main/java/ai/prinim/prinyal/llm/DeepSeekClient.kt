@@ -4,6 +4,7 @@ import ai.prinim.prinyal.data.NoteKind
 import ai.prinim.prinyal.domain.InterviewPolicy
 import ai.prinim.prinyal.domain.LinkValidator
 import ai.prinim.prinyal.domain.Markdown
+import ai.prinim.prinyal.domain.StuckPolicy
 import ai.prinim.prinyal.net.IngestOutcome
 import ai.prinim.prinyal.net.ParseResult
 import okhttp3.MediaType.Companion.toMediaType
@@ -221,6 +222,48 @@ class DeepSeekClient(
             .orEmpty().trim().trim('"', '«', '»')
         val question = text.takeIf { it.isNotBlank() } ?: return null
         return question.takeIf { InterviewPolicy.accepts(it, idea, asked) }
+    }
+
+    /**
+     * Уменьшить или переформулировать застрявший пункт (Р-15.8).
+     *
+     * Негодный ответ — это null, а не «что-нибудь»: подменить слова человека
+     * отговоркой вроде «начни с малого» хуже, чем не сделать ничего. Проверку
+     * ведёт [StuckPolicy], а не промпт: обещаниям модели верить нельзя.
+     */
+    fun rework(text: String, way: StuckPolicy.Way): String? {
+        if (apiKey.isBlank()) return null
+        val system = when (way) {
+            StuckPolicy.Way.SHRINK -> Prompt.SHRINK
+            StuckPolicy.Way.REPHRASE -> Prompt.REPHRASE
+            StuckPolicy.Way.BURY -> return null
+        }
+        val payload = JSONObject().apply {
+            put("model", model)
+            put("messages", JSONArray().apply {
+                put(JSONObject().put("role", "system").put("content", system))
+                put(JSONObject().put("role", "user").put("content", "Дело: $text"))
+            })
+            put("temperature", 0.3)
+            put("max_tokens", MAX_TOKENS)
+            put("stream", false)
+        }
+        val response = runCatching { post(payload) }.getOrNull() ?: return null
+        if (response.code != 200) return null
+        val fresh = response.body
+            ?.optJSONArray("choices")?.optJSONObject(0)
+            ?.optJSONObject("message")?.optString("content")
+            .orEmpty().trim().trim('"', '«', '»')
+
+        if (fresh.isBlank() || fresh.equals(text, ignoreCase = true)) return null
+        return when (way) {
+            StuckPolicy.Way.SHRINK -> fresh.takeIf { StuckPolicy.isRealStep(it, text) }
+            // Пересказ не обязан быть короче, но отговоркой быть не вправе.
+            StuckPolicy.Way.REPHRASE -> fresh.takeIf {
+                StuckPolicy.isRealStep(it, text + " ".repeat(text.length))
+            }
+            StuckPolicy.Way.BURY -> null
+        }
     }
 
     private class Response(val code: Int, val body: JSONObject?)

@@ -218,6 +218,12 @@ data class ItemEntity(
     @ColumnInfo(name = "raw_span") val rawSpan: String? = null,
     @ColumnInfo(name = "position") val position: Int = 0,
     @ColumnInfo(name = "edited") val edited: Boolean = false,
+    /**
+     * Прежняя формулировка, если пункт уменьшали или переформулировали
+     * (Р-15.8). Продукт переписал слова человека — и обязан показать, какие
+     * именно: замена без следа неотличима от подмены.
+     */
+    @ColumnInfo(name = "previous_text") val previousText: String? = null,
 )
 
 @Entity(
