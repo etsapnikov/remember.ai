@@ -58,6 +58,9 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
     val notes by vm.feed.collectAsState()
     val llmEnabled by vm.llmEnabled.collectAsState()
     val ask by vm.askCandidate.collectAsState()
+    // Имена разделов для строки заметки: раздел виден там же, где время (Р-15.3).
+    val topics by vm.topics.collectAsState()
+    val topicNames = remember(topics) { topics.associate { it.id to it.name } }
 
     // Отсчёт трёх дней тишины идёт с показа, а не с ответа: увидел — значит
     // спросили, даже если человек прошёл мимо.
@@ -118,6 +121,7 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
                         NoteRow(
                             entry = entry,
                             compact = revealed > 0.05f,
+                            topicName = entry.note.topicId?.let { topicNames[it] },
                             onClick = { if (openKey == null) onOpenNote(entry.note.id) },
                         )
                     }
@@ -166,7 +170,12 @@ private fun JunkSweepRow(count: Int, onSweep: () -> Unit) {
  * Разобранная — шапка «дата · N пунктов» и пункты с meta-строкой.
  */
 @Composable
-private fun NoteRow(entry: NoteWithItems, compact: Boolean, onClick: () -> Unit) {
+private fun NoteRow(
+    entry: NoteWithItems,
+    compact: Boolean,
+    topicName: String?,
+    onClick: () -> Unit,
+) {
     val note = entry.note
     val alive = entry.items.filter { it.isAlive() || it.isClosed() }
 
@@ -183,7 +192,13 @@ private fun NoteRow(entry: NoteWithItems, compact: Boolean, onClick: () -> Unit)
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MetaText(formatTime(note.createdAt))
+            Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                MetaText(formatTime(note.createdAt))
+                // «Без раздела» не подписываем: тишина вместо шума (Д-10).
+                // Лента — время, «Разделы» — структура; чип в строке смешал бы
+                // две системы, поэтому здесь имя тихим текстом, а не пилюлей.
+                topicName?.let { MetaText(it, color = Prinyal.colors.accentSelf) }
+            }
             if (alive.isEmpty()) {
                 // «0:04 не расслышал»; длительность прячется, когда строка сжата.
                 val status = statusLabel(NoteStatus.of(note.status))
