@@ -17,7 +17,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SegmentEntity::class,
         PersonEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 abstract class PrinyalDb : RoomDatabase() {
@@ -167,10 +167,17 @@ abstract class PrinyalDb : RoomDatabase() {
             }
         }
 
+        /** v5 → v6: связь половин разделённой записи (Р-15.5). */
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE notes ADD COLUMN sibling_id TEXT DEFAULT NULL")
+            }
+        }
+
         private fun build(context: Context): PrinyalDb =
             Room.databaseBuilder(context, PrinyalDb::class.java, "prinyal.db")
                 // Destructive-падения нет намеренно: dogfood-корпус терять нельзя.
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
 
         /** Только для тестов. */

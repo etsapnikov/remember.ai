@@ -59,6 +59,9 @@ interface NoteDao {
     )
     suspend fun looseList(): List<NoteEntity>
 
+    @Query("UPDATE notes SET sibling_id = :siblingId WHERE id = :id")
+    suspend fun setSibling(id: String, siblingId: String?)
+
     @Query("UPDATE notes SET topic_id = :topicId, topic_source = :source WHERE id = :id")
     suspend fun setTopic(id: String, topicId: String?, source: String)
 

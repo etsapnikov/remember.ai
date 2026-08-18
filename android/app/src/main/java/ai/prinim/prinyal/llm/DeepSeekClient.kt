@@ -161,6 +161,7 @@ class DeepSeekClient(
                     // попадать то, что мы не готовы показать.
                     bodyMd = Markdown.sanitize(ItemValidator.stringOrNull(root, "body_md"))
                         .ifBlank { null },
+                    second = secondOf(root, transcript, now, zone),
                     degraded = null,
                     asrMs = 0,
                     llmMs = 0,
@@ -234,6 +235,42 @@ class DeepSeekClient(
      * Модель обязана вернуть json_object, но обёртка в ```json``` встречается и у
      * послушных провайдеров — снимаем её, прежде чем сдаваться.
      */
+    /**
+     * Вторая половина разделённой записи.
+     *
+     * Разбирается тем же валидатором, что и первая: половина, прошедшая мягче
+     * основной, — это дыра, через которую в базу попадёт то, что мы в основной
+     * ветке отбраковываем.
+     *
+     * Пустая вторая половина — не разделение: заметка без единого пункта
+     * никому не нужна, и заводить её значит плодить мусор.
+     */
+    private fun secondOf(
+        root: JSONObject,
+        transcript: String,
+        now: LocalDateTime,
+        zone: ZoneId,
+    ): ParseResult? {
+        if (root.isNull("second")) return null
+        val node = root.optJSONObject("second") ?: return null
+        val items = ItemValidator.validate(itemsOf(node), transcript, now, zone).items
+        if (items.isEmpty()) return null
+
+        return ParseResult(
+            transcript = transcript,
+            items = items,
+            noteKind = NoteKind.of(node.optString("note_kind").takeIf { it.isNotBlank() }),
+            topic = ItemValidator.topicOf(node),
+            entities = ItemValidator.entitiesOf(node),
+            bodyMd = Markdown.sanitize(ItemValidator.stringOrNull(node, "body_md"))
+                .ifBlank { null },
+            degraded = null,
+            asrMs = 0,
+            llmMs = 0,
+            llmRetries = 0,
+        )
+    }
+
     private fun rootOf(content: String): JSONObject? {
         var text = content.trim()
         if (text.startsWith("```")) {

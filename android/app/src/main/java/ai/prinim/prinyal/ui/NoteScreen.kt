@@ -72,7 +72,12 @@ import java.io.File
  * действие «повторить» удалено, оно дублировало её же.
  */
 @Composable
-fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
+fun NoteScreen(
+    vm: AppViewModel,
+    noteId: String,
+    onBack: () -> Unit,
+    onOpenNote: (String) -> Unit = {},
+) {
     val entry by vm.note(noteId).collectAsState(initial = null)
     val note = entry?.note
 
@@ -194,6 +199,30 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
             // доказательство, а не как чтение (Д-4, ответ на вопрос 3).
             note.bodyMd?.takeIf { it.isNotBlank() }?.let { body ->
                 item { MarkdownBody(body) }
+            }
+
+            // Разбиение обязано быть видимым: молча разложить одну речь по двум
+            // карточкам — значит потерять человека, который ищет сказанное там,
+            // где сказал. Строка служебная, не празднующая (Д-10).
+            note.siblingId?.let { siblingId ->
+                item {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        MetaText(
+                            text = stringResource(R.string.note_split_line),
+                            color = Prinyal.colors.accentSelf,
+                            modifier = Modifier.clickable { onOpenNote(siblingId) },
+                        )
+                        MetaText(
+                            text = stringResource(R.string.note_merge),
+                            color = Prinyal.colors.inkMuted,
+                            modifier = Modifier.clickable { vm.mergeSiblings(noteId) },
+                        )
+                    }
+                }
             }
 
             degradedText?.let { text ->

@@ -1,51 +1,51 @@
 {
  "id": "date-explicit",
- "prompt_version": "4",
- "recorded_at": "2026-08-17T21:43:23",
- "took_s": 9.0,
+ "prompt_version": "5",
+ "recorded_at": "2026-08-18T13:26:19",
+ "took_s": 6.8,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 1691,
-  "completion_tokens": 924,
-  "total_tokens": 2615,
+  "prompt_tokens": 1870,
+  "completion_tokens": 562,
+  "total_tokens": 2432,
   "prompt_tokens_details": {
-   "cached_tokens": 640
+   "cached_tokens": 1152
   },
   "completion_tokens_details": {
-   "reasoning_tokens": 810
+   "reasoning_tokens": 442
   },
-  "prompt_cache_hit_tokens": 640,
-  "prompt_cache_miss_tokens": 1051
+  "prompt_cache_hit_tokens": 1152,
+  "prompt_cache_miss_tokens": 718
  },
  "response": {
-  "id": "7c10b0a8-f8f7-48bd-957b-45c653c18c03",
+  "id": "92b35a19-786a-4fe3-b24a-de3cc92cddd8",
   "object": "chat.completion",
-  "created": 1786992196,
+  "created": 1787048775,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\"note_kind\": \"tasks\", \"topic\": \"Дом\", \"entities\": [], \"body_md\": null, \"items\": [{\"type\": \"do\", \"text\": \"оплатить счёт за садик\", \"who\": null, \"due_kind\": \"exact\", \"window\": null, \"exact_local\": \"2026-09-10T09:00\", \"confidence\": \"high\", \"raw_span\": \"счёт за садик оплатить десятого сентября\"}]}",
-     "reasoning_content": "We need answer in Russian. Need parse user transcript. We need output JSON per schema. Need note_kind, topic, entities, body_md, items.\n\nTranscript: \"счёт за садик оплатить десятого сентября не забыть\" Means \"pay kindergarten bill on September 10, don't forget\". Need item type: do or buy? Pay bill => do. due_kind: exact because date named \"десятого сентября\". Current date 2026-08-17, Monday. Need exact_local: September 10, year? Current 2026, Sept 10 2026 is future. Time not named, set 09:00. So \"2026-09-10T09:00\". Window null. text \"оплатить счёт за садик\" maybe \"оплатить счёт за садик десятого сентября\". Need raw_span: \"счёт за садик оплатить десятого сентября\" or entire \"счёт за садик оплатить десятого сентября не забыть\"? raw_span should be fragment from which item taken. likely \"счёт за садик оплатить десятого сентября\". Need confidence high.\n\nNeed note_kind: tasks (a task). topic: probably \"Дом\" or \"Садик\"? Existing sections none, need create suitable. Topic short 1-2 words with capital. \"Садик\" maybe? Or \"Финансы\"? The task is payment for kindergarten. Since no sections, create \"Дом\"? Actually \"счёт за садик\" — household/child. Topic could be \"Дом\". But rule says if no existing, create suitable. Need choose. Maybe \"Садик\" is narrow but okay? \"Дом\" perhaps. Let's think. The prompt: \"Если подходит раздел из списка существующих — бери ровно его имя, не выдумывай синоним. Новый заводи, только когда ни один не подходит.\" No existing sections. So create. \"Садик\" maybe relevant, but \"Дом\" is broader. Need choose. The examples use \"Здоровье\", \"Дом\", \"Работа\", \"Дача\". Kindergarten payment is maybe \"Дом\" (family finance). But \"Садик\" not a typical section. I'd use \"Дом\". But maybe \"Финансы\" is better? The action is bill payment. Could be \"Дом\" (household). Let's set \"Дом\".\n\nEntities: none? No people mentioned. \"садик\" is not a person. So [].\n\nbody_md null.\n\nNeed ensure output JSON only. Need include all fields.\n\nLet's craft:\n{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Дом\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"оплатить счёт за садик\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2026-09-10T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"счёт за садик оплатить десятого сентября\"\n    }\n  ]\n}\n\nNeed perhaps text include date? Usually item text can include \"оплатить счёт за садик десятого сентября\" because date already in due. But instruction \"Формулируй пункт коротко и в исходных словах пользователя\" and \"Не выдумывай время.\" We can keep \"оплатить счёт за садик\". Since date is represented in due. Good.\n\nNeed maybe \"не забыть\" is a reminder not action. We ignore.\n\nLet's final."
+     "content": "{\"note_kind\": \"tasks\", \"topic\": \"Финансы\", \"entities\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"do\", \"text\": \"оплатить счёт за садик\", \"who\": null, \"due_kind\": \"exact\", \"window\": null, \"exact_local\": \"2026-09-10T09:00\", \"confidence\": \"high\", \"raw_span\": \"счёт за садик оплатить десятого сентября\"}]}",
+     "reasoning_content": "We need process user input. Need output JSON per schema. Input: \"счёт за садик оплатить десятого сентября не забыть\". Current date 2026-08-17 12:00 Monday. Need parse. This is one action: pay kindergarten bill on September 10. Date named explicitly: \"десятого сентября\". So due_kind exact. Need exact_local in YYYY-MM-DDTHH:MM. Year nearest future. Current date Aug 17 2026, Sept 10 2026 is future, so 2026-09-10. Time not specified -> 09:00. So exact_local \"2026-09-10T09:00\", window null. Type: do? Pay bill is do. Topic? Maybe \"Дом\" or \"Финансы\"? No existing sections. Need choose short name. \"Финансы\" maybe appropriate. Or \"Садик\"? Better \"Финансы\". But note says \"Разделов пока нет — заведи подходящий.\" We can create \"Финансы\". Entities? None. body_md null. second null. Items one. raw_span: maybe \"счёт за садик оплатить десятого сентября\" or \"счёт за садик оплатить\". Since action includes date, raw_span likely the phrase covering item. Use \"счёт за садик оплатить десятого сентября\". Confidence high. Note_kind tasks. Need ensure JSON only.\n\nNeed perhaps topic \"Финансы\" with capital. Also \"note_kind\": \"tasks\". \"items\": [{\"type\": \"do\", \"text\": \"оплатить счёт за садик\", \"who\": null, ...}]\n\nBut rule 4 formulate short in original words. \"счёт за садик оплатить\" is better \"оплатить счёт за садик\". Not too long.\n\nCheck due_kind exact. Time named explicitly? \"десятого сентября\" is date, not time. Rule 12 says named date -> exact. yes.\n\nNeed output JSON.\n\nLet's craft."
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 1691,
-   "completion_tokens": 924,
-   "total_tokens": 2615,
+   "prompt_tokens": 1870,
+   "completion_tokens": 562,
+   "total_tokens": 2432,
    "prompt_tokens_details": {
-    "cached_tokens": 640
+    "cached_tokens": 1152
    },
    "completion_tokens_details": {
-    "reasoning_tokens": 810
+    "reasoning_tokens": 442
    },
-   "prompt_cache_hit_tokens": 640,
-   "prompt_cache_miss_tokens": 1051
+   "prompt_cache_hit_tokens": 1152,
+   "prompt_cache_miss_tokens": 718
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

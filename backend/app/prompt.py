@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-PROMPT_VERSION = "4"
+PROMPT_VERSION = "5"
 
 _WEEKDAYS_RU = [
     "понедельник",
@@ -79,11 +79,20 @@ SYSTEM_PROMPT = """\
     Время не названо — ставь 09:00. Дату не разобрал — оставь
     `due_kind: "none"`, не выдумывай.
 
+13. Одна запись — одна заметка. **Почти всегда.** Раздели её на две
+    только если в речи две по-настоящему **не связанные** темы и обе
+    развёрнуты: про каждую сказано несколько предложений. Бытовой хвост
+    («…и молока купить») к длинной мысли — это пункт той же заметки, а
+    не вторая заметка. Сомневаешься — не дели.
+    Делишь — верни поле `second` того же вида, что и корневой ответ:
+    `{"note_kind": …, "topic": …, "items": [...]}`. Первой заметке
+    оставь свою половину пунктов. Не делишь — `second: null`.
+
 Типы: `buy` (купить), `do` (сделать), `tell` (сказать кому-то), `date` (событие с \
 датой), `thought` (мысль без действия), `fact` (факт о мире).
 
 Схема ответа (верни ровно такой json, без markdown-обёртки):
-{"note_kind": "tasks", "topic": "Здоровье", "entities": ["Соня"], "body_md": null, "items": [{"type": "do", "text": "позвонить в поликлинику насчёт Сони", "who": null, "due_kind": "window", "window": "day", "exact_local": null, "confidence": "high", "raw_span": "соню к лору записать"}]}
+{"note_kind": "tasks", "topic": "Здоровье", "entities": ["Соня"], "body_md": null, "second": null, "items": [{"type": "do", "text": "позвонить в поликлинику насчёт Сони", "who": null, "due_kind": "window", "window": "day", "exact_local": null, "confidence": "high", "raw_span": "соню к лору записать"}]}
 "who": null, "due_kind": "window", "window": "day", "exact_local": null, \
 "confidence": "high", "raw_span": "соню к лору записать"}]}
 

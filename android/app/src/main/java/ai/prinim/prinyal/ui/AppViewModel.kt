@@ -218,6 +218,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         app.analytics.log(Analytics.ENTITY_ASK, mapOf("name" to person.name))
     }
 
+    /** Склеить половины разделённой записи обратно (Р-15.5). */
+    fun mergeSiblings(noteId: String) = viewModelScope.launch {
+        app.repository.mergeSiblings(noteId)
+    }
+
     suspend fun topicName(id: String?): String? =
         id?.let { app.db.topics().byId(it)?.name }
 

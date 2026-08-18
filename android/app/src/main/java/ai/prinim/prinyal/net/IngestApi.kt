@@ -41,6 +41,11 @@ data class ParseResult(
     val entities: List<String> = emptyList(),
     /** Тело заметки в markdown — только у идей (Р-14.5). */
     val bodyMd: String? = null,
+    /**
+     * Вторая заметка, если запись содержала две несвязанные темы (Р-15.5).
+     * null — обычный случай, и он же случай по умолчанию.
+     */
+    val second: ParseResult? = null,
     /** Код деградации §6 или null. Строку подбирает UI из strings.xml. */
     val degraded: String?,
     val asrMs: Int,

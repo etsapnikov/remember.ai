@@ -104,7 +104,10 @@ class CoreLoopFixturesTest {
         fixtures().forEach { (fixture, reply) ->
             val id = fixture.getString("id")
             val expect = fixture.getJSONObject("expect")
-            val items = ((parse(fixture, reply) as IngestOutcome.Ok)).result.items
+            val result = (parse(fixture, reply) as IngestOutcome.Ok).result
+            // Речь была одна: если она разделилась, пункты считаем по обеим
+            // половинам, иначе ожидание меряет не запись, а первую карточку.
+            val items = result.items + result.second?.items.orEmpty()
 
             expect.optInt("items_min", -1).takeIf { it >= 0 }?.let { min ->
                 assertTrue("$id: пунктов ${items.size}, ждали ≥ $min", items.size >= min)
@@ -184,6 +187,20 @@ class CoreLoopFixturesTest {
                 "$id: ждали кого-то из $wanted, нашли $found",
                 wanted.any { name -> found.any { it.startsWith(name.lowercase().take(3)) } },
             )
+        }
+    }
+
+    @Test
+    fun `делим только там, где ждали`() {
+        // Осторожность важнее полноты: лишнее деление рвёт одну мысль надвое,
+        // и человек ищет сказанное там, где не найдёт.
+        fixtures().forEach { (fixture, reply) ->
+            val id = fixture.getString("id")
+            val expect = fixture.getJSONObject("expect")
+            if (!expect.has("split")) return@forEach
+            val wanted = expect.getBoolean("split")
+            val split = (parse(fixture, reply) as IngestOutcome.Ok).result.second != null
+            assertEquals("$id: разбиение", wanted, split)
         }
     }
 

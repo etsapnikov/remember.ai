@@ -257,6 +257,6 @@ class OnDeviceParsingTest {
     @Test
     fun `промпт на устройстве той же версии, что на сервере`() {
         // Разные версии означали бы, что два пути разбора дают разные пункты.
-        assertEquals("4", Prompt.VERSION)
+        assertEquals("5", Prompt.VERSION)
     }
 }

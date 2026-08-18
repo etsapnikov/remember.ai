@@ -1,51 +1,51 @@
 {
  "id": "date-past-rolls-forward",
- "prompt_version": "4",
- "recorded_at": "2026-08-17T21:43:38",
- "took_s": 14.9,
+ "prompt_version": "5",
+ "recorded_at": "2026-08-18T13:26:31",
+ "took_s": 12.5,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 1687,
-  "completion_tokens": 1954,
-  "total_tokens": 3641,
+  "prompt_tokens": 1866,
+  "completion_tokens": 1484,
+  "total_tokens": 3350,
   "prompt_tokens_details": {
-   "cached_tokens": 1664
+   "cached_tokens": 1792
   },
   "completion_tokens_details": {
-   "reasoning_tokens": 1819
+   "reasoning_tokens": 1347
   },
-  "prompt_cache_hit_tokens": 1664,
-  "prompt_cache_miss_tokens": 23
+  "prompt_cache_hit_tokens": 1792,
+  "prompt_cache_miss_tokens": 74
  },
  "response": {
-  "id": "318c7303-b072-4dbf-ac13-a501a6502aea",
+  "id": "74532d0b-ac6d-4f9d-a837-0c5ae540a241",
   "object": "chat.completion",
-  "created": 1786992204,
+  "created": 1787048781,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Финансы\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"напомни десятого августа про страховку\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2027-08-10T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"напомни десятого августа про страховку\"\n    }\n  ]\n}",
-     "reasoning_content": "We need to parse the user's request. The transcription: \"напомни десятого августа про страховку\" - \"remind on the tenth of August about the insurance\". This is a reminder request. The user wants to be reminded on a specific date (August 10). Note that the current date is 2026-08-17 (Monday). So August 10 has already passed in 2026. According to rule 12: \"Год бери ближайший будущий: если названный день в этом году уже прошёл, значит речь о следующем.\" So the date is August 10, 2027? But careful: The user says \"десятого августа\" without specifying year. Since today is August 17, 2026, and August 10 has passed, the next occurrence is August 10, 2027. So exact_local should be 2027-08-10T09:00 (default time 09:00 if not specified). So due_kind: \"exact\", exact_local: \"2027-08-10T09:00\", window: null.\n\nThe item type: This is a reminder, which is a \"do\" action? Actually \"напомни\" means \"remind me\". It's a task to be reminded, but it's an action to set a reminder. Probably type: \"do\" or \"date\"? Rule says: `date` (событие с датой). This is a reminder about insurance on a specific date. But the user is asking to be reminded on that date. It's not an event itself, but a reminder. I think type: \"do\" is fine. But also could be \"date\" because it has a specific date. Hmm. Let's see: The example given: \"позвонить в поликлинику насчёт Сони\" is type \"do\". Here \"напомни десятого августа про страховку\" is essentially \"remind me about insurance on August 10\". So the item is a reminder task. I'd say type: \"do\" (сделать) because it's something to do (remind). Or maybe \"date\" because it's tied to a date. Let's check rule 12: \"Названная дата — это due_kind: \"exact\".\" That refers to the due time, not type. Type is separate. Since it's a reminder, it's an action to be performed at that time. I'll use \"do\".\n\nThe text: \"напомни десятого августа про страховку\" - clean up: \"напомни десятого августа про страховку\" -> \"напомнить десятого августа про страховку\" or \"напомни про страховку десятого августа\". I'll write: \"напомнить про страховку\" maybe? But better to keep original words: \"напомни десятого августа про страховку\" is fine. Shorten: \"напомнить про страховку\" but that loses date. Actually the item text should be the action, including date? Probably include date: \"напомнить десятого августа про страховку\". That's 40 chars, fine.\n\nwho: null, since no person mentioned.\n\nconfidence: high.\n\nraw_span: the exact fragment: \"напомни десятого августа про страховку\" - the whole transcription is that.\n\nNow note_kind: This is a task/reminder. It's an action to be done (set reminder). So note_kind: \"tasks\".\n\ntopic: This is about insurance (страховка). What topic? Since there are no existing sections, we need to create one. The example in the prompt says: \"Разделов пока нет — заведи подходящий.\" So we need to choose a topic. Insurance could be \"Финансы\" (Finances) or \"Страхование\" (Insurance). But the instruction says: \"topic: короткое имя раздела в 1–2 слова с заглавной буквы\". Existing sections are none, so we can choose something logical. \"Страховка\" is a thing. Maybe \"Документы\" or \"Финансы\"? Let's think. Since it's about insurance, I'd say \"Страховка\" or \"Финансы\". But the instruction also says: \"Если подходит раздел из списка существующих — бери ровно его имя, не выдумывай синоним. Новый заводи, только когда ни один не подходит.\" But there are none yet, so we can create one. The prompt says \"Разделов пока нет — заведи подходящий.\" So we can create \"Страховка\" or \"Финансы\". Since insurance is a financial matter, \"Финансы\" might be appropriate. But \"Страховка\" is more specific. I'll go with \"Финансы\" as a common category. But maybe \"Документы\"? Insurance is a document often. Hmm. The rule says \"короткое имя раздела в 1–2 слова с заглавной буквы\". I'll pick \"Финансы\" (Finances). Actually, let's see the example: they had \"Здоровье\". So topics are like \"Дом\", \"Работа\", etc. Insurance is not typical. I'll use \"Финансы\". Alternatively, \"Страхование\". I think \"Финансы\" is safer.\n\nentities: no people mentioned, so entities: [].\n\nbody_md: since note_kind is tasks, body_md: null.\n\nNow the response JSON should be exactly as per schema. Note that the example in the prompt has a duplicate opening and closing bracket, but that's a copy error. We'll output the clean JSON.\n\nLet's double-check the date: current 2026-08-17, so August 10 2026 is in the past. So next August 10 is 2027. So exact_local: \"2027-08-10T09:00\". Also note rule 12 says: \"Время не названо — ставь 09:00.\" So that's correct.\n\nDoes the user want a reminder at the beginning of that day? Usually \"напомни десятого августа\" means remind me on that day (maybe in the morning). But we default to 09:00.\n\nNow, is there any ambiguity? The transcription has \"напомни десятого августа про страховку\" - could be interpreted as \"remind me about the insurance on August 10\". So it's a task.\n\nThus the JSON:\n\n{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Финансы\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"напомнить десятого августа про страховку\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2027-08-10T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"напомни десятого августа про страховку\"\n    }\n  ]\n}\n\nBut is \"напомнить\" the right form? The original is \"напомни\" (imperative). We can keep it as \"напомни\" or \"напомнить\". The example uses infinitive \"позвонить\". So I'll use \"напомнить\" (to remind). Actually the instruction says \"Формулируй пункт коротко и в исходных словах пользователя, без канцелярита.\" So we should keep the original words as much as possible. \"напомни десятого августа про страховку\" is fine. But \"напомни\" is imperative, which is normal. I'll keep it as \"напомни десятого августа про страховку\". That is a sentence. Maybe we can shorten: \"напомнить про страховку 10 августа\"? But that changes order. Better to keep original. The length is 40 characters, less than 120.\n\nAlso check: The date is \"десятого августа\" - we use exact_local. The text can include the date as the user said.\n\nI think this is correct.\n\nNow, what about note_kind? It's a task, so \"tasks\". Topic: \"Финансы\" - is that acceptable? Insurance is a financial product. Yes.\n\nLet's ensure we don't output anything else.\n\nI'll output JSON."
+     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Финансы\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"напомнить про страховку\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2027-08-10T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"напомни десятого августа про страховку\"\n    }\n  ]\n}",
+     "reasoning_content": "We need to parse the user's transcription: \"напомни десятого августа про страховку\". This is a reminder to do something on August 10th. But wait, today is 2026-08-17, and August 10th has already passed this year. So \"десятого августа\" likely refers to next year? Or maybe it's a typo? But according to rule 12: \"Названная дата — это due_kind: \"exact\". «Десятого сентября», «послезавтра в шесть», «в понедельник» — заполни exact_local в формате \"YYYY-MM-DDTHH:MM\". Год бери ближайший будущий: если названный день в этом году уже прошёл, значит речь о следующем.\" So since today is August 17, 2026, and August 10 has passed, we take next year: 2027-08-10T09:00. But wait, \"напомни\" means remind me, so it's a task to remind about insurance on that date. So we have a reminder. That's a task? It could be a \"do\" task: set reminder. Or maybe it's a fact? Actually it's an instruction to remind. So we need to create a task item. The date is explicit, so due_kind: \"exact\". The item type could be \"do\" (to remind) or maybe \"tell\"? No, it's just a reminder for self. So type: \"do\". The text should be short: \"напомнить про страховку десятого августа\" or something. But we need to keep the user's words. The raw_span is the whole phrase? Actually the whole transcription is \"напомни десятого августа про страховку\". So we can take that as raw_span. But we might also extract the date. The instruction \"напомни\" is a verb, so it's a task. There's no other entity. So note_kind: \"tasks\", topic: maybe \"Финансы\" or \"Дом\"? Since it's about insurance, maybe \"Финансы\". But we don't have existing sections, so we can create a new one. The rule says: \"Если подходит раздел из списка существующих — бери ровно его имя, не выдумывай синоним. Новый заводи, только когда ни один не подходит.\" Since there are no sections yet, we need to create an appropriate one. Insurance could be \"Страхование\" or \"Финансы\". I'd lean \"Финансы\". But also could be \"Документы\"? Let's think: insurance is a financial/legal thing. I'd go with \"Финансы\". Alternatively, \"Разное\"? But we need a short name. I'll use \"Финансы\".\n\nNow, the date: \"десятого августа\" explicitly says date. So exact_local: \"2027-08-10T09:00\". Year: next future because this year's August 10 already passed. Time not given, so 09:00. So due_kind: \"exact\", window: null.\n\nThe item: type: \"do\", text: \"напомнить про страховку\" (or \"напомни десятого августа про страховку\" but short). The text should be \"в исходных словах пользователя\", so we can say \"напомнить про страховку десятого августа\" but that duplicates date? Actually the due_kind already captures the date, so the text can be \"напомнить про страховку\". But we should include \"десятого августа\" maybe in text for clarity? The rule says: \"Формулируй пункт коротко и в исходных словах пользователя, без канцелярита.\" So we can say \"напомнить про страховку десятого августа\". But if we have exact date, we might not need to include it in text. I'd rather include it for naturalness. However, the instruction says \"коротко\", so maybe just \"напомнить про страховку\". But then the user might lose the date if we don't display it? Actually the due date is separate. So text can be \"напомнить про страховку\". Let's see example in the prompt: \"позвонить в поликлинику насчёт Сони\" with due window etc. So text is the action without date. So I'll set text: \"напомнить про страховку\". Who: null. Confidence: high because it's clear.\n\nThe note_kind: tasks. topic: \"Финансы\". entities: none, so [].\n\nbody_md: null because note_kind is tasks.\n\nsecond: null.\n\nSo JSON:\n\n{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Финансы\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"напомнить про страховку\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2027-08-10T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"напомни десятого августа про страховку\"\n    }\n  ]\n}\n\nBut wait: is the date exact? Yes, \"десятого августа\". But the year is ambiguous. We take the next future. Since today is Aug 17, 2026, and Aug 10 has passed, so next year. That makes sense.\n\nHowever, one nuance: maybe the user is planning for the next month? No, August 10 is in the past, so it's next year.\n\nAlso, is there a possibility that it's a \"date\" type? Type \"date\" is for events with a date. But this is a reminder to do something on a date, so it's more of a \"do\" task. The reminder itself is a task. So \"do\" is fine.\n\nLet's check the rules: Rule 2 says if time not mentioned, pick a reasonable window. But rule 12 says named date -> exact. Since we have a date, we use exact.\n\nThus final answer."
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 1687,
-   "completion_tokens": 1954,
-   "total_tokens": 3641,
+   "prompt_tokens": 1866,
+   "completion_tokens": 1484,
+   "total_tokens": 3350,
    "prompt_tokens_details": {
-    "cached_tokens": 1664
+    "cached_tokens": 1792
    },
    "completion_tokens_details": {
-    "reasoning_tokens": 1819
+    "reasoning_tokens": 1347
    },
-   "prompt_cache_hit_tokens": 1664,
-   "prompt_cache_miss_tokens": 23
+   "prompt_cache_hit_tokens": 1792,
+   "prompt_cache_miss_tokens": 74
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

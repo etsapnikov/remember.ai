@@ -126,6 +126,8 @@ class NoteRepository(
                 bodyMd = result.bodyMd,
             )
         )
+        result.second?.let { second -> splitOff(note, second, recordedAt, windows, now) }
+
         analytics.log(
             Analytics.PARSE_OK,
             mapOf(
@@ -266,6 +268,84 @@ class NoteRepository(
      * людей, ему нужно только понять, о ком он ничего не знает и кто при этом
      * повторяется.
      */
+    /**
+     * Завести вторую заметку из той же записи (Р-15.5).
+     *
+     * Аудио и транскрипт у половин общие — запись была одна, и притворяться,
+     * что их две, значило бы врать в плеере. Разделены только пункты: именно
+     * они живут своей жизнью, возвращаются и закрываются.
+     *
+     * Ссылка двусторонняя, чтобы «склеить обратно» работало с любой половины.
+     */
+    private suspend fun splitOff(
+        note: NoteEntity,
+        second: ParseResult,
+        recordedAt: Instant,
+        windows: Scheduler.Windows,
+        now: Instant,
+    ) {
+        val secondId = newId()
+        db.notes().insert(
+            note.copy(
+                id = secondId,
+                // Плюс миллисекунда: в ленте половины должны идти подряд и в
+                // понятном порядке, а не спорить за одну и ту же секунду.
+                createdAt = note.createdAt + 1,
+                status = NoteStatus.PARSED.wire,
+                topicId = resolveTopic(note.copy(id = secondId, topicId = null,
+                    topicSource = TopicSource.NONE.wire), second.topic),
+                topicSource = TopicSource.LLM.wire,
+                noteKind = second.noteKind?.wire,
+                bodyMd = second.bodyMd,
+                siblingId = note.id,
+            )
+        )
+        val items = second.items.mapIndexed { index, parsed ->
+            ItemEntity(
+                id = newId(),
+                noteId = secondId,
+                type = parsed.type.wire,
+                text = parsed.text,
+                who = parsed.who,
+                dueKind = parsed.dueKind.wire,
+                window = parsed.window?.wire,
+                dueAt = parsed.dueAt,
+                state = ItemState.PLANNED.wire,
+                confidence = parsed.confidence.wire,
+                rawSpan = parsed.rawSpan,
+                position = index,
+            )
+        }
+        db.items().insertAll(items)
+        items.forEach { planReturn(it, recordedAt, windows, now) }
+        db.notes().setSibling(note.id, secondId)
+        analytics.log(Analytics.NOTE_SPLIT, mapOf("note" to note.id, "second" to secondId))
+    }
+
+    /**
+     * Склеить половины обратно (Р-15.5).
+     *
+     * Пункты переезжают **со своими состояниями**: закрытое остаётся закрытым.
+     * Склейка — исправление разметки, а не повод переиграть прожитое.
+     */
+    suspend fun mergeSiblings(noteId: String) {
+        val note = db.notes().byId(noteId) ?: return
+        val siblingId = note.siblingId ?: return
+        val sibling = db.notes().byId(siblingId) ?: return
+
+        // Оставляем ту половину, что старше: она первая в ленте и первая в речи.
+        val keep = if (note.createdAt <= sibling.createdAt) note else sibling
+        val drop = if (keep.id == note.id) sibling else note
+
+        var position = db.items().forNote(keep.id).size
+        db.items().forNote(drop.id).forEach { item ->
+            db.items().update(item.copy(noteId = keep.id, position = position++))
+        }
+        db.notes().update(keep.copy(siblingId = null))
+        db.notes().delete(drop.id)
+        analytics.log(Analytics.NOTE_MERGE, mapOf("note" to keep.id))
+    }
+
     /**
      * Дописать к заметке новый сегмент (Р-14.3).
      *

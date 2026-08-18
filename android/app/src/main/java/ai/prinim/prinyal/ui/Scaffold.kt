@@ -65,7 +65,12 @@ fun AppScaffold(route: Route, onRoute: (Route) -> Unit) {
             Box(Modifier.fillMaxSize()) {
                 when (route) {
                     is Route.Feed -> FeedScreen(vm, onOpenNote = { onRoute(Route.Note(it)) })
-                    is Route.Note -> NoteScreen(vm, noteId = route.id, onBack = { onRoute(Route.Feed) })
+                    is Route.Note -> NoteScreen(
+                        vm,
+                        noteId = route.id,
+                        onBack = { onRoute(Route.Feed) },
+                        onOpenNote = { onRoute(Route.Note(it)) },
+                    )
                     is Route.Settings -> SettingsScreen(vm)
                     is Route.Weekly -> WeeklyScreen(vm)
                     is Route.Topics -> TopicsScreen(

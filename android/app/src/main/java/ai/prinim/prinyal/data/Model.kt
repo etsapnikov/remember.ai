@@ -152,6 +152,13 @@ data class NoteEntity(
     @ColumnInfo(name = "note_kind") val noteKind: String? = null,
     /** Тело заметки в markdown — только у идей (Р-14.5). */
     @ColumnInfo(name = "body_md") val bodyMd: String? = null,
+    /**
+     * Вторая половина разделённой записи (Р-15.5).
+     *
+     * Ссылка двусторонняя: у каждой половины стоит id другой. Так «склеить
+     * обратно» работает с любой из них, а не только с первой.
+     */
+    @ColumnInfo(name = "sibling_id") val siblingId: String? = null,
 )
 
 /**
