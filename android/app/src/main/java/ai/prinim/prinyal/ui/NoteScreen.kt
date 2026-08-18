@@ -17,6 +17,7 @@ import ai.prinim.prinyal.data.Window
 import ai.prinim.prinyal.domain.Phrases
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
+import ai.prinim.prinyal.ui.theme.Haptics
 import ai.prinim.prinyal.ui.theme.Radius
 import ai.prinim.prinyal.ui.theme.Space
 import android.media.MediaPlayer
@@ -100,6 +101,11 @@ fun NoteScreen(
     var heardWord by remember { mutableStateOf<String?>(null) }
     // Правка транскрипта (спека R1.2 §15). null — покой, иначе черновик.
     var draft by remember(noteId) { mutableStateOf<TextFieldValue?>(null) }
+    // Разворот сырца. У идеи закрыт по умолчанию, у остальных записей открыт:
+    // там транскрипт и есть содержимое.
+    var transcriptOpen by remember(noteId, entry?.note?.noteKind) {
+        mutableStateOf(NoteKind.of(entry?.note?.noteKind) != NoteKind.IDEA)
+    }
 
     if (note == null) {
         Box(Modifier.fillMaxSize(), Alignment.Center) {
@@ -161,6 +167,24 @@ fun NoteScreen(
             }
         } else if (failed) {
             // §3: состояние ошибки — объяснение, аудио, одно действие.
+            //
+            // Шапка с датой и статусом добавлена по аудиту Д-7: без неё экран
+            // начинался с объяснения, и человек не понимал, какую запись
+            // открыл, — а именно это ему и нужно, чтобы решить, жалко её или
+            // нет.
+            item {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    MetaText(noteStamp(note.createdAt), color = Prinyal.colors.inkFaint)
+                    MetaText(
+                        text = stringResource(R.string.note_status_unheard),
+                        color = Prinyal.colors.statusWarn,
+                    )
+                }
+            }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(Space.ml)) {
                     Text(
@@ -211,30 +235,6 @@ fun NoteScreen(
             // доказательство, а не как чтение (Д-4, ответ на вопрос 3).
             note.bodyMd?.takeIf { it.isNotBlank() }?.let { body ->
                 item { MarkdownBody(body) }
-            }
-
-            // Разбиение обязано быть видимым: молча разложить одну речь по двум
-            // карточкам — значит потерять человека, который ищет сказанное там,
-            // где сказал. Строка служебная, не празднующая (Д-10).
-            note.siblingId?.let { siblingId ->
-                item {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        MetaText(
-                            text = stringResource(R.string.note_split_line),
-                            color = Prinyal.colors.accentSelf,
-                            modifier = Modifier.clickable { onOpenNote(siblingId) },
-                        )
-                        MetaText(
-                            text = stringResource(R.string.note_merge),
-                            color = Prinyal.colors.inkMuted,
-                            modifier = Modifier.clickable { vm.mergeSiblings(noteId) },
-                        )
-                    }
-                }
             }
 
             // «Покрутить» (Р-15.14) — только у идей: у списка покупок крутить
@@ -373,13 +373,61 @@ fun NoteScreen(
                     // читалась как маркер по всему тексту. Подсветка нужна,
                     // когда человек спросил «откуда это» — то есть в раскрытии
                     // пункта (аудит Д-7, п. 12).
-                    TranscriptBlock(
-                        transcript = transcript,
-                        items = emptyList(),
-                        onWord = { heardWord = it },
+                    // У идеи сырец свёрнут: человек диктовал комком именно
+                    // затем, чтобы получить «Собрано», а транскрипт нужен ему
+                    // как источник и доказательство, а не как чтение (решение
+                    // дизайнера к 1.0.2). У остальных записей он и есть ответ.
+                    if (transcriptOpen) {
+                        TranscriptBlock(
+                            transcript = transcript,
+                            items = emptyList(),
+                            onWord = { heardWord = it },
+                        )
+                    } else {
+                        MetaText(
+                            text = stringResource(R.string.note_transcript_show),
+                            color = Prinyal.colors.accentSelf,
+                            modifier = Modifier.clickable { transcriptOpen = true },
+                        )
+                    }
+                }
+            }
+        }
+
+        // Разбиение — служебная строка и живёт внизу карточки, рядом с
+        // «Удалить»: она про устройство записи, а не про её содержание, и
+        // над пунктами перехватывала внимание раньше них (решение дизайнера
+        // к 1.0.2).
+        // Разбиение обязано быть видимым: молча разложить одну речь по двум
+        // карточкам — значит потерять человека, который ищет сказанное там, где
+        // сказал. Строка служебная, не празднующая (Д-10).
+        note.siblingId?.let { siblingId ->
+            item {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    MetaText(
+                        text = stringResource(R.string.note_split_line),
+                        color = Prinyal.colors.accentSelf,
+                        modifier = Modifier.clickable { onOpenNote(siblingId) },
+                    )
+                    MetaText(
+                        text = stringResource(R.string.note_merge),
+                        color = Prinyal.colors.inkMuted,
+                        modifier = Modifier.clickable { vm.mergeSiblings(noteId) },
                     )
                 }
             }
+        }
+
+
+        // На экране ошибки содержимого мало, и «Удалить запись» оказывалось
+        // прямо под кнопкой «повторить» — рядом с действием, которое человек
+        // как раз и собирался нажать (аудит Д-7). Отодвигаем его к низу.
+        if (failed) {
+            item { Box(Modifier.fillParentMaxHeight(0.3f)) }
         }
 
         // «Удалить запись» внизу, meta-регистр, без заливки; удаляет сразу и
@@ -652,6 +700,7 @@ private fun TranscriptBlock(
 ) {
     val highlight = Prinyal.colors.accentSelfSoft
     val ink = Prinyal.colors.inkMuted
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     val annotated: AnnotatedString = remember(transcript, items) {
         val spans = items.mapNotNull { it.rawSpan?.takeIf(String::isNotBlank) }
@@ -692,7 +741,13 @@ private fun TranscriptBlock(
                 onLongPress = { offset ->
                     val result = layout ?: return@detectTapGestures
                     val at = result.getOffsetForPosition(offset)
-                    wordAt(transcript, at)?.let(onWord)
+                    wordAt(transcript, at)?.let { word ->
+                        // Жест невидимый — подтверждение обязательно (аудит
+                        // Д-7): человек не может знать, что слово поймалось,
+                        // пока шит не открылся, а открывается он не мгновенно.
+                        Haptics.returnAction(context)
+                        onWord(word)
+                    }
                 },
             )
         },
