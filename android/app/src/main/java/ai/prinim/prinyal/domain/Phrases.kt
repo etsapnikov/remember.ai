@@ -23,12 +23,25 @@ object Phrases {
     private val HHMM: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
     /** План возврата: «верну в 19:30» / «напомню завтра утром» / «просто сохраню». */
+    private val DAY_MON: java.time.format.DateTimeFormatter =
+        java.time.format.DateTimeFormatter.ofPattern("d MMM", java.util.Locale("ru"))
+
     fun plan(context: Context, item: ItemEntity, zone: ZoneId = ZoneId.systemDefault()): String =
         when (DueKind.of(item.dueKind)) {
             DueKind.EXACT -> {
-                val at = item.dueAt?.let { LocalDateTime.ofInstant(Instant.ofEpochSecond(it), zone) }
-                if (at == null) context.getString(R.string.plan_none)
-                else context.getString(R.string.plan_exact, at.format(HHMM))
+                // Миллисекунды: третье место, где жила та же ошибка единиц.
+                // Здесь она была особенно тихой — «вернусь в 03:00» выглядит
+                // просто странным временем, а не датой из 1970 года.
+                val at = item.dueAt?.let { LocalDateTime.ofInstant(Instant.ofEpochMilli(it), zone) }
+                when {
+                    at == null -> context.getString(R.string.plan_none)
+                    // Сегодня важно время, в другой день — сам день: «вернусь
+                    // 10 сен» отвечает на вопрос человека, «вернусь в 09:00»
+                    // через три недели — нет (Д-8).
+                    at.toLocalDate() == LocalDateTime.now(zone).toLocalDate() ->
+                        context.getString(R.string.plan_exact, at.format(HHMM))
+                    else -> context.getString(R.string.plan_exact_date, at.format(DAY_MON))
+                }
             }
             DueKind.WINDOW -> when (Window.of(item.window)) {
                 Window.MORNING -> context.getString(R.string.plan_window_morning)

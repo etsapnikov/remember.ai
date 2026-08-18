@@ -10,6 +10,8 @@ import ai.prinim.prinyal.domain.Scheduler
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -64,10 +66,24 @@ class PhrasesTest {
     }
 
     @Test
-    fun `точное время подставляется в план`() {
-        val at = LocalDateTime.parse("2026-08-07T19:00").atZone(zone).toInstant().epochSecond
+    fun `сегодня в плане стоит время`() {
+        // Миллисекунды: тест раньше клал секунды и тем закреплял ошибку единиц,
+        // из-за которой любая явная дата уезжала в 1970 год.
+        val at = LocalDateTime.now(zone).withHour(19).withMinute(0)
+            .atZone(zone).toInstant().toEpochMilli()
         val text = Phrases.plan(context, item(dueKind = DueKind.EXACT, window = null, dueAt = at), zone)
         assertEquals("верну в 19:00", text)
+    }
+
+    @Test
+    fun `в другой день в плане стоит дата, а не время`() {
+        // «Вернусь в 09:00» через три недели не отвечает на вопрос человека,
+        // «вернусь 10 сен» — отвечает (Д-8).
+        val at = LocalDateTime.now(zone).plusDays(24).withHour(9).withMinute(0)
+            .atZone(zone).toInstant().toEpochMilli()
+        val text = Phrases.plan(context, item(dueKind = DueKind.EXACT, window = null, dueAt = at), zone)
+        assertTrue("в плане нет даты: $text", text.startsWith("вернусь "))
+        assertFalse("в плане осталось время: $text", text.contains(":"))
     }
 
     @Test

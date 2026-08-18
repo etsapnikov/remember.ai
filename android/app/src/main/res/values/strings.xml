@@ -31,6 +31,7 @@
 
     <!-- План айтема. Подставляется время или день. -->
     <string name="plan_exact">верну в %1$s</string>
+    <string name="plan_exact_date">вернусь %1$s</string>
     <string name="plan_window_morning">напомню утром</string>
     <string name="plan_window_day">напомню днём</string>
     <string name="plan_window_evening">напомню вечером</string>

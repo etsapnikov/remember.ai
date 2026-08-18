@@ -204,7 +204,11 @@ class NoteRepository(
         if (dueKind == DueKind.NONE) return
 
         val at = when (dueKind) {
-            DueKind.EXACT -> item.dueAt?.let(Instant::ofEpochSecond)
+            // Миллисекунды. Здесь жила вторая половина той же ошибки единиц:
+            // валидатор отдавал секунды, планировщик читал секунды, а экран —
+            // миллисекунды. Починив экран, легко сломать расписание, поэтому
+            // единица теперь одна на всём пути и закреплена тестом.
+            DueKind.EXACT -> item.dueAt?.let(Instant::ofEpochMilli)
             DueKind.WINDOW -> Window.of(item.window)?.let { window ->
                 Scheduler.scheduleFor(window, recordedAt, windows, zone, now)
             }
@@ -214,6 +218,11 @@ class NoteRepository(
         // Точное время из прошлого (запись пролежала в очереди) — не звоним сразу
         // ночью, а уходим в ближайшее окно.
         val safeAt = if (at.isAfter(now)) at else Scheduler.nextWindowAfter(now, windows, zone)
+
+        // Возврат в прошлом — не «сработает сразу», а не сработает вовсе или
+        // прозвонит ночью. Инвариант держим здесь, у единственной точки записи
+        // расписания, а не надеемся на аккуратность вызывающих (Р-15.7).
+        check(safeAt.isAfter(now)) { "возврат назначен в прошлое: $safeAt" }
 
         val entity = ReturnEntity(
             id = newId(),

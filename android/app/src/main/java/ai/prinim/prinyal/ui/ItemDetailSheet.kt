@@ -80,10 +80,8 @@ fun ItemDetailSheet(
 
                 // Состояние и срок — одной строкой тем же языком, что в карточке.
                 MetaText(
-                    text = listOfNotNull(
-                        Phrases.plan(context, item),
-                        exactDate(item),
-                    ).joinToString(" · "),
+                    // Дату печатает сама фраза плана — второй раз не повторяем.
+                    text = Phrases.plan(context, item),
                     color = Prinyal.colors.inkMuted,
                 )
 
@@ -171,12 +169,6 @@ private fun history(
 private fun times(count: Int): String = when {
     count % 10 == 1 && count % 100 != 11 -> "раз"
     else -> "раза"
-}
-
-private fun exactDate(item: ItemEntity): String? {
-    if (DueKind.of(item.dueKind) != DueKind.EXACT) return null
-    val at = item.dueAt ?: return null
-    return "вернусь ${DAY.format(Instant.ofEpochMilli(at).atZone(ZoneId.systemDefault()))}"
 }
 
 private fun stamp(millis: Long?): String? = millis?.let {
