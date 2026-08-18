@@ -256,7 +256,18 @@ fun NoteScreen(vm: AppViewModel, noteId: String, onBack: () -> Unit) {
                                             ai.prinim.prinyal.capture.CaptureActivity.EXTRA_APPEND_TO,
                                             noteId,
                                         )
-                                        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        // NEW_TASK | CLEAR_TASK: экран захвата
+                                        // живёт в singleTask и после квитанции
+                                        // сам сносит свою задачу. Если нажать
+                                        // «Дописать» ровно в этот момент, интент
+                                        // попадает в **умирающую** задачу и
+                                        // теряется — экран не открывается вовсе.
+                                        // Воспроизведено на эмуляторе, вылечено
+                                        // требованием чистой задачи (Р-15.1).
+                                        addFlags(
+                                            android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                                                android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                        )
                                     }
                                 )
                             },

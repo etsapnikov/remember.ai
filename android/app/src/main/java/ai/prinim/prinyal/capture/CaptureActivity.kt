@@ -38,6 +38,14 @@ class CaptureActivity : ComponentActivity() {
 
     private lateinit var recorder: Recorder
     private var watchdog: Job? = null
+    /**
+     * Таймер, который закрывает экран после квитанции.
+     *
+     * Держим его ссылкой, потому что дописывание приходит в живой экран: если
+     * старый таймер не отменить, он через 0,6 с уносит task вместе с только что
+     * начатой записью — экран «не открывается», хотя открылся (Р-15.1).
+     */
+    private var receiptJob: Job? = null
     private var noteId: String = ""
     private var source: CaptureSource = CaptureSource.ICON
     /** id заметки, к которой дописываем; null — обычная запись. */
@@ -144,12 +152,23 @@ class CaptureActivity : ComponentActivity() {
             PackageManager.PERMISSION_GRANTED
 
     private fun beginRecording() {
+        // Отменяем закрытие по квитанции: новая запись отменяет прошлое
+        // «до свидания». Без этого экран, открытый для дописывания, закрывался
+        // сам через 0,6 с — таймером предыдущей записи.
+        receiptJob?.cancel()
+        receiptJob = null
+
         if (!recorder.start()) {
             state.failed = true
             return
         }
         noteId = UUID.randomUUID().toString()
         state.needsPermission = false
+        // Квитанция прошлой записи гасится явно: пока флаг стоит, экран рисует
+        // «Запомнил.» поверх идущей записи.
+        state.receipt = false
+        state.tooShort = false
+        state.failed = false
         state.idle = false
         state.elapsedMs = 0
         state.silenceLeftMs = 0
@@ -285,7 +304,7 @@ class CaptureActivity : ComponentActivity() {
             UploadWorker.enqueue(this@CaptureActivity, noteId)
         }
 
-        lifecycleScope.launch {
+        receiptJob = lifecycleScope.launch {
             delay(RECEIPT_MS)
             finishAndRemoveTask()
         }
