@@ -1,6 +1,8 @@
 package ai.prinim.prinyal.returns
 
 import ai.prinim.prinyal.PrinyalApp
+import ai.prinim.prinyal.domain.StuckPolicy
+import ai.prinim.prinyal.data.ItemState
 import ai.prinim.prinyal.data.Analytics
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -38,12 +40,18 @@ class ReturnAlarmReceiver : BroadcastReceiver() {
                     return@launch
                 }
 
+                // Третий перенос — не напоминание, а выбор (Р-15.8).
+                val fork = StuckPolicy.isFork(
+                    ItemState.of(item.state),
+                    app.db.returns().forItem(item.id),
+                )
                 Notifications.showReturn(
                     context,
                     returnId,
                     item,
                     entity.attempt,
                     app.settings.windowsNow(),
+                    fork = fork,
                 )
                 ReturnDiag.log(context, returnId, ReturnDiag.SHOWN)
                 app.repository.markFired(returnId)
@@ -89,6 +97,18 @@ class ReturnActionReceiver : BroadcastReceiver() {
                         app.repository.recordAction(returnId, "miss")
                         Notifications.cancel(context, returnId)
                     }
+                    // «Уменьшить» и «сказать иначе» открывают карточку: малый шаг
+                    // придумывает модель, и человек должен его увидеть до замены.
+                    // Молча подменять текст дела продукт не вправе — это его
+                    // слова, а не наши (Р-15.8).
+                    SHRINK, REPHRASE -> {
+                        app.repository.recordAction(returnId, "later")
+                        app.analytics.log(
+                            Analytics.RETURN_ACTION,
+                            mapOf("item" to itemId, "action" to if (action == SHRINK) "shrink" else "rephrase"),
+                        )
+                        Notifications.cancel(context, returnId)
+                    }
                     IGNORED -> {
                         app.repository.recordAction(returnId, "ignored")
                         app.repository.scheduleSecondAttempt(returnId)
@@ -108,6 +128,9 @@ class ReturnActionReceiver : BroadcastReceiver() {
         const val DONE = "ai.prinim.prinyal.RETURN_DONE"
         const val LATER = "ai.prinim.prinyal.RETURN_LATER"
         const val DISMISS = "ai.prinim.prinyal.RETURN_DISMISS"
+        /** Развилка застрявшего (Р-15.8). */
+        const val SHRINK = "ai.prinim.prinyal.RETURN_SHRINK"
+        const val REPHRASE = "ai.prinim.prinyal.RETURN_REPHRASE"
         const val IGNORED = "ai.prinim.prinyal.RETURN_IGNORED"
     }
 }

@@ -114,7 +114,13 @@ object Notifications {
         item: ItemEntity,
         attempt: Int,
         windows: Scheduler.Windows,
+        /** Третий перенос: вместо напоминания приходит выбор (Р-15.8). */
+        fork: Boolean = false,
     ) {
+        if (fork) {
+            showFork(context, returnId, item)
+            return
+        }
         val reason = Phrases.reason(context, item, attempt, Instant.now(), windows)
 
         val notification = base(context, CHANNEL_RETURNS)
@@ -127,6 +133,37 @@ object Notifications {
             .addAction(0, context.getString(R.string.action_dismiss), action(context, returnId, ReturnActionReceiver.DISMISS))
             // Свайп — это тоже ответ «сейчас не до тебя»: ловим его, чтобы назначить
             // второй заход, а не потерять пункт молча.
+            .setDeleteIntent(action(context, returnId, ReturnActionReceiver.IGNORED))
+            .setAutoCancel(true)
+            .build()
+
+        notify(context, returnId.hashCode(), notification)
+    }
+
+    /**
+     * Развилка застрявшего пункта (Р-15.8).
+     *
+     * Третий перенос — сигнал, что дело в нынешнем виде не делается. Четвёртое
+     * одинаковое напоминание ничего не изменит, оно только научит человека
+     * отмахиваться. Поэтому здесь не напоминание, а выбор — и все три варианта
+     * действия, без диагнозов: продукт видит перенос, а не причину.
+     *
+     * Три действия помещаются в системное уведомление Android — проверено на
+     * той же раскладке, что и обычный возврат.
+     */
+    private fun showFork(context: Context, returnId: String, item: ItemEntity) {
+        val notification = base(context, CHANNEL_RETURNS)
+            .setContentTitle(item.text)
+            .setContentText(context.getString(R.string.fork_reason))
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(item.text)
+                    .setSummaryText(context.getString(R.string.fork_reason))
+            )
+            .setContentIntent(openNote(context, item.noteId))
+            .addAction(0, context.getString(R.string.fork_shrink), action(context, returnId, ReturnActionReceiver.SHRINK))
+            .addAction(0, context.getString(R.string.fork_rephrase), action(context, returnId, ReturnActionReceiver.REPHRASE))
+            .addAction(0, context.getString(R.string.action_dismiss), action(context, returnId, ReturnActionReceiver.DISMISS))
             .setDeleteIntent(action(context, returnId, ReturnActionReceiver.IGNORED))
             .setAutoCancel(true)
             .build()

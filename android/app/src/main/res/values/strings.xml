@@ -283,6 +283,9 @@
     <string name="item_history">Как жил</string>
     <string name="item_edit">Поправить</string>
     <string name="item_close">Закрыть</string>
+    <string name="fork_reason">Переносится третий раз — попробуем иначе</string>
+    <string name="fork_shrink">уменьшить</string>
+    <string name="fork_rephrase">сказать иначе</string>
     <string name="note_parse_failed">не смог разобрать — повторить</string>
     <string name="note_split_line">разделил на две — вот вторая</string>
     <string name="note_merge">склеить обратно</string>
