@@ -3,7 +3,6 @@ package ai.prinim.prinyal.capture
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.ui.components.RecordKey
 import ai.prinim.prinyal.ui.components.rememberAmplitude
-import ai.prinim.prinyal.ui.theme.KeyColors
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Motion
 import ai.prinim.prinyal.ui.theme.Prinyal
@@ -170,7 +169,7 @@ private fun Recording(
         Text(
             text = formatElapsed(state.elapsedMs),
             style = Prinyal.type.timer,
-            color = if (state.recording) KeyColors.recTimer else KeyColors.idleTimer,
+            color = if (state.recording) Prinyal.key.recTimer else Prinyal.key.idleTimer,
         )
         Box(Modifier.height(Space.ml))
 

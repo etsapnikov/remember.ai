@@ -1,8 +1,8 @@
 package ai.prinim.prinyal.ui.components
 
-import ai.prinim.prinyal.ui.theme.KeyColors
 import ai.prinim.prinyal.ui.theme.KeyMetrics
 import ai.prinim.prinyal.ui.theme.Motion
+import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.PrinyalTheme
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -82,13 +82,13 @@ fun RecordKey(
         Motion.StateShift.durationMs, easing = Motion.StateShift.easing,
     )
     val housing by animateColorAsState(
-        if (recording) KeyColors.recHousing else KeyColors.idleHousing, shift, label = "housing",
+        if (recording) Prinyal.key.recHousing else Prinyal.key.idleHousing, shift, label = "housing",
     )
     val housingEdge by animateColorAsState(
-        if (recording) KeyColors.recHousingEdge else KeyColors.idleHousingEdge, shift, label = "edge",
+        if (recording) Prinyal.key.recHousingEdge else Prinyal.key.idleHousingEdge, shift, label = "edge",
     )
     val cap by animateColorAsState(
-        if (recording) KeyColors.recCap else KeyColors.idleCap, shift, label = "capColor",
+        if (recording) Prinyal.key.recCap else Prinyal.key.idleCap, shift, label = "capColor",
     )
     // Центр: круг-точка в idle → квадрат-«стоп» в записи. Форму ведём числом,
     // чтобы переход был не подменой, а морфингом скругления.
@@ -107,7 +107,7 @@ fun RecordKey(
         label = "ring",
     )
     val ringColor by animateColorAsState(
-        if (silence) KeyColors.ringIdle else KeyColors.ring, shift, label = "ringColor",
+        if (silence) Prinyal.key.ringIdle else Prinyal.key.ring, shift, label = "ringColor",
     )
 
     // Во время отсчёта тишины кольцо стягивается к корпусу и не дышит.
@@ -120,6 +120,11 @@ fun RecordKey(
     val ringCorner = RING_CORNER + RING_CORNER_GAIN * shaped
     val ringWidth = RING_WIDTH + RING_WIDTH_GAIN * amplitude
     val ringAlpha = if (silence) 0.5f else RING_ALPHA + RING_ALPHA_GAIN * amplitude
+
+    // Композишн-локалы читаются до Canvas: внутри DrawScope их уже нет.
+    val shadowColor = Prinyal.key.idleHousing
+    val stopMark = Prinyal.key.recStopMark
+    val idleDot = Prinyal.key.idleDot
 
     Box(
         modifier
@@ -175,23 +180,32 @@ fun RecordKey(
             val shadowPx = ((if (recording) 4f else 3f) * (1f - capScale.let { (1f - it) * 8f }))
                 .coerceAtLeast(0f).dp.toPx()
             if (shadowPx > 0.5f) {
-                drawCircle(
-                    color = KeyColors.idleHousing.copy(alpha = 0.55f),
-                    radius = capPx / 2f,
-                    center = center + Offset(0f, shadowPx + dropPx),
+                drawRoundRect(
+                    color = shadowColor.copy(alpha = 0.55f),
+                    topLeft = Offset(
+                        center.x - capPx / 2f,
+                        center.y - capPx / 2f + shadowPx + dropPx,
+                    ),
+                    size = Size(capPx, capPx),
+                    cornerRadius = CornerRadius(KeyMetrics.capRadius.toPx()),
                 )
             }
 
-            // Колпачок.
-            drawCircle(
+            // Колпачок — скруглённый квадрат, а не круг (аудит Д-7, п. 11).
+            //
+            // С кругом внутри квадратного корпуса объект перестаёт быть
+            // клавишей и становится кнопкой диктофона, а вся пластика нажатия
+            // (84 → 78, ход вниз 4 dp) построена именно на клавише.
+            drawRoundRect(
                 color = cap,
-                radius = capPx / 2f,
-                center = center + Offset(0f, dropPx),
+                topLeft = Offset(center.x - capPx / 2f, center.y - capPx / 2f + dropPx),
+                size = Size(capPx, capPx),
+                cornerRadius = CornerRadius(KeyMetrics.capRadius.toPx()),
             )
 
             // Центр: точка (idle) ↔ квадрат «стоп» (запись).
             val markPx = KeyMetrics.dot.toPx()
-            val markColor = if (stopness > 0.5f) KeyColors.recStopMark else KeyColors.idleDot
+            val markColor = if (stopness > 0.5f) stopMark else idleDot
             drawRoundRect(
                 color = markColor,
                 topLeft = Offset(

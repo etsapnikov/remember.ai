@@ -87,26 +87,61 @@ val DarkColors = PrinyalColors(
 )
 
 /**
- * Цвета клавиши записи (спека R1.2 §12). Заданы абсолютными для обеих тем: клавиша
- * — физический предмет, её пластик не перекрашивается вслед за фоном.
+ * Цвета клавиши записи (спека R1.2 §12).
+ *
+ * Раньше они были заданы абсолютными «для обеих тем»: клавиша — физический
+ * предмет, её пластик не перекрашивается вслед за фоном. Логика верная, вывод
+ * оказался неверным. На кремовом фоне светлой темы тёмно-бордовый корпус стал
+ * единственным тёмным пятном на экране, и клавиша читалась как **выключенная**
+ * (аудит Д-7, п. 10).
+ *
+ * Предмет и правда один, но освещение разное: в светлой теме корпус светлый, а
+ * красным остаётся колпачок — то есть сохраняется ровно то, что и делало
+ * клавишу клавишей.
  */
 @Immutable
-object KeyColors {
-    // idle — «заряд есть, но не идёт»
-    val idleHousing = Color(0xFF1E1917)
-    val idleHousingEdge = Color(0xFF2E2724)
-    val idleCap = Color(0xFF2A211E)
-    val idleDot = Color(0xFFD8402F)
-    val idleTimer = Color(0xFF4A403A)
+data class KeyPalette(
+    val idleHousing: Color,
+    val idleHousingEdge: Color,
+    val idleCap: Color,
+    val idleDot: Color,
+    val idleTimer: Color,
+    val recHousing: Color,
+    val recHousingEdge: Color,
+    val recCap: Color,
+    val recStopMark: Color,
+    val recTimer: Color,
+    val ring: Color,
+    val ringIdle: Color,
+)
 
-    // запись — клавиша это «стоп»
-    val recHousing = Color(0xFF2A1512)
-    val recHousingEdge = Color(0xFF52201A)
-    val recCap = Color(0xFFD8402F)
-    val recStopMark = Color(0xFF2A1512)
-    val recTimer = Color(0xFF8C8078)
+val DarkKeyColors = KeyPalette(
+    idleHousing = Color(0xFF1E1917),
+    idleHousingEdge = Color(0xFF2E2724),
+    idleCap = Color(0xFF2A211E),
+    idleDot = Color(0xFFD8402F),
+    idleTimer = Color(0xFF4A403A),
+    recHousing = Color(0xFF2A1512),
+    recHousingEdge = Color(0xFF52201A),
+    recCap = Color(0xFFD8402F),
+    recStopMark = Color(0xFF2A1512),
+    recTimer = Color(0xFF8C8078),
+    ring = Color(0xFFE8836B),
+    ringIdle = Color(0xFF4A403A),
+)
 
-    /** Кольцо-амплитуда и его остывший вид во время отсчёта тишины. */
-    val ring = Color(0xFFE8836B)
-    val ringIdle = Color(0xFF4A403A)
-}
+/** Тройка для светлой темы из токенов: record, recordWell, wellSurface. */
+val LightKeyColors = KeyPalette(
+    idleHousing = Color(0xFFEFE6DC),
+    idleHousingEdge = Color(0xFFE2D3C6),
+    idleCap = Color(0xFFE2D3C6),
+    idleDot = Color(0xFFC8362A),
+    idleTimer = Color(0xFF8C7A6E),
+    recHousing = Color(0xFFEFE6DC),
+    recHousingEdge = Color(0xFFE2D3C6),
+    recCap = Color(0xFFC8362A),
+    recStopMark = Color(0xFFEFE6DC),
+    recTimer = Color(0xFF6E5F55),
+    ring = Color(0xFF8E2318),
+    ringIdle = Color(0xFF8C7A6E),
+)

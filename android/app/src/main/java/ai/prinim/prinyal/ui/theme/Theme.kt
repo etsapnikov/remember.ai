@@ -27,7 +27,13 @@ object Prinyal {
 
     val type: PrinyalTypography
         @Composable @ReadOnlyComposable get() = LocalPrinyalType.current
+
+    /** Пластик клавиши — свой на каждую тему (аудит Д-7, п. 10). */
+    val key: KeyPalette
+        @Composable @ReadOnlyComposable get() = LocalKeyColors.current
 }
+
+val LocalKeyColors = staticCompositionLocalOf { DarkKeyColors }
 
 @Composable
 fun PrinyalTheme(
@@ -35,6 +41,7 @@ fun PrinyalTheme(
     content: @Composable () -> Unit,
 ) {
     val colors = if (dark) DarkColors else LightColors
+    val keys = if (dark) DarkKeyColors else LightKeyColors
 
     // Material-схема нужна ripple, скроллбарам и системным компонентам. Заполняем её
     // своими цветами, чтобы ни один экран не мог случайно показать чужой синий.
@@ -70,6 +77,7 @@ fun PrinyalTheme(
 
     CompositionLocalProvider(
         LocalPrinyalColors provides colors,
+        LocalKeyColors provides keys,
         LocalPrinyalType provides PrinyalType,
         LocalTextStyle provides PrinyalType.body.copy(color = colors.ink),
     ) {
