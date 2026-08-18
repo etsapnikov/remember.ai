@@ -211,38 +211,6 @@ fun SettingsScreen(vm: AppViewModel) {
         }
 
         item {
-            Section(stringResource(R.string.settings_parsing)) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(R.string.set_parse_toggle),
-                        style = Prinyal.type.body,
-                        color = Prinyal.colors.ink,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Switch(
-                        checked = llm,
-                        onCheckedChange = { vm.setLlmEnabled(it) },
-                        colors = SwitchDefaults.colors(
-                            checkedTrackColor = Prinyal.colors.accentSelf,
-                            checkedThumbColor = Prinyal.colors.surface,
-                        ),
-                    )
-                }
-                if (!llm) {
-                    Text(
-                        text = stringResource(R.string.set_parse_off_note),
-                        style = Prinyal.type.body,
-                        color = Prinyal.colors.inkMuted,
-                    )
-                }
-            }
-        }
-
-        item {
             Section(stringResource(R.string.settings_data)) {
                 Row(
                     Modifier.fillMaxWidth(),
@@ -620,6 +588,7 @@ private fun ReturnTrace() {
 @Composable
 private fun DeveloperSection(vm: AppViewModel, threshold: Int) {
     var expanded by remember { mutableStateOf(false) }
+    val llmEnabled by vm.llmEnabled.collectAsState()
     val url by vm.serverUrl.collectAsState()
     val health by vm.health.collectAsState()
     var urlDraft by remember(url) { mutableStateOf(url) }
@@ -642,6 +611,25 @@ private fun DeveloperSection(vm: AppViewModel, threshold: Int) {
             // Kill-критерии PRD §8. Живут здесь, а не на «Неделе»: по ним
             // принимается решение о судьбе продукта, и читает их владелец в
             // роли заказчика, а не человек в роли пользователя.
+            // Разбор можно погасить целиком — но это аварийный рубильник, а не
+            // настройка на каждый день: в основном списке он занимал место и
+            // предлагал решение, которого от человека не требуется (Р-15.5).
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                MetaText(stringResource(R.string.set_parse_toggle))
+                Switch(
+                    checked = llmEnabled,
+                    onCheckedChange = { vm.setLlmEnabled(it) },
+                    colors = SwitchDefaults.colors(
+                        checkedTrackColor = Prinyal.colors.accentSelf,
+                        checkedThumbColor = Prinyal.colors.surface,
+                    ),
+                )
+            }
+
             KillMetrics(vm)
             VersionState(vm)
             ReturnTrace()

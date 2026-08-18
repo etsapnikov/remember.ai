@@ -82,6 +82,22 @@ class Settings(private val context: Context) {
         context.dataStore.edit { it[SERVER_URL] = value.trim().trimEnd('/') }
     }
 
+    /**
+     * Разовый сброс выключенного разбора (Р-15.5).
+     *
+     * Тумблер уехал из основных настроек в «Для разработчика». Если он остался
+     * выключенным с прошлой версии, человек остался бы без разбора навсегда и
+     * без очевидного способа его вернуть — поэтому один раз включаем обратно.
+     * Флаг «уже чинили» нужен, чтобы не спорить с осознанным выключением.
+     */
+    suspend fun healParsingToggle() {
+        context.dataStore.edit {
+            if (it[PARSE_HEALED] == true) return@edit
+            it[PARSE_HEALED] = true
+            it[LLM_ENABLED] = true
+        }
+    }
+
     suspend fun setLlmEnabled(value: Boolean) {
         context.dataStore.edit { it[LLM_ENABLED] = value }
     }
@@ -146,6 +162,7 @@ class Settings(private val context: Context) {
         private val LLM_ENABLED = booleanPreferencesKey("llm_enabled")
         private val SILENCE_THRESHOLD = intPreferencesKey("silence_threshold")
         private val SILENCE_PATIENCE = intPreferencesKey("silence_patience")
+        private val PARSE_HEALED = booleanPreferencesKey("parse_toggle_healed")
         private val W_MORNING = stringPreferencesKey("window_morning")
         private val W_DAY = stringPreferencesKey("window_day")
         private val W_EVENING = stringPreferencesKey("window_evening")

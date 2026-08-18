@@ -67,6 +67,11 @@ class PrinyalApp : Application() {
         // Страховка возвратов (Р-8): прошивка душит алармы, воркер догоняет.
         ai.prinim.prinyal.returns.ReturnCatchUpWorker.ensureScheduled(this)
 
+        // Тумблер разбора уехал в «Для разработчика» — выключенный с прошлой
+        // версии он оставил бы человека без разбора и без видимого способа
+        // вернуть его (Р-15.5).
+        CoroutineScope(Dispatchers.IO).launch { settings.healParsingToggle() }
+
         // Распаковку весов из onCreate убрали намеренно: 326 МБ — не работа для
         // старта приложения, а Robolectric на ней валил heap в каждом тесте.
         // Теперь веса ставятся перед первым распознаванием, в воркере.
