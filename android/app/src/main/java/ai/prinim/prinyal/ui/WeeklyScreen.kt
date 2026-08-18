@@ -4,7 +4,9 @@ import ai.prinim.prinyal.R
 import ai.prinim.prinyal.domain.WeeklySummary
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
+import ai.prinim.prinyal.ui.theme.Radius
 import ai.prinim.prinyal.ui.theme.Space
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -67,11 +69,24 @@ fun WeeklyScreen(vm: AppViewModel) {
             .padding(horizontal = Space.screen),
         verticalArrangement = Arrangement.spacedBy(Space.ml),
     ) {
-        Verdict(data)
+        // Экран недели — блок продукта, а не текст на фоне: он рассказывает от
+        // своего лица, и это должно быть видно так же, как у «Собрано»
+        // (аудит Д-7, п. 6).
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .background(Prinyal.colors.wellSurface, Radius.control)
+                .padding(Space.m),
+            verticalArrangement = Arrangement.spacedBy(Space.sm),
+        ) {
+            MetaText(stringResource(R.string.week_block_label), color = Prinyal.colors.accentSelf)
+            Verdict(data)
 
-        // Единственное крупное число на экране — сделанное. Без доли, без цели:
-        // «7 из 12» превращает неделю в зачёт, «7» остаётся фактом.
-        Done(data.done)
+            // Сделанное показываем, только когда оно есть. Крупный ноль был
+            // единственным числом на экране: продукт большим кеглем сообщал
+            // человеку, что тот не сделал ничего.
+            if (data.done > 0) Done(data.done)
+        }
 
         // Отказ — тоже закрытие петли: человек ответил, продукт узнал. Стоит
         // рядом со сделанным намеренно, чтобы не читаться как недоделанное.

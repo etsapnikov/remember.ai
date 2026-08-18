@@ -245,11 +245,12 @@
     <string name="week_verdict_alive">Петля жива</string>
     <string name="week_verdict_warn">Тревога</string>
     <string name="week_verdict_stalling">Петля буксует</string>
+    <string name="week_block_label">ЗА НЕДЕЛЮ</string>
     <string name="week_metric_done">Закрыл</string>
     <string name="week_metric_dropped">Отменил как ненужное</string>
     <string name="week_verdict_fail">Провал</string>
-    <string name="week_verdict_early">Пока рано судить</string>
-    <string name="week_early_note">Считаю, но выводов пока не делаю — слишком мало дней.</string>
+    <string name="week_verdict_early">Пока нечего рассказать</string>
+    <string name="week_early_note">Расскажу в конце недели — раньше выйдет гадание.</string>
     <string name="week_metric_returns">Отвечаю на возвраты</string>
     <string name="week_metric_lump">Говорю комком, а не командой</string>
     <string name="week_metric_days">Дней с записью</string>
