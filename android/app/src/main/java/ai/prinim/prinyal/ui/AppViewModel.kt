@@ -101,13 +101,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
 
+    companion object {
+        /** Псевдо-раздел решений: собирается запросом, топиком не является. */
+        const val DECISIONS = "@decisions"
+    }
+
     fun token(): String = app.settings.token
 
     fun note(id: String) = app.db.notes().watch(id)
 
-    /** Заметки раздела; `topicId == null` — «Без раздела». */
-    fun notesOf(topicId: String?) =
-        if (topicId == null) app.db.notes().withoutTopic() else app.db.notes().byTopic(topicId)
+    /**
+     * Заметки раздела; `topicId == null` — «Без раздела», [DECISIONS] — решения.
+     *
+     * Сентинел, а не топик: раздел решений собирается запросом (Р-15.10).
+     * Настоящие id — uuid, поэтому «@» в имени столкновение исключает.
+     */
+    fun notesOf(topicId: String?) = when (topicId) {
+        null -> app.db.notes().withoutTopic()
+        DECISIONS -> app.db.notes().decisions()
+        else -> app.db.notes().byTopic(topicId)
+    }
+
+    /** Сколько решений накопилось — от этого зависит, есть ли строка в списке. */
+    val decisionCount = app.db.notes().decisionCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     suspend fun liveTopics(): List<TopicEntity> = app.db.topics().live()
 

@@ -1,51 +1,51 @@
 {
  "id": "date-explicit",
- "prompt_version": "5",
- "recorded_at": "2026-08-18T13:26:19",
- "took_s": 6.8,
+ "prompt_version": "6",
+ "recorded_at": "2026-08-18T19:32:22",
+ "took_s": 12.6,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 1870,
-  "completion_tokens": 562,
-  "total_tokens": 2432,
+  "prompt_tokens": 2123,
+  "completion_tokens": 1438,
+  "total_tokens": 3561,
   "prompt_tokens_details": {
-   "cached_tokens": 1152
+   "cached_tokens": 640
   },
   "completion_tokens_details": {
-   "reasoning_tokens": 442
+   "reasoning_tokens": 1318
   },
-  "prompt_cache_hit_tokens": 1152,
-  "prompt_cache_miss_tokens": 718
+  "prompt_cache_hit_tokens": 640,
+  "prompt_cache_miss_tokens": 1483
  },
  "response": {
-  "id": "92b35a19-786a-4fe3-b24a-de3cc92cddd8",
+  "id": "62a33090-8c85-46d3-afdd-419c3fbad31e",
   "object": "chat.completion",
-  "created": 1787048775,
+  "created": 1787070732,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\"note_kind\": \"tasks\", \"topic\": \"Финансы\", \"entities\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"do\", \"text\": \"оплатить счёт за садик\", \"who\": null, \"due_kind\": \"exact\", \"window\": null, \"exact_local\": \"2026-09-10T09:00\", \"confidence\": \"high\", \"raw_span\": \"счёт за садик оплатить десятого сентября\"}]}",
-     "reasoning_content": "We need process user input. Need output JSON per schema. Input: \"счёт за садик оплатить десятого сентября не забыть\". Current date 2026-08-17 12:00 Monday. Need parse. This is one action: pay kindergarten bill on September 10. Date named explicitly: \"десятого сентября\". So due_kind exact. Need exact_local in YYYY-MM-DDTHH:MM. Year nearest future. Current date Aug 17 2026, Sept 10 2026 is future, so 2026-09-10. Time not specified -> 09:00. So exact_local \"2026-09-10T09:00\", window null. Type: do? Pay bill is do. Topic? Maybe \"Дом\" or \"Финансы\"? No existing sections. Need choose short name. \"Финансы\" maybe appropriate. Or \"Садик\"? Better \"Финансы\". But note says \"Разделов пока нет — заведи подходящий.\" We can create \"Финансы\". Entities? None. body_md null. second null. Items one. raw_span: maybe \"счёт за садик оплатить десятого сентября\" or \"счёт за садик оплатить\". Since action includes date, raw_span likely the phrase covering item. Use \"счёт за садик оплатить десятого сентября\". Confidence high. Note_kind tasks. Need ensure JSON only.\n\nNeed perhaps topic \"Финансы\" with capital. Also \"note_kind\": \"tasks\". \"items\": [{\"type\": \"do\", \"text\": \"оплатить счёт за садик\", \"who\": null, ...}]\n\nBut rule 4 formulate short in original words. \"счёт за садик оплатить\" is better \"оплатить счёт за садик\". Not too long.\n\nCheck due_kind exact. Time named explicitly? \"десятого сентября\" is date, not time. Rule 12 says named date -> exact. yes.\n\nNeed output JSON.\n\nLet's craft."
+     "content": "{\"note_kind\": \"tasks\", \"topic\": \"Садик\", \"entities\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"do\", \"text\": \"оплатить счёт за садик\", \"who\": null, \"due_kind\": \"exact\", \"window\": null, \"exact_local\": \"2026-09-10T09:00\", \"confidence\": \"high\", \"raw_span\": \"счёт за садик оплатить десятого сентября\"}]}",
+     "reasoning_content": "We need to parse the user's transcription: \"счёт за садик оплатить десятого сентября не забыть\"\n\nWe need to output JSON according to the schema.\n\nLet's break down the text:\n\n- \"счёт за садик оплатить\" - pay the kindergarten bill\n- \"десятого сентября\" - on the tenth of September\n- \"не забыть\" - don't forget\n\nSo the action is to pay the kindergarten bill on September 10th.\n\nWe need to determine:\n\n- note_kind: tasks (it's a task to do)\n- topic: What section? \"Дом\" (home) or \"Садик\" (kindergarten)? Since there are no existing sections, we need to create one. Probably \"Садик\" or \"Дом\" but since it's about paying a bill for kindergarten, maybe \"Садик\" is appropriate. But the rule says: if suitable for existing section, use exactly its name. There are no existing sections, so we can create a new one. The topic should be short, 1-2 words with capital letter. \"Садик\" is fine. Alternatively \"Финансы\" but that's more general. Since it's specifically about kindergarten, \"Садик\" seems good. Or \"Дом\" because it's a household bill? But the instruction says \"про что запись\" - about what? It's about paying for kindergarten. I'll go with \"Садик\".\n\n- entities: any people? No names mentioned. So entities: []\n\n- body_md: for tasks, body_md is null. So null.\n\n- second: null.\n\n- items: one item.\n\nNow the item:\n\n- type: \"do\" because it's an action (pay). Could it be \"buy\"? No, it's paying a bill, not buying something. So \"do\".\n- text: \"оплатить счёт за садик\" or \"оплатить счёт за садик 10 сентября\"? The instruction says formulate short and in original words, no clerical. But we need to include the date? The date is part of the task. The item should be the action itself. Probably \"оплатить счёт за садик десятого сентября\" but we also have due_kind exact with date. So text can be \"оплатить счёт за садик\". But to be clear, we can include the date in text? The schema has exact_local for the date. The text should be the action. I'll keep text as \"оплатить счёт за садик\" but maybe better \"оплатить счёт за садик\". However, the raw_span should be \"счёт за садик оплатить\" or maybe the whole thing? The raw_span is the fragment from which the item is taken. So it's \"счёт за садик оплатить десятого сентября\" because the date is part of the item. Actually the instruction: \"Каждому пункту дай `raw_span` — дословный фрагмент исходника, из которого пункт взят.\" So for this item, the fragment is \"счёт за садик оплатить десятого сентября\" (or maybe \"счёт за садик оплатить\" plus \"десятого сентября\"? But the date is part of the item, so it's the whole phrase). I'll use \"счёт за садик оплатить десятого сентября\" as raw_span.\n\n- who: null (no one to tell)\n\n- due_kind: \"exact\" because the date is explicitly mentioned: \"десятого сентября\". So due_kind: \"exact\", exact_local: \"2026-09-10T09:00\" (since time not specified, use 09:00). Year: current is 2026-08-17, so September 10, 2026 is in the future, so 2026.\n\n- window: null\n\n- confidence: high (clear)\n\nNow regarding note_kind: It's a task, so \"tasks\".\n\nTopic: \"Садик\" or maybe \"Дом\"? Since there are no sections, we can create. I'll choose \"Садик\" because it's specifically about kindergarten. But maybe \"Садик\" is not a common section name? It could be \"Детский сад\" but that's two words? Actually \"Садик\" is a colloquial short form. The instruction says 1-2 words, capital letter. \"Садик\" is fine. Alternatively \"Дом\" but that's too generic. I'll go with \"Садик\".\n\nLet's construct the JSON.\n\n{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Садик\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"оплатить счёт за садик\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2026-09-10T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"счёт за садик оплатить десятого сентября\"\n    }\n  ]\n}\n\nBut wait: the rule says \"не забыть\" is part of the phrase. The action is to pay, and the reminder is implied. The item text should be the action. So \"оплатить счёт за садик\" is fine.\n\nAlternatively, we could include the date in the text: \"оплатить счёт за садик десятого сентября\" but that might be redundant with exact_local. The instruction: \"Формулируй пункт коротко и в исходных словах пользователя, без канцелярита.\" So we keep it short. \"оплатить счёт за садик\" is good.\n\nNow check: Is there any decision? No.\n\nAlso, the rule about exact dates: \"Названная дата — это due_kind: exact.\" So yes.\n\nI think this is correct.\n\nNow, the response must be ONLY JSON, no markdown.\n\nLet's output."
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 1870,
-   "completion_tokens": 562,
-   "total_tokens": 2432,
+   "prompt_tokens": 2123,
+   "completion_tokens": 1438,
+   "total_tokens": 3561,
    "prompt_tokens_details": {
-    "cached_tokens": 1152
+    "cached_tokens": 640
    },
    "completion_tokens_details": {
-    "reasoning_tokens": 442
+    "reasoning_tokens": 1318
    },
-   "prompt_cache_hit_tokens": 1152,
-   "prompt_cache_miss_tokens": 718
+   "prompt_cache_hit_tokens": 640,
+   "prompt_cache_miss_tokens": 1483
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

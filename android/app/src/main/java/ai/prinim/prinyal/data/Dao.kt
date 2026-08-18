@@ -44,6 +44,23 @@ interface NoteDao {
     )
     fun byTopic(topicId: String): Flow<List<NoteWithItems>>
 
+    /**
+     * Решения — хронология (Р-15.10).
+     *
+     * Раздел собирается запросом, а не хранится топиком: решение о релизе
+     * по-прежнему относится к «Работе», и отбирать у заметки её раздел ради
+     * второго списка значило бы платить структурой за навигацию.
+     */
+    @Transaction
+    @Query(
+        "SELECT * FROM notes WHERE deleted_at IS NULL AND note_kind = 'decision' " +
+            "ORDER BY created_at DESC"
+    )
+    fun decisions(): Flow<List<NoteWithItems>>
+
+    @Query("SELECT COUNT(*) FROM notes WHERE deleted_at IS NULL AND note_kind = 'decision'")
+    fun decisionCount(): Flow<Int>
+
     /** Заметки, которые машина не смогла отнести и человек ещё не отнёс. */
     /** То же определение, что у счётчика: список и число обязаны сходиться. */
     @Transaction

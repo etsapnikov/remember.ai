@@ -219,7 +219,7 @@ class NoteRepository(
         attempt: Int = 1,
     ) {
         val dueKind = DueKind.of(item.dueKind)
-        if (dueKind == DueKind.NONE) return
+        if (!ReturnPolicy.schedules(ItemType.of(item.type), dueKind)) return
 
         val at = when (dueKind) {
             // Миллисекунды. Здесь жила вторая половина той же ошибки единиц:

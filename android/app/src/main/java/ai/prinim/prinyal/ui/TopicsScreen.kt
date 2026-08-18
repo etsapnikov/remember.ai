@@ -41,8 +41,9 @@ import androidx.compose.ui.unit.dp
 fun TopicsScreen(vm: AppViewModel, onOpen: (String?, String) -> Unit) {
     val topics by vm.topics.collectAsState()
     val loose by vm.looseNotes.collectAsState()
+    val decisions by vm.decisionCount.collectAsState()
 
-    if (topics.isEmpty() && loose == 0) {
+    if (topics.isEmpty() && loose == 0 && decisions == 0) {
         Box(Modifier.fillMaxSize(), Alignment.Center) {
             Column(
                 Modifier.padding(horizontal = Space.screen),
@@ -71,6 +72,23 @@ fun TopicsScreen(vm: AppViewModel, onOpen: (String?, String) -> Unit) {
         ),
         modifier = Modifier.fillMaxSize(),
     ) {
+        // «Решения» — не раздел, а выборка (Р-15.10): решение о релизе остаётся
+        // в «Работе», а здесь видна их хронология. Появляется, только когда
+        // решения есть: пустая строка обещала бы содержимое, которого нет.
+        if (decisions > 0) {
+            item {
+                val name = stringResource(R.string.topics_decisions)
+                TopicRow(
+                    name = name,
+                    notes = decisions,
+                    liveItems = 0,
+                    countsLive = false,
+                    onClick = { onOpen(AppViewModel.DECISIONS, name) },
+                )
+                HorizontalDivider(thickness = 1.dp, color = Prinyal.colors.hairline)
+            }
+        }
+
         items(topics, key = { it.id }) { topic ->
             TopicRow(
                 name = topic.name,
@@ -88,6 +106,10 @@ fun TopicsScreen(vm: AppViewModel, onOpen: (String?, String) -> Unit) {
                     name = stringResource(R.string.topics_loose),
                     notes = loose,
                     liveItems = 0,
+                    // Живые пункты здесь не считаются, поэтому и не заявляются:
+                    // «всё закрыто» на этой строке было неправдой — заметка без
+                    // раздела прекрасно может ждать своего часа.
+                    countsLive = false,
                     muted = true,
                     onClick = { onOpen(null, "") },
                 )
@@ -101,6 +123,7 @@ private fun TopicRow(
     name: String,
     notes: Int,
     liveItems: Int,
+    countsLive: Boolean = true,
     muted: Boolean = false,
     onClick: () -> Unit,
 ) {
@@ -123,7 +146,9 @@ private fun TopicRow(
             // про возвраты, второго термина заводить незачем.
             // Ноль живых — это «всё закрыто», а не отсутствие данных: раньше
             // сегмент просто пропадал, и строка выглядела недосчитанной.
-            text = if (liveItems > 0) {
+            text = if (!countsLive) {
+                notesText
+            } else if (liveItems > 0) {
                 "$notesText · ${pluralStringResource(R.plurals.topics_live, liveItems, liveItems)}"
             } else {
                 "$notesText · ${stringResource(R.string.topics_all_closed)}"

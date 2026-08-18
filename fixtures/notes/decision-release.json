@@ -9,6 +9,20 @@
     "entities_any": [
       "Дима"
     ],
-    "split": false
+    "split": false,
+    "note_kind": [
+      "decision"
+    ],
+    "types_any": [
+      "decision"
+    ],
+    "types_none": [
+      "do"
+    ],
+    "who_any": [
+      "Дима"
+    ],
+    "due_date": "2026-10-01",
+    "no_returns": true
   }
 }

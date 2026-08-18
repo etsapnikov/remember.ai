@@ -65,7 +65,7 @@ class OnDeviceParsingTest {
 
     // --- инварианты валидации ---
 
-    private fun validateOne(json: String) = ItemValidator
+    private fun validateOne(json: String, transcript: String = this.transcript) = ItemValidator
         .validate(listOf(JSONObject(json)), transcript, now, zone)
 
     @Test
@@ -93,6 +93,19 @@ class OnDeviceParsingTest {
                 "due_kind":"window","window":"evening","confidence":"high"}"""
         )
         assertNull(result.items[0].who)
+    }
+
+    @Test
+    fun `короткое имя в косвенном падеже не теряется`() {
+        // «Дима» в «созвонились с димой» — основа «дим», и её видно. Прежняя
+        // проверка искала «дима» целиком и адресата теряла (Р-15.10).
+        val result = validateOne(
+            """{"type":"decision","text":"перенести релиз на октябрь","who":"Дима",
+                "due_kind":"none","confidence":"high"}""",
+            transcript = "созвонились с димой решили переносить релиз на октябрь",
+        )
+        assertEquals("Дима", result.items[0].who)
+        assertEquals(Confidence.HIGH, result.items[0].confidence)
     }
 
     @Test
@@ -257,6 +270,6 @@ class OnDeviceParsingTest {
     @Test
     fun `промпт на устройстве той же версии, что на сервере`() {
         // Разные версии означали бы, что два пути разбора дают разные пункты.
-        assertEquals("5", Prompt.VERSION)
+        assertEquals("6", Prompt.VERSION)
     }
 }

@@ -1,6 +1,7 @@
 package ai.prinim.prinyal
 
 import ai.prinim.prinyal.data.DueKind
+import ai.prinim.prinyal.domain.ReturnPolicy
 import ai.prinim.prinyal.llm.DeepSeekClient
 import ai.prinim.prinyal.llm.Prompt
 import ai.prinim.prinyal.net.IngestOutcome
@@ -137,6 +138,55 @@ class CoreLoopFixturesTest {
             }
             if (expect.optBoolean("body_md")) {
                 assertTrue("$id: «Собрано» не собрано", !result.bodyMd.isNullOrBlank())
+            }
+        }
+    }
+
+    @Test
+    fun `типы пунктов там, где они важны`() {
+        // Решение — это один пункт-решение, а не решение плюс задача «сделать
+        // то, что решили» (Р-15.10). Модель охотно плодит второе, и поймать это
+        // можно только запретом на тип.
+        fixtures().forEach { (fixture, reply) ->
+            val id = fixture.getString("id")
+            val expect = fixture.getJSONObject("expect")
+            val result = (parse(fixture, reply) as IngestOutcome.Ok).result
+            val types = (result.items + result.second?.items.orEmpty()).map { it.type.wire }
+
+            expect.optJSONArray("types_any")?.strings()?.let { wanted ->
+                assertTrue(
+                    "$id: типы $types, ждали хоть один из $wanted",
+                    types.any { it in wanted },
+                )
+            }
+            expect.optJSONArray("types_none")?.strings()?.forEach { banned ->
+                assertTrue("$id: появился запрещённый тип «$banned» ($types)", banned !in types)
+            }
+            expect.optJSONArray("who_any")?.strings()?.let { wanted ->
+                val who = (result.items + result.second?.items.orEmpty())
+                    .mapNotNull { it.who?.lowercase() }
+                assertTrue(
+                    "$id: «с кем» $who, ждали кого-то из $wanted",
+                    wanted.any { name -> who.any { it.startsWith(name.lowercase().take(3)) } },
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `запись без возвратов их и не порождает`() {
+        // Решение уже принято, вопрос ждёт ответа — ни то, ни другое не должно
+        // прийти уведомлением (Р-15.10). Спрашиваем то самое правило, по
+        // которому работает планировщик, а не его пересказ.
+        fixtures().forEach { (fixture, reply) ->
+            val id = fixture.getString("id")
+            if (!fixture.getJSONObject("expect").optBoolean("no_returns")) return@forEach
+            val result = (parse(fixture, reply) as IngestOutcome.Ok).result
+            (result.items + result.second?.items.orEmpty()).forEach { item ->
+                assertTrue(
+                    "$id: «${item.text}» (${item.type.wire}) получит возврат",
+                    !ReturnPolicy.schedules(item.type, item.dueKind),
+                )
             }
         }
     }

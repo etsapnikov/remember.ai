@@ -43,6 +43,7 @@ fun TypeGlyph(
             ItemType.DATE -> drawDate(color, stroke)
             ItemType.THOUGHT -> drawThought(color, stroke)
             ItemType.FACT -> drawFact(color, stroke)
+            ItemType.DECISION -> drawDecision(color, stroke)
         }
     }
 }
@@ -120,6 +121,21 @@ private fun DrawScope.drawFact(color: Color, stroke: Float) {
     drawLine(color, Offset(w * 0.18f, top), Offset(w * 0.18f, bottom), stroke, StrokeCap.Square)
     drawLine(color, Offset(w * 0.82f, top), Offset(w * 0.82f, bottom), stroke, StrokeCap.Square)
     drawCircle(color, radius = size.minDimension * 0.11f, center = center)
+}
+
+/**
+ * решение — развилка, у которой одна ветвь выбрана: две линии расходятся,
+ * продолжена одна. Не галочка: галочка означала бы «сделано», а решение —
+ * это выбор, а не выполнение.
+ */
+private fun DrawScope.drawDecision(color: Color, stroke: Float) {
+    val w = size.width
+    val h = size.height
+    val fork = Offset(w * 0.5f, h * 0.5f)
+    drawLine(color, Offset(w * 0.5f, h * 0.84f), fork, stroke, StrokeCap.Square)
+    // Отброшенная ветвь короче и обрывается — путь, по которому не пошли.
+    drawLine(color, fork, Offset(w * 0.26f, h * 0.32f), stroke, StrokeCap.Square)
+    drawLine(color, fork, Offset(w * 0.8f, h * 0.16f), stroke, StrokeCap.Square)
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFFFBF6F0)

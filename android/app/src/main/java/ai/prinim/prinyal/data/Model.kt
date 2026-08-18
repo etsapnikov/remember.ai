@@ -12,7 +12,14 @@ import androidx.room.PrimaryKey
  */
 
 enum class ItemType(val wire: String) {
-    BUY("buy"), DO("do"), TELL("tell"), DATE("date"), THOUGHT("thought"), FACT("fact");
+    BUY("buy"), DO("do"), TELL("tell"), DATE("date"), THOUGHT("thought"), FACT("fact"),
+
+    /**
+     * Принятое решение (Р-15.10). Возвратов не порождает: решение уже принято,
+     * напоминать о нём нечего. Если из решения следует действие — это отдельный
+     * пункт, и только когда действие прозвучало.
+     */
+    DECISION("decision");
 
     companion object {
         /** Неизвестный тип не роняет разбор — он становится мыслью (инвариант §3). */
@@ -97,7 +104,10 @@ enum class TopicSource(val wire: String) {
 
 /** Что за запись — для формы карточки и будущих жанров (scope 1.0.1 Р-14.4). */
 enum class NoteKind(val wire: String) {
-    TASKS("tasks"), IDEA("idea"), QUESTION("question"), FACTS("facts"), MIXED("mixed");
+    TASKS("tasks"), IDEA("idea"), QUESTION("question"), FACTS("facts"), MIXED("mixed"),
+
+    /** Запись о том, что решили или договорились (Р-15.10). */
+    DECISION("decision");
 
     companion object {
         fun of(wire: String?): NoteKind? = entries.firstOrNull { it.wire == wire }

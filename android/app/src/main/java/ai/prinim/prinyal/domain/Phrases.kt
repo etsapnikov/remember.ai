@@ -121,6 +121,7 @@ object Phrases {
             ItemType.DATE -> R.string.type_date
             ItemType.THOUGHT -> R.string.type_thought
             ItemType.FACT -> R.string.type_fact
+            ItemType.DECISION -> R.string.type_decision
         }
     )
 
