@@ -278,7 +278,7 @@ private fun Chip(selected: Boolean, onClick: () -> Unit, content: @Composable ()
 
 /** День выбранной даты показываем коротко: «10 сен». */
 private val DAY: java.time.format.DateTimeFormatter =
-    java.time.format.DateTimeFormatter.ofPattern("d MMM", java.util.Locale("ru"))
+    java.time.format.DateTimeFormatter.ofPattern("d MMM", java.util.Locale("ru")) // см. Dates
 
 private const val DAY_MS = 24L * 60 * 60 * 1000
 /** Девять утра выбранного дня — то же время, что у даты из речи. */

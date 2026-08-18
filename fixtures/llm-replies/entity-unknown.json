@@ -1,51 +1,51 @@
 {
  "id": "entity-unknown",
- "prompt_version": "7",
- "recorded_at": "2026-08-18T22:37:56",
- "took_s": 15.9,
+ "prompt_version": "8",
+ "recorded_at": "2026-08-19T00:24:40",
+ "took_s": 13.9,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2461,
-  "completion_tokens": 1881,
-  "total_tokens": 4342,
+  "prompt_tokens": 2555,
+  "completion_tokens": 1494,
+  "total_tokens": 4049,
   "prompt_tokens_details": {
-   "cached_tokens": 2304
+   "cached_tokens": 2432
   },
   "completion_tokens_details": {
-   "reasoning_tokens": 1678
+   "reasoning_tokens": 1311
   },
-  "prompt_cache_hit_tokens": 2304,
-  "prompt_cache_miss_tokens": 157
+  "prompt_cache_hit_tokens": 2432,
+  "prompt_cache_miss_tokens": 123
  },
  "response": {
-  "id": "e2ce460e-507f-4c10-828a-4f447953f37a",
+  "id": "fc4458f8-c95e-46f1-a948-294ef9478024",
   "object": "chat.completion",
-  "created": 1787081862,
+  "created": 1787088268,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Покупки\",\n  \"entities\": [\"Юля\"],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"tell\",\n      \"text\": \"узнать у Юли размер\",\n      \"who\": \"Юля\",\n      \"due_kind\": \"window\",\n      \"window\": \"evening\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"узнать у юли размер\"\n    },\n    {\n      \"type\": \"buy\",\n      \"text\": \"заказать бельё\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"заказать бельё\"\n    }\n  ]\n}",
-     "reasoning_content": "We need to parse the user's utterance: \"узнать у юли размер и заказать бельё\"\n\nWe need to produce JSON according to the rules. The user said: \"узнать у юли размер и заказать бельё\" which translates to \"ask Yulia for the size and order linen/bedding\" (or \"бельё\" could mean underwear or bed linen, but context unclear). \n\nWe have a single note. The task is to break into separate items. The utterance has two actions: \"узнать у юли размер\" (ask Yulia for the size) and \"заказать бельё\" (order linen). These are two separate items? The rule 3.1 says: \"Перечисление однородного — это несколько пунктов, а не один.\" But here it's not exactly homogeneous enumeration; it's two sequential actions. However, \"узнать у юли размер и заказать бельё\" is two tasks: first ask Yulia for size, then order the linen. So we should split into two items? Or maybe one combined task \"ask size and order\" — but they are distinct. The rule says if there are multiple actions, split into items. Let's read: \"Разбери комок на отдельные пункты\" so we should break down into separate items. So items: \n1. type: \"tell\" because \"узнать у юли\" = ask Yulia, so who: \"Юля\" (or \"Юлия\"? The text says \"у юли\" so nominative \"Юля\"). But careful: \"узнать у юли размер\" means to find out from Yulia the size. This is a tell action? Actually \"tell\" type is \"сказать / спросить / написать кому-то\" so asking someone is also tell? The type definitions: `tell` (сказать кому-то) — but includes \"спросить\"? Rule 5 says: \"«Сказать / спросить / написать кому-то» → type: \"tell\" и who — имя адресата.\" So yes, \"узнать у юли\" is like \"ask Yulia\", so type \"tell\", who \"Юля\". The content: \"узнать размер\" — but the text should be short and in original words. Maybe \"узнать у Юли размер\" or \"спросить у Юли размер\". We'll use \"узнать у Юли размер\".\n\n2. type \"buy\" because \"заказать бельё\" means order linen/bedding. That is a purchase. So type \"buy\", text \"заказать бельё\".\n\nNow due_kind. No time mentioned. Apply rule 2: decide window. \"заказать\" could be day? Actually \"заказать\" is similar to buy, so `day` probably. \"узнать\" — maybe also day? But rule says пункты из одной записи чаще всего попадают в разные окна — не сваливай в одно. So we need to choose different windows if possible. For \"узнать у юли\" — asking someone, maybe \"evening\" because you see them at home? But rule says \"сказать, спросить, обсудить с домашними → `evening`\". So \"узнать у Юли\" is asking Yulia. If Yulia is a household member? Unknown. But the rule specifically mentions \"с домашними\". However, we don't know if Yulia is home. But the general guidance says \"сказать, спросить, обсудить с домашними → `evening`\". So likely evening. For \"заказать бельё\" — buy/order, `day`. So we have two items with different windows.\n\nAlternatively, we could treat it as one task? But the instruction says enumerate homogeneous things. \"узнать размер и заказать\" is two actions. So two items.\n\nNow note_kind: tasks. topic: what is the record about? It's about ordering linen, so maybe \"Дом\" or \"Покупки\"? The topic should be a short name with capital letter. Existing sections none. We can create \"Покупки\" or \"Дом\". The rule says: \"Определи, про что запись, — поле topic, короткое имя раздела в 1–2 слова с заглавной буквы («Дом», «Работа», «Дача», «Здоровье»).\" Since it's about ordering linen, \"Дом\" or \"Покупки\" could fit. But \"бельё\" could be bed linen for home, so \"Дом\" is plausible. Or \"Покупки\" because it's a purchase. The instruction also says \"Новый заводи, только когда ни один не подходит.\" Since there are no existing sections, we can create a suitable one. \"Покупки\" is straightforward. But \"Дом\" is also common. Which is more appropriate? The record is about asking Yulia for size and ordering linen. It's a household purchase, so \"Дом\" works. But \"Покупки\" might be more precise. However, the rule says \"короткое имя раздела в 1–2 слова с заглавной буквы\". Both are fine. I'll go with \"Покупки\" because the main action is ordering. But \"узнать размер\" is not a purchase per se. However, the overall record is about buying linen. So \"Покупки\" is fine.\n\nentities: \"Юля\" appears. So entities: [\"Юля\"] (in nominative). The raw text says \"юли\" so nominative \"Юля\".\n\nbody_md: null because note_kind is tasks.\n\nsecond: null because it's a single topic.\n\nlinks: [] because no previous.\n\nitems: two items.\n\nNow confidence: high for both.\n\nNow exact_local: null.\n\nNow the output must be valid JSON without markdown.\n\nLet's construct.\n\nCheck the schema: The example given in the prompt has a weird repeated part, but the actual schema is:\n\n{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Здоровье\",\n  \"entities\": [\"Соня\"],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"позвонить в поликлинику насчёт Сони\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"соню к лору записать\"\n    }\n  ]\n}\n\nSo for our items, we need raw_span. raw_span is the exact fragment from the source. For the first item, raw_span could be \"узнать у юли размер\" and for the second \"заказать бельё\". But note that the source is \"узнать у юли размер и заказать бельё\". We split at \"и\". So raw spans are those fragments.\n\nText fields should be in original words but normalized: capital? The example uses lowercase. We can use \"узнать у Юли размер\" and \"заказать бельё\". But the rule says \"Восстанови нормальный вид слов\" but also \"кратко и в исходных словах пользователя\". So we can use \"узнать у Юли размер\" (with capital letter on name) and \"заказать бельё\".\n\nNow due_kind and window: For first item: type tell, who \"Юля\", due_kind \"window\", window \"evening\". For second: type buy, due_kind \"window\", window \"day\".\n\nSecond: null.\n\nLet's output."
+     "content": "{\"note_kind\": \"tasks\", \"topic\": \"Покупки\", \"entities\": [\"Юля\"], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"tell\", \"text\": \"узнать размер у Юли\", \"who\": \"Юля\", \"due_kind\": \"window\", \"window\": \"evening\", \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"узнать у юли размер\"}, {\"type\": \"buy\", \"text\": \"заказать бельё\", \"who\": null, \"due_kind\": \"window\", \"window\": \"day\", \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"заказать бельё\"}], \"note_exact_local\": null, \"links\": []}",
+     "reasoning_content": "We need answer in Russian, JSON only. Need parse. Need follow schema. We have transcript: \"узнать у юли размер и заказать бельё\" Means ask Yulia size and order linen/underwear? Need split? \"узнать у юли размер\" and \"заказать бельё\" — two related actions? Need decide items. Also possible \"узнать размер и заказать бельё\" is a task chain. Should split into two items? Rule 3.1 перечисление однородного — several points. Here \"узнать у юли размер и заказать бельё\": two actions, likely two items. But note? \"узнать у юли размер и заказать бельё\" — maybe one task with dependency? But rule says homogeneous enumeration separated by \"и\" often multiple items. Need decide. It's tasks. Entities: Юля. Topic? maybe \"Покупки\" or \"Дом\"? Need create. \"бельё\" could be bedding or underwear? Context: узнать у Юли размер и заказать бельё — perhaps custom bedding, размер? If \"размер\" likely for clothing/underwear? Need topic maybe \"Покупки\". Since no sections, create \"Покупки\". Items:\n1 type \"tell\" or \"do\"? \"узнать у юли размер\" — a communication task, ask Yulia. Rule 5: \"Сказать / спросить / написать кому-то\" → type \"tell\" and who — имя адресата. So type tell, text \"узнать размер у Юли\", who \"Юля\"; due window? \"узнать\" maybe evening? Because ask family? But \"узнать у юли размер\" — likely message/call, could be day? Need choose based on guidance: \"сказать, спросить, обсудить с домашними → evening\"; but \"позвонить, дозвониться\" morning. Here \"узнать у Юли\" — likely not organization, could be day? Need based on common sense. \"узнать у юли размер\" — need contact Yulia, perhaps daytime? No explicit window. We can assign \"day\" or \"evening\". Since not home? We don't know Yulia. Better perhaps \"day\" or \"none\"? We need choose reasonable window. Guidance says \"сказать, спросить, обсудить с домашними → evening\" because see at home. But \"узнать у юли\" could be a call; could be day. Hmm.\n\n2 \"заказать бельё\" — do/buy? Ordering is a task: type \"do\" or \"buy\"? \"заказать\" — buy online maybe \"do\". In typology buy = купить, do = сделать. Ordering product closer to buy? But \"заказать\" is a purchase action. Could be type \"buy\" with text \"заказать бельё\". Need choose. Usually \"заказать\" = make purchase, type buy. But \"do\" also ok. I think \"buy\" for \"заказать бельё\" because it's acquiring goods. Need due window? \"купить, забрать, заехать по дороге\" → day. So window day.\n\nNeed maybe one item combined? \"узнать у юли размер и заказать бельё\" could be considered one task: order linen after knowing size. But rule 3.1 says перечисление однородного — several points; \"узнать\" and \"заказать\" are two actions. So two items. Need raw_span for each: first \"узнать у юли размер\", second \"заказать бельё\". Need confidence. high.\n\nNeed note_kind: tasks. topic: perhaps \"Покупки\" (since ordering). entities [\"Юля\"]. body_md null. second null. links empty. note_exact_local null. Items with due_kind window and windows.\n\nNeed consider exact time? No.\n\nLet's craft JSON.\n\nNeed be careful with text: \"узнать у Юли размер\" (capitalize). \"заказать бельё\". Who for first \"Юля\"; second null.\n\nNeed due_kind maybe \"window\", window maybe \"day\" for both? But rule says from one recording often different windows. Which window for asking Yulia? Could be \"evening\" since \"спросить, обсудить с домашними → evening\"; but Yulia may not be household. Could be day. Hmm.\n\nThe instruction says \"Пункты из одной записи чаще всего попадают в разные окна — не сваливай их в одно.\" This implies we should differentiate if plausible. \"узнать у юли размер\" is a communication task, maybe \"evening\" (when Юля available at home/after work?). \"заказать бельё\" is purchase, \"day\". That seems plausible. Use evening for tell, day for buy. But if \"узнать\" by phone could be morning? Hmm.\n\nLet's see guidance:\n- записаться, дозвониться, попасть в организацию → morning\n- купить, забрать, заехать по дороге → day\n- сказать, спросить, обсудить с домашними → evening\nSo \"узнать\" = спросить → evening. So use evening. Good. \"заказать\" — is it купить? Day. Good.\n\nNeed if \"заказать бельё\" maybe online, day.\n\nLet's produce final JSON exactly no markdown. Ensure schema includes all fields.\n\nNeed perhaps \"topic\": \"Покупки\". Is \"бельё\" \"linen/bedding\" maybe \"Дом\" or \"Покупки\". Since no existing, create \"Покупки\". OK.\n\nNeed \"entities\": [\"Юля\"] maybe \"Юли\" from transcript \"юли\" → nominative \"Юля\". Good.\n\nPotential issue: \"размер\" alone ambiguous; but OK.\n\nNeed maybe include \"links\": [].\n\nFinal."
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2461,
-   "completion_tokens": 1881,
-   "total_tokens": 4342,
+   "prompt_tokens": 2555,
+   "completion_tokens": 1494,
+   "total_tokens": 4049,
    "prompt_tokens_details": {
-    "cached_tokens": 2304
+    "cached_tokens": 2432
    },
    "completion_tokens_details": {
-    "reasoning_tokens": 1678
+    "reasoning_tokens": 1311
    },
-   "prompt_cache_hit_tokens": 2304,
-   "prompt_cache_miss_tokens": 157
+   "prompt_cache_hit_tokens": 2432,
+   "prompt_cache_miss_tokens": 123
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

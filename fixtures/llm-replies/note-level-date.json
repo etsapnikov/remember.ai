@@ -1,0 +1,52 @@
+{
+ "id": "note-level-date",
+ "prompt_version": "8",
+ "recorded_at": "2026-08-19T00:28:16",
+ "took_s": 11.0,
+ "finish_reason": "stop",
+ "usage": {
+  "prompt_tokens": 2568,
+  "completion_tokens": 1189,
+  "total_tokens": 3757,
+  "prompt_tokens_details": {
+   "cached_tokens": 2432
+  },
+  "completion_tokens_details": {
+   "reasoning_tokens": 952
+  },
+  "prompt_cache_hit_tokens": 2432,
+  "prompt_cache_miss_tokens": 136
+ },
+ "response": {
+  "id": "31a0f957-f592-4f47-9e90-d0cfef390dba",
+  "object": "chat.completion",
+  "created": 1787088487,
+  "model": "deepseek-v4-flash",
+  "choices": [
+   {
+    "index": 0,
+    "message": {
+     "role": "assistant",
+     "content": "{\"note_kind\": \"tasks\", \"topic\": \"Дом\", \"entities\": [], \"body_md\": null, \"note_exact_local\": \"2026-08-24T09:00\", \"second\": null, \"items\": [{\"type\": \"do\", \"text\": \"забрать посылку\", \"who\": null, \"due_kind\": \"none\", \"window\": null, \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"забрать посылку\"}, {\"type\": \"buy\", \"text\": \"купить корм коту\", \"who\": null, \"due_kind\": \"none\", \"window\": null, \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"купить корм коту\"}, {\"type\": \"do\", \"text\": \"оплатить интернет\", \"who\": null, \"due_kind\": \"none\", \"window\": null, \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"оплатить интернет\"}]}",
+     "reasoning_content": "We need answer JSON only. Need parse transcript: \"надо забрать посылку купить корм коту и оплатить интернет верни мне это всё в понедельник\"\n\nNeed determine note_kind tasks, topic maybe \"Дом\" or \"Покупки\" etc. No sections yet, create suitable. Could be \"Дом\" or \"Дела\". Items: забрать посылку, купить корм коту, оплатить интернет. Note_exact_local? \"верни мне это всё в понедельник\" means whole note due Monday. Current 2026-08-18 Tuesday. Monday next is 2026-08-24? Since current Tuesday 18 Aug, upcoming Monday is 24 Aug. Need if date named \"в понедельник\" — due_kind exact for whole note? Rule 16: \"верни мне это всё в понедельник\" — срок относится ко всей записи, заполни note_exact_local, пунктам срок не выдумывай. But user says \"верни мне это всё в понедельник\", so all tasks due Monday. Should we set note_exact_local = \"2026-08-24T09:00\" (time not named ->09:00) and items due_kind? Rule 16 says don't invent item deadlines, they are common. So items due_kind \"none\"? But schema expects due_kind values. For items, maybe \"due_kind\": \"none\" and exact_local null, window null. However the overall note has note_exact_local. But possible they want item due_kind can be exact? Let's read instructions: \"Срок может относиться ко всей записи... Тогда заполни note_exact_local в том же формате, а пунктам срок не выдумывай — он общий.\" So item due_kind none. But perhaps if all items due Monday, note-level exact. OK.\n\nNeed item types: забрать посылку -> do; купить корм коту -> buy; оплатить интернет -> do (pay). who null. confidence high. raw_span exact fragments: \"забрать посылку\", \"купить корм коту\", \"оплатить интернет\". text short.\n\nEntities? No people. Cat? \"коту\" is animal not entity? Rule 10 people. No.\n\nnote_kind tasks, topic perhaps \"Дом\". Need decide. Since no existing sections, create. \"Дом\" fits errands. Could use \"Покупки\" or \"Дом\". The note includes errands and payment, maybe \"Дом\" best. Since only one section, no conflict.\n\nNeed note_exact_local based on current date. Current: 2026-08-18 21:00 Tuesday. \"в понедельник\" — nearest future Monday. Need compute. 2026-08-18 is Tuesday? Let's verify. 2026 Aug 18 — likely Tuesday because prompt says Tuesday. Next Monday is Aug 24. Set \"2026-08-24T09:00\". Due_kind exact, but this is note-level field outside items? In schema note_exact_local is outside. Note has due_kind? No. Only items have due_kind. The note_exact_local field. We can set.\n\nBut item due_kind should maybe \"exact\"? Let's inspect example: \"соню к лору записать\" with due_kind window day. Hmm.\n\nCould also set each item due_kind \"exact\" with same exact_local? But rule 16 explicitly says not to invent item deadlines. I'd set due_kind \"none\". However schema: item \"due_kind\": \"window\" | \"exact\" | \"none\". \"none\" okay.\n\nNeed maybe topics: \"Почта\" or \"Дом\"? The phrase \"разделов пока нет — заведи подходящий.\" It says choose topic. \"Дом\" is suitable. Let's answer.\n\nNeed ensure JSON only. Include second null, body_md null, entities [].\n\nPotential issue: \"верни мне это всё в понедельник\" is imperative to assistant? The user says \"верни мне это всё в понедельник\" — means remind me all this on Monday? In voice memo app, likely \"return/remind me all this on Monday.\" So note_exact_local. Good.\n\nNeed perhaps include \"note_kind\": \"tasks\".\n\nLet's produce."
+    },
+    "logprobs": null,
+    "finish_reason": "stop"
+   }
+  ],
+  "usage": {
+   "prompt_tokens": 2568,
+   "completion_tokens": 1189,
+   "total_tokens": 3757,
+   "prompt_tokens_details": {
+    "cached_tokens": 2432
+   },
+   "completion_tokens_details": {
+    "reasoning_tokens": 952
+   },
+   "prompt_cache_hit_tokens": 2432,
+   "prompt_cache_miss_tokens": 136
+  },
+  "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
+ }
+}

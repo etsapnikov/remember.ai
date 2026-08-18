@@ -16,8 +16,11 @@ import android.os.VibratorManager
 object Haptics {
 
     /** Квитанция «Принял.»: двойной короткий — 18 мс, пауза 70 мс, 34 мс. */
-    private val RECEIPT_PATTERN = longArrayOf(0, 18, 70, 34)
-    private val RECEIPT_AMPLITUDES = intArrayOf(0, 255, 0, 200)
+    // Один тик, а не два: токен haptics.receipt всегда описывал одиночный, а в
+    // коде жил двойной (аудит Д-7). Квитанция — знак спокойной завершённости,
+    // и двойной тик читается как «что-то ещё случилось».
+    private val RECEIPT_PATTERN = longArrayOf(0, 18)
+    private val RECEIPT_AMPLITUDES = intArrayOf(0, 255)
 
     /** Отмена записи — один 40 мс: заметно тяжелее квитанции, их не спутать. */
     private const val CANCEL_MS = 40L

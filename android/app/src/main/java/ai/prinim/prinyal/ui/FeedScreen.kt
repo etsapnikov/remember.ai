@@ -1,6 +1,7 @@
 package ai.prinim.prinyal.ui
 
 import ai.prinim.prinyal.R
+import ai.prinim.prinyal.domain.Dates
 import ai.prinim.prinyal.data.ItemEntity
 import ai.prinim.prinyal.data.ItemState
 import ai.prinim.prinyal.data.ItemType
@@ -157,6 +158,11 @@ private fun JunkSweepRow(count: Int, onSweep: () -> Unit) {
     ) {
         MetaText(
             text = pluralStringResource(R.plurals.feed_junk_sweep, count, count),
+            color = Prinyal.colors.inkMuted,
+        )
+        MetaText(text = " · ", color = Prinyal.colors.inkFaint)
+        MetaText(
+            text = stringResource(R.string.feed_junk_sweep_action),
             color = Prinyal.colors.accentSelf,
         )
     }
@@ -334,11 +340,7 @@ private fun stateLabel(state: ItemState): String = stringResource(
     }
 )
 
-private val DAY_TIME: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("d MMM · HH:mm", Locale("ru"))
-
-private fun formatTime(millis: Long): String =
-    LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneId.systemDefault()).format(DAY_TIME)
+private fun formatTime(millis: Long): String = Dates.dayTime(millis)
 
 private fun formatDuration(ms: Long): String? =
     if (ms <= 0) null else "%d:%02d".format(ms / 60_000, (ms / 1000) % 60)

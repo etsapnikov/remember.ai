@@ -1,6 +1,7 @@
 package ai.prinim.prinyal.ui
 
 import ai.prinim.prinyal.R
+import ai.prinim.prinyal.domain.Dates
 import ai.prinim.prinyal.data.Confidence
 import ai.prinim.prinyal.data.ItemEntity
 import ai.prinim.prinyal.domain.LinkCandidates
@@ -753,13 +754,7 @@ private fun AudioRow(file: File, durationMs: Long) {
 }
 
 /** Когда записано: дата и время служебным моно в шапке карточки. */
-private val NOTE_STAMP: java.time.format.DateTimeFormatter =
-    java.time.format.DateTimeFormatter.ofPattern("d MMM · HH:mm", java.util.Locale("ru"))
-
-private fun noteStamp(millis: Long): String =
-    java.time.Instant.ofEpochMilli(millis)
-        .atZone(java.time.ZoneId.systemDefault())
-        .format(NOTE_STAMP)
+private fun noteStamp(millis: Long): String = Dates.dayTime(millis)
 
 
 /**

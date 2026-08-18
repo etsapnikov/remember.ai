@@ -1,51 +1,51 @@
 {
  "id": "decision-release",
- "prompt_version": "7",
- "recorded_at": "2026-08-18T22:37:40",
- "took_s": 7.4,
+ "prompt_version": "8",
+ "recorded_at": "2026-08-19T00:24:26",
+ "took_s": 12.7,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2465,
-  "completion_tokens": 645,
-  "total_tokens": 3110,
+  "prompt_tokens": 2559,
+  "completion_tokens": 1276,
+  "total_tokens": 3835,
   "prompt_tokens_details": {
-   "cached_tokens": 512
+   "cached_tokens": 2432
   },
   "completion_tokens_details": {
-   "reasoning_tokens": 523
+   "reasoning_tokens": 1175
   },
-  "prompt_cache_hit_tokens": 512,
-  "prompt_cache_miss_tokens": 1953
+  "prompt_cache_hit_tokens": 2432,
+  "prompt_cache_miss_tokens": 127
  },
  "response": {
-  "id": "88986e30-6236-4e28-8277-54fdcb2f460f",
+  "id": "95f47ad3-7b25-4999-b84d-2ebc3319d3e9",
   "object": "chat.completion",
-  "created": 1787081854,
+  "created": 1787088255,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\"note_kind\": \"decision\", \"topic\": \"Работа\", \"entities\": [\"Дима\"], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"decision\", \"text\": \"переносим релиз на октябрь\", \"who\": \"Дима\", \"due_kind\": \"exact\", \"window\": null, \"exact_local\": \"2026-10-01T09:00\", \"confidence\": \"high\", \"raw_span\": \"решили переносить релиз на октябрь\"}]}",
-     "reasoning_content": "We need answer only JSON. Need analyze. Need follow rules. Need think.\n\nWe have current date 2026-08-17 15:00 Monday. Transcript: \"созвонились с димой решили переносить релиз на октябрь\". Need parse.\n\nNeed determine note_kind likely decision? \"созвонились с димой решили переносить релиз на октябрь\" = We got in touch with Dima, decided to move release to October. This is decision. Rule 14: decision made — one item type decision, who Dima, due_kind exact with exact_local if date named. \"на октябрь\" named month/year? \"октябрь\" likely next October? Current Aug 2026, October 2026 is near future. Exact date for month? Need produce exact_local maybe 2026-10-01T09:00? Rule 12: Названная дата — exact. «переносим релиз на октябрь» → первое октября. So exact_local 2026-10-01T09:00. due_kind exact, window null.\n\nNeed items: decision text \"переносим релиз на октябрь\", who \"Дима\" maybe normalized from \"димой\" to \"Дима\". entities [\"Дима\"]. topic? Work? Release/релиз likely \"Работа\". note_kind \"decision\". body_md null. second null.\n\nNeed maybe note_kind decision. confidence high. raw_span \"решили переносить релиз на октябрь\" or entire? Need raw_span дословный фрагмент исходника, из которого пункт взят. Decision fragment: \"решили переносить релиз на октябрь\". Could include \"созвонились с димой\"? But decision = \"переносить релиз на октябрь\". If action \"созвонились\" is completed? \"созвонились с димой\" is fact/previous action, decision. The rule says one item decision. So raw_span \"решили переносить релиз на октябрь\".\n\nNeed maybe type \"decision\". Who should be \"Дима\" (nominated). Entities list.\n\nNeed perhaps exact_local: 2026-10-01T09:00.\n\nNote: if due_kind exact, window null. exact_local \"2026-10-01T09:00\".\n\nNeed output JSON exactly. No markdown.\n\nLet's craft."
+     "content": "{\"note_kind\":\"decision\",\"topic\":\"Работа\",\"entities\":[\"Дима\"],\"body_md\":null,\"second\":null,\"items\":[{\"type\":\"decision\",\"text\":\"переносить релиз на октябрь\",\"who\":\"Дима\",\"due_kind\":\"exact\",\"window\":null,\"exact_local\":\"2026-10-01T09:00\",\"confidence\":\"high\",\"raw_span\":\"решили переносить релиз на октябрь\"}]}",
+     "reasoning_content": "We need answer JSON only. Need parse. Need understand rules. User: \"созвонились с димой решили переносить релиз на октябрь\". Current 2026-08-17 Monday. Need decide note_kind etc. It is decision? They agreed to postpone release to October. Rule 14: прозвучало решение — один пункт type decision, who Димой? \"с Димы\" maybe \"с димой\" = with Dima. due_kind exact? \"на октябрь\" named date? It says if decision names date: «переносим релиз на октябрь» → первое октября. So exact_local 2026-10-01T09:00. But current date Aug 17, nearest October 2026. window null. topic maybe \"Работа\". entities [\"Дима\"]? Need name as sounded, nominative? \"димой\" instrumental, nominative Дима. raw_span should be дословный фрагмент probably \"переносить релиз на октябрь\" or whole? Need item raw_span. text formula: \"перенести релиз на октябрь\" maybe \"переносим релиз на октябрь\". Need include \"созвонились с димой решили...\"? The decision item raw_span likely \"решили переносить релиз на октябрь\" maybe.\n\nNeed note_kind decision. body_md null except idea/mixed. second null. links empty maybe. items array one decision. confidence high? \"high\". who \"Дима\"? Decision type who — с кем договорились. Yes.\n\nNeed ensure topic. \"Работа\". Existing none, create. Good.\n\nNeed maybe note_kind could be mixed? No.\n\nNeed output only JSON. Let's craft: {\"note_kind\":\"decision\",\"topic\":\"Работа\",\"entities\":[\"Дима\"],\"body_md\":null,\"second\":null,\"items\":[{\"type\":\"decision\",\"text\":\"перенести релиз на октябрь\",\"who\":\"Дима\",\"due_kind\":\"exact\",\"window\":null,\"exact_local\":\"2026-10-01T09:00\",\"confidence\":\"high\",\"raw_span\":\"решили переносить релиз на октябрь\"}]} Need exact format: exact_local \"2026-10-01T09:00\". Window null. Good. But \"перенести\" vs \"переносить\"? Need formulate short in original words: \"переносим релиз на октябрь\" maybe. \"решили переносить\" Decision text: \"перенести релиз на октябрь\" is paraphrase, maybe allowed \"в исходных словах пользователя\". Original \"переносить релиз на октябрь\". Since \"решили переносить\" = decision. Use text \"переносим релиз на октябрь\"? Hmm \"перенести\" is action, but decision formulation. Rule says \"сама формулировка решения словами человека\". The words: \"переносить релиз на октябрь\". So text \"переносим релиз на октябрь\" not exactly. Better \"переносить релиз на октябрь\". But decision as infinitive? Let's use \"переносим релиз на октябрь\" is normal. Actually person said \"решили переносить релиз на октябрь\". Text should be \"переносить релиз на октябрь\". It is 31 chars. Fine.\n\nNeed maybe \"созвонились с димой\" itself is a fact? Decision? The core is decision. Need include who. Good.\n\nNeed \"links\": []? Schema says if no previous, links? Top-level example doesn't include links key, but instructions mention field links. We should include links: [] maybe. The schema example omitted? Actually given Schema response: includes note_kind, topic, entities, body_md, second, items. No links top-level in example? But rule 15 says \"поле links\". Need include? Since previous records not given. Probably omit or include empty? We need comply with schema? It says \"Схема ответа (верни ровно такой json)\" with no links. However instructions include links. The listed schema example doesn't show links. Usually final should include links maybe []. But they explicitly said return exactly such json; maybe not needed. Hmm. Need decide.\n\nLet's inspect instruction: \"15. Если рядом дан список прежних записей, посмотри, не связана ли эта...\" There is no previous list. So perhaps omit links. But if schema should include? It says \"поле `links`, до трёх штук\" and \"пустой `links: []` — обычный\". Could include empty. But example omitted. The \"Схема ответа\" snippet at end: \n{\"note_kind\": \"tasks\", \"topic\": \"Здоровье\", \"entities\": [\"Соня\"], \"body_md\": null, \"second\": null, \"items\": [...]}\nNo links. So don't include. However as an AI, to be safe include? The user says \"верни ровно такой json\" meaning keys per schema. Additional key would violate. So no links.\n\nNeed also \"who\": \"Дима\" (not \"димой\"). `entities`: [\"Дима\"].\n\nNeed exact_local for decision \"на октябрь\" rule 14 says first October at 09:00. Good.\n\nNeed perhaps due_kind \"exact\" because named date month. Yes.\n\nLet's produce JSON. Ensure no markdown."
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2465,
-   "completion_tokens": 645,
-   "total_tokens": 3110,
+   "prompt_tokens": 2559,
+   "completion_tokens": 1276,
+   "total_tokens": 3835,
    "prompt_tokens_details": {
-    "cached_tokens": 512
+    "cached_tokens": 2432
    },
    "completion_tokens_details": {
-    "reasoning_tokens": 523
+    "reasoning_tokens": 1175
    },
-   "prompt_cache_hit_tokens": 512,
-   "prompt_cache_miss_tokens": 1953
+   "prompt_cache_hit_tokens": 2432,
+   "prompt_cache_miss_tokens": 127
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

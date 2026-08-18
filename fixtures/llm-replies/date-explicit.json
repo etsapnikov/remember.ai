@@ -1,51 +1,51 @@
 {
  "id": "date-explicit",
- "prompt_version": "7",
- "recorded_at": "2026-08-18T22:37:20",
- "took_s": 20.4,
+ "prompt_version": "8",
+ "recorded_at": "2026-08-19T00:23:58",
+ "took_s": 8.6,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2462,
-  "completion_tokens": 2621,
-  "total_tokens": 5083,
+  "prompt_tokens": 2556,
+  "completion_tokens": 735,
+  "total_tokens": 3291,
   "prompt_tokens_details": {
    "cached_tokens": 512
   },
   "completion_tokens_details": {
-   "reasoning_tokens": 2482
+   "reasoning_tokens": 611
   },
   "prompt_cache_hit_tokens": 512,
-  "prompt_cache_miss_tokens": 1950
+  "prompt_cache_miss_tokens": 2044
  },
  "response": {
-  "id": "8d4b4e89-392f-4fae-a158-86a0b37653f5",
+  "id": "2e4e4ea4-0407-4d2a-b1bb-9724f7f0de34",
   "object": "chat.completion",
-  "created": 1787081822,
+  "created": 1787088231,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Дети\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"оплатить счёт за садик\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2026-09-10T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"счёт за садик оплатить десятого сентября\"\n    }\n  ]\n}",
-     "reasoning_content": "We need to parse the user's transcription: \"счёт за садик оплатить десятого сентября не забыть\" (transliterated as \"счёт за садик оплатить десятого сентября не забыть\"). Actually the transcription given is in Russian without punctuation: \"счёт за садик оплатить десятого сентября не забыть\". So the task is to parse it.\n\nWe need to output JSON according to the schema. Let's analyze.\n\nThe user is saying: \"счёт за садик оплатить десятого сентября не забыть\" meaning \"pay the kindergarten bill on the tenth of September, don't forget.\" So it's a task: pay the bill. It has a specific date: \"десятого сентября\" (the tenth of September). Since today is 2026-08-17, the next September 10 is in 2026 (since today is August 17, 2026, September 10 has not yet passed in 2026). So the date is 2026-09-10. Time not specified, so per rule 12, set time 09:00. So exact_local: \"2026-09-10T09:00\". due_kind: \"exact\". window: null.\n\nThe text is a single task. Note kind: tasks. Topic: \"Дом\" (home) or \"Ребёнок\"? The schema says \"Разделов пока нет — заведи подходящий.\" We need to create a suitable topic. The phrase \"садик\" means kindergarten (preschool). This is likely related to \"Дети\" (children) or \"Семья\" (family). But the instruction says: \"Определи, про что запись, — поле topic, короткое имя раздела в 1–2 слова с заглавной буквы («Дом», «Работа», «Дача», «Здоровье»). Если подходит раздел из списка существующих — бери ровно его имя, не выдумывай синоним. Новый заводи, только когда ни один не подходит.\" There is no existing list, so we can create a new one. The topic is about kindergarten payment, so \"Садик\" or \"Дети\" or \"Оплата\"? But it's a task, not a topic. Let's think: the note is about paying a bill for kindergarten. The topic could be \"Дом\" (household) or \"Дети\" (children). Since it's a specific payment, \"Дом\" is a common category. But \"Дети\" is more specific. The rule says \"короткое имя раздела в 1–2 слова с заглавной буквы\". So \"Дети\" is fine. Alternatively \"Садик\" might be too specific. I'll choose \"Дети\" because it's about a kindergarten bill. But is that clear? Possibly \"Оплата\" or \"Финансы\"? The examples are \"Дом\", \"Работа\", \"Дача\", \"Здоровье\". So categories are broad life areas. \"Дети\" is a category. I'll use \"Дети\".\n\nAlternatively, maybe \"Садик\" is a specific topic. But the rule says \"короткое имя раздела\" — it could be \"Садик\" (kindergarten). But then if later there is another item about school, it might be \"Школа\". Hmm. I think \"Дети\" is a good general section.\n\nNow, we need to fill items array. There is one item. Type: it's a payment, so \"do\" (make a payment) or \"buy\"? \"купить\" is for buying, but paying a bill is a task -> \"do\". The rule says \"do (сделать)\" covers actions. So type \"do\". Text: \"оплатить счёт за садик\" or \"счёт за садик оплатить\". We want to keep it short and in user's words. The raw span is exactly \"счёт за садик оплатить десятого сентября не забыть\". But the item text should be a concise imperative: \"оплатить счёт за садик\" (pay the kindergarten bill). We can use \"оплатить счёт за садик\". Who: null. due_kind: \"exact\", exact_local \"2026-09-10T09:00\", window: null. confidence: high (because the text is clear). raw_span: \"счёт за садик оплатить десятого сентября\" (we can take the relevant part, but rule 1 says raw_span is the literal fragment from which the item is taken. We can take the whole phrase or the core. Usually raw_span should be the exact substring. The whole phrase is \"счёт за садик оплатить десятого сентября не забыть\". But \"не забыть\" is an instruction to self. The item is \"оплатить\". So we can set raw_span to \"счёт за садик оплатить десятого сентября\" (excluding \"не забыть\" as it's a reminder phrase). But to be safe, we can use the whole phrase? The instruction: \"Каждому пункту дай raw_span — дословный фрагмент исходника, из которого пункт взят.\" So we can take a fragment. I'll take \"счёт за садик оплатить десятого сентября\" because that's the action and date. \"не забыть\" is a meta-comment. But we can also include it. Let's see the example in the prompt: for \"соню к лору записать\" they used raw_span \"соню к лору записать\". So they take the action part. So I'll take \"счёт за садик оплатить десятого сентября\". That is a contiguous fragment.\n\nNow, note_kind: tasks. Topic: \"Дети\". Entities: no people mentioned. (The child isn't named, just \"садик\".) So entities: [].\n\nbody_md: null because note_kind is tasks.\n\nsecond: null.\n\nAlso, we need to check if there is any link to previous notes? There are none provided, so links: [] (but the schema doesn't include links? Actually the schema in the response format doesn't show links field, but the instruction mentions links. The response format example doesn't have links. Wait, the instruction says \"Схема ответа (верни ровно такой json, без markdown-обёртки): {...}\". The example has note_kind, topic, entities, body_md, second, items. It doesn't include links. But rule 15 says if there are previous notes, we can include links. The schema given at the end doesn't mention links. Actually, looking back: the user message defines the schema? The first part says \"верни ТОЛЬКО json по схеме ниже.\" Then there is a \"Схема ответа\" in the instruction. Let's re-read.\n\nThe user message: \"Ты — тихий помощник... Разбери комок на отдельные пункты и верни ТОЛЬКО json по схеме ниже.\" Then there is a \"Схема ответа\" that includes note_kind, topic, entities, body_md, second, items. Then there is also a \"Response Format:\" at the end: \"Reply with JSON object ONLY.\" So the schema is as given. But there is no \"links\" field in the schema. However, rule 15 says \"Если рядом дан список прежних записей, посмотри, не связана ли эта с какой-то из них, — поле links...\" So we need to include links only if there are previous notes. But in this prompt, there is no list of previous notes. So we can omit links altogether, or include an empty array? The schema example doesn't have links. I'll omit it because the schema doesn't include it. However, the instruction says \"поле links, до трёх штук\". But the provided schema doesn't show links. It might be that links is optional. To be safe, I'll include an empty \"links\": []? But the schema doesn't have it, and it might not be expected. Let's see the instruction: The schema is at the top of the message? Actually, the user message contains the whole instruction text, and at the end it says \"Схема ответа (верни ровно такой json, без markdown-обёртки): {...}\". So the schema is exactly that. It doesn't include \"links\". So I'll not include links. Perhaps the assistant is supposed to do it only if there are previous notes, but in that case it would be part of the JSON? The instruction says \"Если рядом дан список прежних записей, ... — поле links\". So if there is no such list, we don't need to include it. So I'll omit links.\n\nCheck for rule about \"second\": Only one topic, no need to split. So second: null.\n\nNow, about date: \"десятого сентября\" - we need to ensure the year. Today is 2026-08-17. September 10, 2026 is in the future, so use 2026. If today were after Sept 10, use next year. So exact_local: \"2026-09-10T09:00\".\n\nAlso, \"счёт за садик\" - kindergarten bill. Topic: I'll choose \"Дети\" (Children). Alternatively \"Садик\" (kindergarten) as a section. But the instruction says \"короткое имя раздела в 1–2 слова с заглавной буквы\". \"Дети\" is one word, \"Садик\" is one word. Which is more conventional? I think \"Дети\" is more general. Let's use \"Дети\".\n\nBut wait, maybe \"Оплата\" is not a life area. I'll go with \"Дети\".\n\nAlso, we need to consider if this is a task or a fact? It's an action, so tasks.\n\nNow, we need to output JSON exactly as schema. Let's construct.\n\n{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Дети\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"оплатить счёт за садик\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2026-09-10T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"счёт за садик оплатить десятого сентября\"\n    }\n  ]\n}\n\nCheck rule: \"Не длиннее 120 знаков\" - text is fine.\n\nAlso, \"Формулируй пункт коротко и в исходных словах пользователя\" - оплатить счёт за садик is good.\n\nPotential issue: raw_span includes \"счет за садик оплатить десятого сентября\" but in the original the word order is \"счёт за садик оплатить десятого сентября не забыть\". So the fragment is exactly as it appears. Good.\n\nNow, is there any possibility that this is a \"decision\"? No.\n\nNow, let's ensure we follow rule 12: \"Время не названо — ставь 09:00.\" So we did.\n\nNow, let's output the JSON only, without markdown.\n\nI'll provide the JSON."
+     "content": "{\"note_kind\": \"tasks\", \"topic\": \"Садик\", \"entities\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"do\", \"text\": \"оплатить счёт за садик десятого сентября\", \"who\": null, \"due_kind\": \"exact\", \"window\": null, \"exact_local\": \"2026-09-10T09:00\", \"confidence\": \"high\", \"raw_span\": \"счёт за садик оплатить десятого сентября\"}]}",
+     "reasoning_content": "We need answer JSON. Need parse. Need follow schema. Need think carefully.\n\nUser transcript: \"счёт за садик оплатить десятого сентября не забыть\" (no punctuation). It means \"pay the kindergarten bill on September 10, don't forget\". Need items? One task: pay bill. Exact date \"десятого сентября\" named. Current date 2026-08-17 Monday. September 10 next future? Since Aug 17, Sept 10 2026 future. exact_local \"2026-09-10T09:00\" (time not named -> 09:00). due_kind exact. note_kind tasks. topic? \"Садик\" or \"Дом\"? Need choose. Existing sections none, завести подходящий. \"счёт за садик\" — это финансы/ребёнок/дом. Topic short 1-2 words. Maybe \"Садик\" or \"Оплата\". Better \"Дом\" maybe not. \"Садик\" is good section? The instruction: if suitable existing section take exactly its name; none. New only when none fits. \"Садик\" perhaps as \"Садик\". But topic should be short name of section: \"Дом\", \"Работа\", \"Дача\", \"Здоровье\". Since no existing, choose \"Садик\". Entities: no people mentioned. \"садик\" not person. entities [].\n\nNeed ensure \"не забыть\" no separate item? It's emphasis. One item type \"do\" maybe \"do\" (сделать) or \"buy\"? It's оплатить = do. text: \"счёт за садик оплатить\" or \"оплатить счёт за садик десятого сентября\". Need keep under 120. raw_span: \"счёт за садик оплатить десятого сентября не забыть\" maybe whole. But if exact in raw span? Better raw_span exactly fragment from which item taken: \"счёт за садик оплатить десятого сентября\". Or maybe include \"не забыть\"? Since item itself includes \"оплатить счёт за садик десятого сентября\". Raw span \"счёт за садик оплатить десятого сентября\". Include date? yes.\n\nNeed note_exact_local? \"не забыть\" refers to paying on date, no general deadline. null.\n\nNeed second null. body_md null.\n\nNeed confidence high.\n\nNeed check rule 12: Названная дата — exact. «десятого сентября» → exact_local \"2026-09-10T09:00\". Current date 2026-08-17, so future. Good.\n\nNeed maybe note_kind tasks. topic? Perhaps \"Садик\". Could be \"Дети\"? But \"Садик\" better.\n\nNeed output exactly JSON no markdown. Ensure correct JSON."
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2462,
-   "completion_tokens": 2621,
-   "total_tokens": 5083,
+   "prompt_tokens": 2556,
+   "completion_tokens": 735,
+   "total_tokens": 3291,
    "prompt_tokens_details": {
     "cached_tokens": 512
    },
    "completion_tokens_details": {
-    "reasoning_tokens": 2482
+    "reasoning_tokens": 611
    },
    "prompt_cache_hit_tokens": 512,
-   "prompt_cache_miss_tokens": 1950
+   "prompt_cache_miss_tokens": 2044
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

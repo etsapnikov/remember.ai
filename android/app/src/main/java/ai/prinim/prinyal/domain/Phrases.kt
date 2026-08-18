@@ -23,8 +23,6 @@ object Phrases {
     private val HHMM: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
     /** План возврата: «верну в 19:30» / «напомню завтра утром» / «просто сохраню». */
-    private val DAY_MON: java.time.format.DateTimeFormatter =
-        java.time.format.DateTimeFormatter.ofPattern("d MMM", java.util.Locale("ru"))
 
     fun plan(context: Context, item: ItemEntity, zone: ZoneId = ZoneId.systemDefault()): String =
         when (DueKind.of(item.dueKind)) {
@@ -40,7 +38,7 @@ object Phrases {
                     // через три недели — нет (Д-8).
                     at.toLocalDate() == LocalDateTime.now(zone).toLocalDate() ->
                         context.getString(R.string.plan_exact, at.format(HHMM))
-                    else -> context.getString(R.string.plan_exact_date, at.format(DAY_MON))
+                    else -> context.getString(R.string.plan_exact_date, Dates.day(at))
                 }
             }
             DueKind.WINDOW -> when (Window.of(item.window)) {

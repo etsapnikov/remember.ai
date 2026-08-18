@@ -175,6 +175,19 @@ object ItemValidator {
         ) to salvaged
     }
 
+    /**
+     * Срок всей записи (Р-15.7).
+     *
+     * Проходит ту же проверку на будущее, что и срок пункта: инвариант §3 не
+     * делает исключений для «общего» срока — прошлое одинаково бесполезно и
+     * там, и там.
+     */
+    fun parseNoteDue(root: JSONObject, now: LocalDateTime, zone: ZoneId): Long? {
+        if (root.isNull("note_exact_local")) return null
+        val wrapper = JSONObject().put("exact_local", root.optString("note_exact_local"))
+        return parseExact(wrapper, now, zone)
+    }
+
     /** Обрезка по слову: обрубленное посреди слова читается как баг, а не как лимит. */
     fun trimWords(text: String, limit: Int = MAX_TEXT): String {
         val normalized = text.split(Regex("\\s+")).filter(String::isNotEmpty).joinToString(" ")

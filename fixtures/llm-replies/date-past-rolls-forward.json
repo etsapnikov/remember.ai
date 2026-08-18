@@ -1,51 +1,51 @@
 {
  "id": "date-past-rolls-forward",
- "prompt_version": "7",
- "recorded_at": "2026-08-18T22:37:33",
- "took_s": 12.6,
+ "prompt_version": "8",
+ "recorded_at": "2026-08-19T00:24:13",
+ "took_s": 15.6,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2458,
-  "completion_tokens": 1435,
-  "total_tokens": 3893,
+  "prompt_tokens": 2552,
+  "completion_tokens": 1953,
+  "total_tokens": 4505,
   "prompt_tokens_details": {
    "cached_tokens": 2432
   },
   "completion_tokens_details": {
-   "reasoning_tokens": 1297
+   "reasoning_tokens": 1801
   },
   "prompt_cache_hit_tokens": 2432,
-  "prompt_cache_miss_tokens": 26
+  "prompt_cache_miss_tokens": 120
  },
  "response": {
-  "id": "8fe9503e-a336-4ca1-9744-9b3df6ae1762",
+  "id": "9c579f77-9753-4919-b80b-670898008581",
   "object": "chat.completion",
-  "created": 1787081842,
+  "created": 1787088239,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Страховка\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"напомнить про страховку\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2027-08-10T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"напомни десятого августа про страховку\"\n    }\n  ]\n}",
-     "reasoning_content": "We need parse the user's transcript. The transcript: \"напомни десятого августа про страховку\". Need output JSON.\n\nInterpretation: user says \"remind me on August 10 about the insurance\". This is a task: set a reminder. The note_kind likely \"tasks\". Type? It's a \"do\" task? Actually it's a reminder to remind about something. The action is \"напомни\" — remind me. So type \"do\" with text \"напомнить про страховку\" or something. The date is explicit: \"десятого августа\". Need determine year. Today: 2026-08-17 Monday. August 10 is in the past this year (2026-08-10 has passed). So next future is 2027-08-10. Need set exact_local with time 09:00 if no time. So \"2027-08-10T09:00\". due_kind \"exact\". window null.\n\nBut careful: \"напомни десятого августа про страховку\" — could be a reminder to self, or could be telling someone? It's \"напомни\" — remind (imperative). Likely a task for the assistant: remind me. So type \"do\". The text should be \"напомнить про страховку\" or \"напомнить о страховке десятого августа\"? Actually item text maybe \"про страховку\" etc. Need formulate short and in user's words: \"напомни десятого августа про страховку\" -> maybe \"напомнить про страховку\". The date is in exact. raw_span entire phrase.\n\nCheck rules: If due_kind exact, fill exact_local and window null. The date explicitly given -> due_kind exact. Yes.\n\nNote_kind: tasks. topic? No existing sections, need create appropriate. This is about reminder, insurance. Topic could be \"Страховка\" or \"Документы\"? But rule: \"Короткое имя раздела в 1-2 слова с заглавной буквы («Дом», «Работа», «Дача», «Здоровье»). Если подходит раздел из списка существующих — бери ровно его имя, не выдумывай синоним. Новый заводи, только когда ни один не подходит. Не уверен или запись правда смешанная — topic: null\". There are no existing sections. \"про страховку\" — insurance is maybe under \"Документы\" or \"Финансы\"? But we don't have categories. We can create \"Страховка\" as topic? Since it's a about insurance, that seems appropriate.\n\nEntities: no people. Use empty array.\n\nbody_md null. second null.\n\nConfidence high.\n\nNeed output JSON exactly. Also note: \"Если в тексте нет ни одного пункта — верни items: [], но note_kind и topic всё равно заполни.\" But here there is item.\n\nLet's construct.\n\nCheck rule 12: \"Названная дата — это due_kind: \"exact\". «Десятого сентября», «послезавтра в шесть», «в понедельник» — заполни exact_local в формате \"YYYY-MM-DDTHH:MM\". Год бери ближайший будущий: если названный день в этом году уже прошёл, значит речь о следующем. Время не названо — ставь 09:00.\" So yes: 2027-08-10T09:00.\n\nBut wait: could \"десятого августа\" be interpreted as this year even if past? No, if past, next year. So correct.\n\nPotential nuance: \"напомни\" is an action that the assistant should do. In item type, \"do\" is for tasks. So type \"do\". Text: \"напомнить про страховку\" or \"напомнить о страховке\"? User said \"про страховку\", so keep \"напомнить про страховку\". But maybe text should be \"напомнить про страховку десятого августа\"? The rule says \"Формулируй пункт коротко и в исходных словах пользователя, без канцелярита.\" So \"напомнить про страховку\" is short. The date is in exact_local, so text needn't include it.\n\nraw_span should be the exact fragment from original: \"напомни десятого августа про страховку\". Yes.\n\nWindow null because exact.\n\nNow topic: \"Страховка\" with capital S? In Russian, \"Страховка\". Or maybe \"Документы\" because insurance is a document? But better specific. Since no sections, create.\n\nNote_kind: tasks.\n\nLet's generate JSON.\n\n{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Страховка\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"напомнить про страховку\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2027-08-10T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"напомни десятого августа про страховку\"\n    }\n  ]\n}\n\nBut check if there is any \"who\"? No.\n\nNow, could this be a \"date\" type? Rule type \"date\" is event with date. But here it's a reminder, not an event. \"напомни\" is a task, so \"do\" is fine.\n\nAlso note rule 14 about decision: not applicable.\n\nSo output.\n\nWait, the instruction says \"Сейчас: 2026-08-17 12:00, понедельник.\" Monday? Actually 2026-08-17 is Monday? Let's check: 2026-08-17 is Monday indeed. That's fine. No effect.\n\nLet's provide JSON."
+     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Страховка\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"note_exact_local\": null,\n  \"links\": [],\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"напомни про страховку\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2027-08-10T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"напомни десятого августа про страховку\"\n    }\n  ]\n}",
+     "reasoning_content": "We need to parse the user's request. The user says: \"напомни десятого августа про страховку\" which means \"remind me on the tenth of August about insurance\". The current date is 2026-08-17 (Monday). So August 10 has already passed in this year (2026). According to rule 12, \"Год бери ближайший будущий: если названный день в этом году уже прошёл, значит речь о следующем.\" So the date is August 10, 2027? Actually, the current date is August 17, 2026, so August 10, 2026 has already passed. So we take next year: 2027-08-10. Time not specified, so 09:00. So due_kind: \"exact\", exact_local: \"2027-08-10T09:00\". But wait: the user says \"напомни\" which means remind me. This is an action to do? Or is it a request? In the context, it's a task: to remind. But what type? Possibly \"do\" (сделать). The text is \"напомни десятого августа про страховку\" - so the action is to remind about insurance, but that's actually a request for the assistant to remind. In the app, this would be a reminder task. Likely type \"do\" with text \"напомнить про страховку\" or \"напомнить десятого августа про страховку\". But the rule: \"напомни\" is a task to do. Maybe type \"do\". Also due_kind exact. The window is null. Note_kind: tasks. Topic: maybe \"Документы\" or \"Страховка\"? Since there's no existing sections, we can create \"Страховка\" or \"Документы\". Probably \"Страховка\" is a good topic. Entities: none. raw_span: \"напомни десятого августа про страховку\" (the whole phrase). The text should be short, in user's words: \"напомнить про страховку\" or maybe \"напомни про страховку\". But the instruction says: \"Формулируй пункт коротко и в исходных словах пользователя, без канцелярита.\" So we can take \"напомни про страховку\" (without the date, since date is in due). But note: it says \"напомни\" is the action. Actually, the user is asking to remind, which is a common note. So type \"do\". Also confidence high.\n\nCheck rule 12: If date named, due_kind exact. So we need to compute exact_local. Current date: 2026-08-17. The named day \"десятого августа\" = August 10. Since it's past, next year: 2027-08-10. Time 09:00. So exact_local: \"2027-08-10T09:00\". Also, note_exact_local? That's for whole note. Here the deadline applies to the entire note? It says \"напомни десятого августа про страховку\" - the reminder is on that date. So the note itself is about that reminder. So we might put note_exact_local? Actually, rule 16: \"Срок может относиться ко всей записи, а не к пункту: «верни мне это всё в понедельник», «напомни про всё завтра утром».\" Here the whole note is a single item, so the due date is on the item. I think we can either put it on the item or on note_exact_local. But since the item itself is the task with a due date, it's fine to put due_kind exact on the item. note_exact_local is for when the whole note has a common deadline for multiple items. Here just one item, so item has the date, note_exact_local null.\n\nAlso rule 11: body_md null because not idea or mixed. second null. links empty.\n\nSo JSON: \n{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Страховка\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"напомни про страховку\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2027-08-10T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"напомни десятого августа про страховку\"\n    }\n  ],\n  \"note_exact_local\": null,\n  \"links\": []\n}\n\nBut wait: the schema in the prompt example includes note_exact_local and links? Actually the schema in the \"Response Format\" is missing those top-level fields? Let's check the given example: \n{\"note_kind\": \"tasks\", \"topic\": \"Здоровье\", \"entities\": [\"Соня\"], \"body_md\": null, \"second\": null, \"items\": [...]}\nIt doesn't include note_exact_local or links, but rule 15 and 16 mention them. However, the schema in the instructions says: \"Схема ответа (верни ровно такой json, без markdown-обёртки):\" and then an example. That example doesn't have note_exact_local or links. But the rules say to include them if applicable. In the provided example, they omitted them. Possibly because those fields are optional? But the instructions say \"верни ровно такой json\" meaning exactly the same structure? Actually the example is incomplete? Let's read the full: \n{\"note_kind\": \"tasks\", \"topic\": \"Здоровье\", \"entities\": [\"Соня\"], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"do\", \"text\": \"позвонить в поликлинику насчёт Сони\", \"who\": null, \"due_kind\": \"window\", \"window\": \"day\", \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"соню к лору записать\"}]}\nThat's it. But they also said \"who\": null, etc. for items. So the top-level fields are note_kind, topic, entities, body_md, second, items. But rules 15 and 16 introduce links and note_exact_local. Possibly those are optional and we can include them if needed. To be safe, we should include them with null/empty. The instruction says \"Схема ответа ...\" so we must adhere to that schema. However, the rules mention them, so maybe they are part of the schema but not shown in example due to brevity. In the problem, we need to output exactly the JSON with all fields that are part of schema. The schema likely includes note_exact_local and links as top-level. Let's check: Rule 16 says \"заполни note_exact_local\" - so it's a field. Rule 15 says \"links\" field. So they must be present, possibly null. So I'll include them.\n\nThus top-level: note_kind, topic, entities, body_md, second, note_exact_local, links. And items array with objects having type, text, who, due_kind, window, exact_local, confidence, raw_span.\n\nAlso rule 9: \"Если подходит раздел из списка существующих — бери ровно его имя, не выдумывай синоним. Новый заводи, только когда ни один не подходит.\" There are no existing sections, so we can create \"Страховка\". That seems appropriate.\n\nEntities: none, so empty array.\n\nSo final JSON.\n\nBut wait: the current date is 2026-08-17, but the user says \"напомни десятого августа\" - if they meant this year, it's past, but maybe they meant next year? Yes, rule 12 says nearest future. So 2027-08-10.\n\nAlso, is \"напомни\" a task? Yes. But could it be a \"thought\"? No, it's an action to remind. So type \"do\".\n\nConfidence high.\n\nNow, output only JSON, no markdown."
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2458,
-   "completion_tokens": 1435,
-   "total_tokens": 3893,
+   "prompt_tokens": 2552,
+   "completion_tokens": 1953,
+   "total_tokens": 4505,
    "prompt_tokens_details": {
     "cached_tokens": 2432
    },
    "completion_tokens_details": {
-    "reasoning_tokens": 1297
+    "reasoning_tokens": 1801
    },
    "prompt_cache_hit_tokens": 2432,
-   "prompt_cache_miss_tokens": 26
+   "prompt_cache_miss_tokens": 120
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

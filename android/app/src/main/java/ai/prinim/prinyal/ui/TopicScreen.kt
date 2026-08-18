@@ -1,6 +1,7 @@
 package ai.prinim.prinyal.ui
 
 import ai.prinim.prinyal.R
+import ai.prinim.prinyal.domain.Dates
 import ai.prinim.prinyal.data.ItemState
 import ai.prinim.prinyal.data.NoteWithItems
 import ai.prinim.prinyal.ui.theme.MetaText
@@ -98,7 +99,9 @@ private fun TopicNoteRow(entry: NoteWithItems, onClick: () -> Unit) {
             text = title,
             style = Prinyal.type.itemTitle,
             color = Prinyal.colors.ink,
-            maxLines = 1,
+            // Две строки: в одну заголовок обрезался посреди мысли — «выпилить
+            // из настроек пункт с р…» опознать невозможно (аудит Д-7).
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
         Row(
@@ -112,13 +115,7 @@ private fun TopicNoteRow(entry: NoteWithItems, onClick: () -> Unit) {
 }
 
 /** Дата без времени: в разделе важен день, а не минута. */
-private val DAY: java.time.format.DateTimeFormatter =
-    java.time.format.DateTimeFormatter.ofPattern("d MMM", java.util.Locale("ru"))
-
-private fun shortDate(millis: Long): String =
-    java.time.Instant.ofEpochMilli(millis)
-        .atZone(java.time.ZoneId.systemDefault())
-        .format(DAY)
+private fun shortDate(millis: Long): String = Dates.day(millis)
 
 /**
  * Сводка пунктов по состояниям — «3 в плане · 1 сделано».

@@ -217,6 +217,33 @@ class CoreLoopFixturesTest {
     }
 
     @Test
+    fun `срок всей записи достаётся каждому живому пункту`() {
+        // «Верни мне это всё в понедельник» — один срок на всю речь. Раньше он
+        // доставался в лучшем случае последнему пункту, потому что модель
+        // привязывала дату к тому, рядом с чем она прозвучала (Р-15.7).
+        fixtures().forEach { (fixture, reply) ->
+            val id = fixture.getString("id")
+            val expected = fixture.getJSONObject("expect")
+                .optString("note_due_date").takeIf { it.isNotBlank() } ?: return@forEach
+            val result = (parse(fixture, reply) as IngestOutcome.Ok).result
+
+            val at = result.noteDueAt
+            assertNotNull("$id: общий срок не разобран", at)
+            assertEquals(
+                "$id: дата общего срока",
+                expected,
+                Instant.ofEpochMilli(at!!).atZone(zone).toLocalDate().toString(),
+            )
+            // Сами пункты своего срока не получили — он общий, и раздавать его
+            // должен репозиторий, а не модель.
+            assertTrue(
+                "$id: модель раздала срок пунктам сама",
+                result.items.all { it.dueKind == DueKind.NONE },
+            )
+        }
+    }
+
+    @Test
     fun `возврат никогда не планируется в прошлое`() {
         fixtures().forEach { (fixture, reply) ->
             val id = fixture.getString("id")

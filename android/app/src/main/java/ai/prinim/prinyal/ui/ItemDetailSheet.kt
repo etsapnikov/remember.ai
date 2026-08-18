@@ -1,6 +1,7 @@
 package ai.prinim.prinyal.ui
 
 import ai.prinim.prinyal.R
+import ai.prinim.prinyal.domain.Dates
 import ai.prinim.prinyal.data.DueKind
 import ai.prinim.prinyal.data.ItemEntity
 import ai.prinim.prinyal.data.ItemState
@@ -103,10 +104,15 @@ fun ItemDetail(
                 val history = history(item, returns, state)
                 if (history.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
-                        MetaText(
-                            stringResource(R.string.item_history),
-                            color = Prinyal.colors.inkFaint,
-                        )
+                        // Заголовок появляется от двух событий: «Что с ним было»
+                        // над единственным словом «сделано» — заголовок ради
+                        // одного слова (аудит Д-7).
+                        if (history.size > 1) {
+                            MetaText(
+                                stringResource(R.string.item_history),
+                                color = Prinyal.colors.inkFaint,
+                            )
+                        }
                         history.forEach { line ->
                             MetaText(line, color = Prinyal.colors.inkMuted)
                         }
@@ -172,8 +178,6 @@ private fun times(count: Int): String = when {
     else -> "раза"
 }
 
-private fun stamp(millis: Long?): String? = millis?.let {
-    DAY.format(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()))
-}
+private fun stamp(millis: Long?): String? = millis?.let { Dates.day(it) }
 
-private val DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM", Locale("ru"))
+// Формат живёт в domain/Dates: точка у сокращения месяца снимается там.

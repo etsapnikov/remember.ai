@@ -166,6 +166,7 @@ class DeepSeekClient(
                     // попадать то, что мы не готовы показать.
                     bodyMd = Markdown.sanitize(ItemValidator.stringOrNull(root, "body_md"))
                         .ifBlank { null },
+                    noteDueAt = ItemValidator.parseNoteDue(root, now, zone),
                     links = LinkValidator.validate(
                         root.optJSONArray("links"),
                         candidates.map { it.first }.toSet(),

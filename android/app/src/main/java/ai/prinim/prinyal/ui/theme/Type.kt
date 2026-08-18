@@ -92,7 +92,10 @@ data class PrinyalTypography(
 val PrinyalType = PrinyalTypography(
     display = TextStyle(
         fontFamily = Spectral,
-        fontWeight = FontWeight.Normal,
+        // SemiBold, а не Regular: при переходе на систему 1.0 гарнитура
+        // сменилась и вес потерялся молча (аудит Д-7). Решение R1.2 §14 —
+        // насыщенный, с трекингом −2%.
+        fontWeight = FontWeight.SemiBold,
         // 34, не 38: «Запомнил.» на 38 занимало 178 dp и съедало поля на узком
         // экране. Трекинг −2% заодно возвращает точку в ритм после длинного
         // слова (R1.2 §14).

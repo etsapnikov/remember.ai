@@ -101,15 +101,25 @@ class NoteRepository(
 
         val items = result.items.mapIndexed { index, parsed ->
             val kept = handSet[normalizeText(parsed.text)]
+            // Срок всей записи (Р-15.7): «верни мне это всё в понедельник».
+            // Он не перебивает ни ручную дату, ни собственный срок пункта —
+            // общее правило уступает частному, иначе человек, назвавший время
+            // одному делу, потерял бы его из-за фразы про остальные.
+            val shared = result.noteDueAt.takeIf {
+                kept == null && parsed.dueKind == DueKind.NONE
+            }
             ItemEntity(
                 id = newId(),
                 noteId = noteId,
                 type = parsed.type.wire,
                 text = parsed.text,
                 who = parsed.who,
-                dueKind = if (kept != null) DueKind.EXACT.wire else parsed.dueKind.wire,
-                window = if (kept != null) null else parsed.window?.wire,
-                dueAt = kept ?: parsed.dueAt,
+                dueKind = when {
+                    kept != null || shared != null -> DueKind.EXACT.wire
+                    else -> parsed.dueKind.wire
+                },
+                window = if (kept != null || shared != null) null else parsed.window?.wire,
+                dueAt = kept ?: shared ?: parsed.dueAt,
                 state = ItemState.PLANNED.wire,
                 confidence = parsed.confidence.wire,
                 rawSpan = parsed.rawSpan,

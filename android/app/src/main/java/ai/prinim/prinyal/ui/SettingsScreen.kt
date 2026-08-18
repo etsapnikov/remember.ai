@@ -230,8 +230,10 @@ fun SettingsScreen(vm: AppViewModel) {
                 ) {
                     Text(
                         text = stringResource(R.string.settings_export),
-                        style = Prinyal.type.label,
-                        color = Prinyal.colors.accentSelf,
+                        style = Prinyal.type.body,
+                        // Акцент означает «продукт сделал сам», а выгружает
+                        // человек — обычная строка (аудит Д-7).
+                        color = Prinyal.colors.ink,
                         modifier = Modifier.clickable {
                             vm.export { file ->
                                 vm.showMessage(

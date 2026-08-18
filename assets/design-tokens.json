@@ -24,7 +24,7 @@
       "destructiveBg": "#F6E0D9",
       "destructiveFg": "#B03A24",
       "statusOk": "#3F6B4F",
-      "statusWarn": "#A8542B"
+      "statusWarn": "#8A6415"
     },
     "dark": {
       "paper": "#1A1512",
@@ -44,7 +44,7 @@
       "destructiveBg": "#3C1E18",
       "destructiveFg": "#E8836B",
       "statusOk": "#8FB79A",
-      "statusWarn": "#E08757"
+      "statusWarn": "#D9A441"
     }
   },
   "capture": {
@@ -69,8 +69,14 @@
   },
   "gesture": {
     "swipeStart": 8,
-    "swipeCommitVertical": { "distance": 96, "velocity": 600 },
-    "swipeCommitRow": { "distance": 40, "velocity": 400 },
+    "swipeCommitVertical": {
+      "distance": 96,
+      "velocity": 600
+    },
+    "swipeCommitRow": {
+      "distance": 40,
+      "velocity": 400
+    },
     "rowActionWidth": 88
   },
   "semantics": {
@@ -82,11 +88,11 @@
   "type": {
     "display": {
       "font": "Spectral",
-      "weight": 400,
+      "weight": 600,
       "size": 34,
       "line": 1.12,
       "letterSpacing": -0.02,
-      "use": "квитанция «Запомнил.»; 38 не влезало на 320 dp — R1.2 §14"
+      "use": "квитанция «Запомнил.»; SemiBold по R1.2 §14 — при переходе на систему 1.0 вес потерялся молча (аудит Д-7); 38 не влезало на 320 dp"
     },
     "voice": {
       "font": "Spectral",
@@ -203,7 +209,8 @@
       "alpha": 0.35,
       "alphaGain": 0.65,
       "idleColor": "#4A403A",
-      "silenceSide": 126
+      "silenceSide": 126,
+      "source": "числа приложения — источник истины: дизайнер принял их вместо 26/1 из ТЗ (аудит Д-7), чтобы у кольца был один набор чисел, а не два"
     },
     "states": [
       "rest",
@@ -266,7 +273,7 @@
     }
   },
   "haptics": {
-    "receipt": "двойной короткий: 18ms — пауза 70ms — 34ms",
+    "receipt": "один короткий: 18ms — решение R1.2 §14; двойной читался как «случилось что-то ещё»",
     "cancel": "один 40ms",
     "returnAction": "один 12ms"
   }

@@ -59,7 +59,11 @@ val LightColors = PrinyalColors(
     destructiveBg = Color(0xFFF6E0D9),
     destructiveFg = Color(0xFFB03A24),
     statusOk = Color(0xFF3F6B4F),
-    statusWarn = Color(0xFFA8542B),
+    // Предупреждение и «продукт сделал сам» были почти одного цвета — #A8542B
+    // против accentSelf #B4552F, глазом неразличимо. Разведены на два шага
+    // светлоты в обе стороны (аудит Д-7): предупреждение уходит в жёлто-охряное,
+    // подальше от красно-оранжевого акцента.
+    statusWarn = Color(0xFF8A6415),
     isDark = false,
 )
 
@@ -82,7 +86,7 @@ val DarkColors = PrinyalColors(
     destructiveBg = Color(0xFF3C1E18),
     destructiveFg = Color(0xFFE8836B),
     statusOk = Color(0xFF8FB79A),
-    statusWarn = Color(0xFFE08757),
+    statusWarn = Color(0xFFD9A441),
     isDark = true,
 )
 

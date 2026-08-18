@@ -80,6 +80,13 @@
     <!-- Лента -->
     <string name="feed_title">Записи</string>
     <string name="feed_empty">Здесь появятся записи</string>
+    <!-- Пустые состояния единым тоном (аудит Д-7): что здесь будет + откуда
+         возьмётся, без кнопок и картинок. -->
+    <string name="topic_empty_title">Здесь пусто</string>
+    <string name="topic_empty_body">Все записи этого раздела ушли. Раздел исчезнет сам.</string>
+    <string name="dict_empty_title">Пока правил нет</string>
+    <string name="dict_empty_body">Поправь слово в «Что услышал» — запомню и дальше буду писать правильно.</string>
+    <string name="note_no_items">Дел я тут не услышал — сохранил как есть.</string>
     <string name="feed_offline_badge">нет связи с сервером</string>
     <string name="feed_pending">разбираю</string>
     <string name="note_transcript">Что услышал</string>
@@ -125,12 +132,16 @@
     </plurals>
     <string name="note_deleted_undo">Удалил запись · вернуть</string>
     <string name="undo">вернуть</string>
+    <!-- Две строки, а не одна: акцент означает «продукт сделал сам» и должен
+         стоять только на действии, иначе строка кричит громче содержимого
+         ленты (аудит Д-7). -->
     <plurals name="feed_junk_sweep">
-        <item quantity="one">%1$d запись без пунктов · убрать все</item>
-        <item quantity="few">%1$d записи без пунктов · убрать все</item>
-        <item quantity="many">%1$d записей без пунктов · убрать все</item>
-        <item quantity="other">%1$d записи без пунктов · убрать все</item>
+        <item quantity="one">%1$d запись без пунктов</item>
+        <item quantity="few">%1$d записи без пунктов</item>
+        <item quantity="many">%1$d записей без пунктов</item>
+        <item quantity="other">%1$d записи без пунктов</item>
     </plurals>
+    <string name="feed_junk_sweep_action">убрать все</string>
     <plurals name="feed_junk_swept_undo">
         <item quantity="one">Убрал %1$d запись · вернуть</item>
         <item quantity="few">Убрал %1$d записи · вернуть</item>
@@ -350,7 +361,7 @@
     <string name="ask_no">не надо</string>
     <string name="ask_save">запомнить</string>
     <string name="item_from_speech">Из речи</string>
-    <string name="item_history">Как жил</string>
+    <string name="item_history">Что с ним было</string>
     <string name="item_edit">Поправить</string>
     <string name="item_close">Закрыть</string>
     <string name="fork_reason">Переносится третий раз — попробуем иначе</string>
@@ -365,7 +376,7 @@
     <string name="capture_append_plain">дописываю к записи</string>
     <string name="note_collected">СОБРАНО</string>
     <string name="retro_title">Разложить старые записи</string>
-    <string name="retro_note">Заметок без раздела: %1$d. Каждая — отдельный разбор, минут %2$d на всё.</string>
+    <string name="retro_note">Заметок без раздела: %1$d. Разберу каждую отдельно, это займёт около минуты.</string>
     <string name="retro_run">Разложить</string>
     <string name="retro_progress">Раскладываю %1$d из %2$d…</string>
     <string name="retro_done">Разложил %1$d из %2$d</string>
@@ -397,7 +408,7 @@
     </plurals>
     <string name="topics_all_closed">всё закрыто</string>
     <string name="topics_empty_title">Пока пусто</string>
-    <string name="topics_empty_body">Разделы появятся сами из записей — я разложу, когда пойму, о чём ты говоришь чаще всего.</string>
+    <string name="topics_empty_body">Разделы появляются сами из записей — я разложу, когда пойму, о чём ты говоришь чаще всего.</string>
     <string name="topic_summary_planned">%1$d в плане</string>
     <string name="topic_summary_done">%1$d сделано</string>
     <string name="topic_summary_gone">%1$d похоронено</string>
