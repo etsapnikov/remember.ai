@@ -45,10 +45,11 @@ interface NoteDao {
     fun byTopic(topicId: String): Flow<List<NoteWithItems>>
 
     /** Заметки, которые машина не смогла отнести и человек ещё не отнёс. */
+    /** То же определение, что у счётчика: список и число обязаны сходиться. */
     @Transaction
     @Query(
         "SELECT * FROM notes WHERE deleted_at IS NULL AND topic_id IS NULL " +
-            "ORDER BY created_at DESC"
+            "AND transcript IS NOT NULL AND transcript != '' ORDER BY created_at DESC"
     )
     fun withoutTopic(): Flow<List<NoteWithItems>>
 
@@ -218,8 +219,22 @@ interface TopicDao {
     )
     fun overview(): Flow<List<TopicOverview>>
 
-    /** Сколько заметок осталось без раздела — строка «Без раздела» внизу списка. */
-    @Query("SELECT COUNT(*) FROM notes WHERE topic_id IS NULL AND deleted_at IS NULL")
+    /**
+     * Сколько заметок осталось без раздела.
+     *
+     * Считаем только те, где есть что раскладывать. Записи, в которых ничего не
+     * расслышано, разделу не принадлежат и принадлежать не могут — но раньше
+     * они попадали сюда, а в настройки нет, и продукт называл два разных числа
+     * одним словом: «14 заметок» в разделах против «7» в настройках в один и
+     * тот же вечер (аудит Д-7, п. 8).
+     *
+     * Определение одно и то же с [NoteDao.looseList] — иначе расхождение
+     * вернётся при первой же правке одного из запросов.
+     */
+    @Query(
+        "SELECT COUNT(*) FROM notes WHERE topic_id IS NULL AND deleted_at IS NULL " +
+            "AND transcript IS NOT NULL AND transcript != ''"
+    )
     fun looseCount(): Flow<Int>
 }
 

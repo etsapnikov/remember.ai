@@ -1,6 +1,7 @@
 package ai.prinim.prinyal.ui
 
 import ai.prinim.prinyal.R
+import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.Space
 import androidx.activity.compose.BackHandler
@@ -169,23 +170,51 @@ private fun undoText(message: AppViewModel.UndoMessage): String = when (message)
 
 @Composable
 private fun TopBar(route: Route, onRoute: (Route) -> Unit) {
-    // Поверхности живут словами в шапке: текущая — заголовком, соседние — тихим
-    // текстом рядом (Д-1, вариант А). Жестов взять неоткуда: вертикаль занята
-    // захватом, горизонталь — удалением строки, и разводить их по зонам экрана
-    // значило бы завести правило, которое человек обязан помнить.
+    // Три слова в шапке живут только на трёх корневых поверхностях.
     //
-    // Прецедент на будущее: новая поверхность — ещё одно слово, а не новый жест.
+    // Пока шапка была одна на всё, вложенный экран носил чужую навигацию:
+    // на экране раздела подсвечены «Разделы», а имени раздела нет вовсе, и
+    // выйти можно только системной «назад». Человек открыл «Дачу» и не мог
+    // убедиться, что он в «Даче», а не в общем списке (аудит Д-7, п. 1).
+    //
+    // У вложенного экрана своя шапка: путь назад словом и собственное имя.
+    val parent: Pair<Route, String>? = when (route) {
+        is Route.Note -> Route.Feed to stringResource(R.string.feed_title)
+        is Route.Topic -> Route.Topics to stringResource(R.string.topics_title)
+        is Route.Settings -> Route.Feed to stringResource(R.string.feed_title)
+        else -> null
+    }
+
+    if (parent != null) {
+        val (target, parentName) = parent
+        val title = when (route) {
+            is Route.Topic -> route.name.ifBlank { stringResource(R.string.topics_loose) }
+            is Route.Settings -> stringResource(R.string.settings_title)
+            else -> null
+        }
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Space.screen, vertical = Space.m),
+            verticalArrangement = Arrangement.spacedBy(Space.xs),
+        ) {
+            MetaText(
+                text = "‹ $parentName",
+                color = Prinyal.colors.inkFaint,
+                modifier = Modifier.clickable { onRoute(target) },
+            )
+            title?.let {
+                Text(it, style = Prinyal.type.itemTitle, color = Prinyal.colors.ink)
+            }
+        }
+        return
+    }
+
     val surfaces = listOf(
         Route.Feed to stringResource(R.string.feed_title),
         Route.Topics to stringResource(R.string.topics_title),
         Route.Weekly to stringResource(R.string.weekly_title),
     )
-    // Карточка записи и раздел живут «внутри» своей поверхности — она и подсвечена.
-    val active: Route = when (route) {
-        is Route.Note -> Route.Feed
-        is Route.Topic -> Route.Topics
-        else -> route
-    }
 
     Row(
         Modifier
@@ -200,7 +229,7 @@ private fun TopBar(route: Route, onRoute: (Route) -> Unit) {
             modifier = Modifier.weight(1f),
         ) {
             surfaces.forEach { (target, label) ->
-                val current = target == active
+                val current = target == route
                 Text(
                     text = label,
                     style = if (current) Prinyal.type.itemTitle else Prinyal.type.body,
@@ -213,8 +242,7 @@ private fun TopBar(route: Route, onRoute: (Route) -> Unit) {
         Text(
             text = "···",
             style = Prinyal.type.itemTitle,
-            color = if (route is Route.Settings) Prinyal.colors.accentSelf
-            else Prinyal.colors.inkFaint,
+            color = Prinyal.colors.inkFaint,
             modifier = Modifier.clickable { onRoute(Route.Settings) },
         )
     }

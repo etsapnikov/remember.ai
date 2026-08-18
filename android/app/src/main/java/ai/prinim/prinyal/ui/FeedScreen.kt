@@ -177,6 +177,15 @@ private fun NoteRow(
     onClick: () -> Unit,
 ) {
     val note = entry.note
+    // Живые пункты — текстом, закрытые — сводкой одной строкой (аудит Д-7, п. 3).
+    //
+    // Зачёркивание придумано для строк списка покупок, где человек вычёркивает
+    // сам и видит свой прогресс. У обычного пункта роль другая: сделанное
+    // больше не требует внимания, а зачёркнутым жирным оно было самым заметным
+    // на экране. Плюс «сделано» повторялось пять раз подряд — то же слово, тот
+    // же цвет, ноль новой информации.
+    val living = entry.items.filter { it.isAlive() }
+    val closedItems = entry.items.filter { it.isClosed() }
     val alive = entry.items.filter { it.isAlive() || it.isClosed() }
 
     Column(
@@ -212,8 +221,24 @@ private fun NoteRow(
             }
         }
 
-        alive.forEach { item ->
+        living.forEach { item ->
             ItemLine(item, Modifier.padding(top = Space.sm))
+        }
+
+        // Сводка ровно та же, что на экране раздела: одна запись обязана
+        // выглядеть одинаково в двух местах.
+        if (closedItems.isNotEmpty()) {
+            val done = closedItems.count { ItemState.of(it.state) == ItemState.DONE }
+            val gone = closedItems.size - done
+            val parts = buildList {
+                if (done > 0) add(stringResource(R.string.topic_summary_done, done))
+                if (gone > 0) add(stringResource(R.string.topic_summary_gone, gone))
+            }
+            MetaText(
+                text = parts.joinToString(" · "),
+                color = Prinyal.colors.inkFaint,
+                modifier = Modifier.padding(top = Space.sm),
+            )
         }
     }
 }

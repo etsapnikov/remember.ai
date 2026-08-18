@@ -86,6 +86,16 @@ surfaces() {
 mkdir -p "$OUT"
 mode="${1:-both}"
 
+# Каждый прогон начинается с экрана записи, а микрофон эмулятора даёт тишину:
+# авто-стоп исправно сохраняет пустышку «не расслышал». За несколько прогонов
+# верх ленты забивается фантомами, и снимать становится нечего. Поэтому съёмка
+# сама за собой убирает: копию базы всё равно перезальёт `emulator.sh seed`.
+cleanup_junk() {
+  adb -s "$SERIAL" shell "run-as $PKG sqlite3 databases/prinyal.db \
+    \"DELETE FROM notes WHERE transcript IS NULL AND duration_ms < 5000\"" 2>/dev/null
+}
+trap cleanup_junk EXIT
+
 if [ "$mode" = "both" ] || [ "$mode" = "dark" ]; then
   say "тёмная тема:"
   adb -s "$SERIAL" shell cmd uimode night yes >/dev/null 2>&1

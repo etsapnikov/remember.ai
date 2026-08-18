@@ -7,6 +7,7 @@ import ai.prinim.prinyal.data.Window
 import ai.prinim.prinyal.domain.WeeklySummary
 import ai.prinim.prinyal.returns.ReturnScheduler
 import ai.prinim.prinyal.returns.ReturnDiag
+import ai.prinim.prinyal.ui.components.SwipeRevealRow
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.Radius
@@ -173,38 +174,49 @@ fun SettingsScreen(vm: AppViewModel) {
                     color = Prinyal.colors.inkMuted,
                 )
                 val rules by vm.replacements.collectAsState()
+                var openRule by remember { mutableStateOf<String?>(null) }
+
                 if (rules.isEmpty()) {
                     MetaText(stringResource(R.string.dict_empty), color = Prinyal.colors.inkFaint)
                 }
                 rules.forEach { rule ->
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                    // Удаление жестом, а не кнопкой (аудит Д-7, п. 2).
+                    //
+                    // Красный принадлежит жесту записи — это единственное жёсткое
+                    // правило палитры. Столбик красных «Убрать» в покое делал
+                    // самым ярким местом всех настроек кнопку, которая сносит
+                    // правило одним тапом без отката. Механика свайпа уже
+                    // работает в ленте, второй способ удалять не нужен.
+                    SwipeRevealRow(
+                        key = rule.id,
+                        openKey = openRule,
+                        onOpen = { openRule = it },
+                        actionLabel = stringResource(R.string.dict_remove),
+                        onAction = {
+                            vm.removeReplacement(rule.id)
+                            openRule = null
+                        },
                     ) {
-                        Text(
-                            text = "${rule.fromPhrase} → ${rule.toPhrase}",
-                            style = Prinyal.type.body,
-                            color = Prinyal.colors.ink,
-                            modifier = Modifier.weight(1f),
-                        )
-                        // «Ни разу» — повод убрать правило, поэтому счётчик виден.
-                        MetaText(
-                            text = if (rule.hits == 0) {
-                                stringResource(R.string.dict_never)
-                            } else {
-                                stringResource(R.string.dict_hits, rule.hits)
-                            },
-                            color = Prinyal.colors.inkFaint,
-                        )
-                        Text(
-                            text = stringResource(R.string.dict_remove),
-                            style = Prinyal.type.label,
-                            color = Prinyal.colors.destructiveFg,
-                            modifier = Modifier
-                                .clickable { vm.removeReplacement(rule.id) }
-                                .padding(start = Space.m),
-                        )
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = Space.s),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "${rule.fromPhrase} → ${rule.toPhrase}",
+                                style = Prinyal.type.body,
+                                color = Prinyal.colors.ink,
+                                modifier = Modifier.weight(1f),
+                            )
+                            MetaText(
+                                text = if (rule.hits == 0) {
+                                    stringResource(R.string.dict_never)
+                                } else {
+                                    stringResource(R.string.dict_hits, rule.hits)
+                                },
+                                color = Prinyal.colors.inkFaint,
+                            )
+                        }
                     }
                 }
             }
