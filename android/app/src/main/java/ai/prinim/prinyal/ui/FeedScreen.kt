@@ -20,11 +20,22 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.HorizontalDivider
+import ai.prinim.prinyal.domain.FeedView
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import ai.prinim.prinyal.data.NoteEntity
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -66,7 +77,18 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
     // Отсчёт трёх дней тишины идёт с показа, а не с ответа: увидел — значит
     // спросили, даже если человек прошёл мимо.
     LaunchedEffect(ask?.id) { ask?.let { vm.markAsked(it.id) } }
-    val listState = rememberLazyListState()
+    // Позиция списка живёт во вьюмодели, а не в композиции: возвращаясь из
+    // карточки, человек обязан оказаться там, откуда ушёл. rememberLazyListState
+    // умирает вместе с экраном, и лента отматывалась в начало — а с сотней
+    // записей это значит «найди заново».
+    val listState = rememberLazyListState(vm.feedIndex, vm.feedOffset)
+    DisposableEffect(listState) {
+        onDispose {
+            vm.feedIndex = listState.firstVisibleItemIndex
+            vm.feedOffset = listState.firstVisibleItemScrollOffset
+        }
+    }
+    val filter by vm.feedFilter.collectAsState()
 
     // Одновременно открыта максимум одна зона свайпа.
     var openKey by remember { mutableStateOf<String?>(null) }
@@ -95,42 +117,159 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
             return@Column
         }
 
+        // Строка фильтра (Д-25) — вторая строка шапки и только на «Записях».
+        FilterRow(filter, onPick = { vm.setFeedFilter(it) })
+
+        val sections = remember(notes, filter) { FeedView.sections(notes, filter) }
+
+        if (sections.isEmpty()) {
+            FilteredEmpty(filter)
+            return@Column
+        }
+
+        // Сводка под фильтром: сколько записей и пунктов сейчас видно. В покое
+        // её нет — «всё» и так значит всё.
+        if (filter != FeedView.Filter.ALL) {
+            val rows = sections.sumOf { it.rows.size }
+            val items = sections.sumOf { section -> section.rows.sumOf { it.matched } }
+            MetaText(
+                text = pluralStringResource(R.plurals.feed_summary_notes, rows, rows) + " · " +
+                    pluralStringResource(R.plurals.feed_summary_items, items, items),
+                color = Prinyal.colors.inkFaint,
+                modifier = Modifier.padding(horizontal = Space.screen, vertical = Space.xs),
+            )
+        }
+
         LazyColumn(
             state = listState,
             contentPadding = PaddingValues(top = Space.xs, bottom = Space.xxl),
         ) {
             // Групповая уборка: появляется при ≥ 3 записях без пунктов.
-            if (junk.size >= 3) {
+            if (junk.size >= 3 && filter == FeedView.Filter.ALL) {
                 item(key = "junk-sweep") {
                     JunkSweepRow(count = junk.size, onSweep = { vm.sweepJunk() })
-                    Hairline()
                 }
             }
 
-            notes.forEachIndexed { index, entry ->
-                item(key = entry.note.id) {
-                    SwipeRevealRow(
-                        key = entry.note.id,
-                        openKey = openKey,
-                        onOpen = { openKey = it },
-                        actionLabel = deleteLabel(entry.items.count { it.isAlive() }),
-                        onAction = {
-                            openKey = null
-                            vm.deleteNote(entry.note.id)
-                        },
-                    ) { revealed ->
-                        NoteRow(
-                            entry = entry,
-                            compact = revealed > 0.05f,
-                            topicName = entry.note.topicId?.let { topicNames[it] },
-                            onClick = { if (openKey == null) onOpenNote(entry.note.id) },
-                        )
+            sections.forEach { section ->
+                item(key = "day-${section.kind}-${section.date}") {
+                    DayHeader(section)
+                }
+                section.rows.forEach { row ->
+                    item(key = row.entry.note.id) {
+                        SwipeRevealRow(
+                            key = row.entry.note.id,
+                            openKey = openKey,
+                            onOpen = { openKey = it },
+                            actionLabel = deleteLabel(row.entry.items.count { it.isAlive() }),
+                            onAction = {
+                                openKey = null
+                                vm.deleteNote(row.entry.note.id)
+                            },
+                        ) { revealed ->
+                            NoteRow(
+                                row = row,
+                                compact = revealed > 0.05f,
+                                topicName = row.entry.note.topicId?.let { topicNames[it] },
+                                onClick = { if (openKey == null) onOpenNote(row.entry.note.id) },
+                            )
+                        }
                     }
-                    if (index != notes.lastIndex) Hairline()
                 }
             }
         }
     }
+}
+
+/**
+ * Пять слов фильтра (Д-25).
+ *
+ * Слова, а не чипы: пять слов влезают в строку целиком, а обводка и счётчики
+ * сделали бы из них органы управления. Механика ровно та же, что у трёх
+ * поверхностей в шапке, — человеку нечего изучать заново.
+ */
+@Composable
+private fun FilterRow(current: FeedView.Filter, onPick: (FeedView.Filter) -> Unit) {
+    val words = listOf(
+        FeedView.Filter.ALL to R.string.filter_all,
+        FeedView.Filter.PLANNED to R.string.filter_planned,
+        FeedView.Filter.RETURNING to R.string.filter_returning,
+        FeedView.Filter.DONE to R.string.filter_done,
+        FeedView.Filter.BURIED to R.string.filter_buried,
+    )
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Space.screen)
+            .padding(bottom = Space.xs),
+        horizontalArrangement = Arrangement.spacedBy(Space.m),
+    ) {
+        words.forEach { (filter, label) ->
+            val active = filter == current
+            Text(
+                text = stringResource(label),
+                style = Prinyal.type.meta,
+                color = if (active) Prinyal.colors.ink else Prinyal.colors.inkFaint,
+                fontWeight = if (active) FontWeight.Medium else FontWeight.Normal,
+                modifier = Modifier.clickable { onPick(filter) },
+            )
+        }
+    }
+}
+
+/** Пустой результат фильтра — что именно пусто, без кнопок (Д-25). */
+@Composable
+private fun FilteredEmpty(filter: FeedView.Filter) {
+    val body = when (filter) {
+        FeedView.Filter.PLANNED -> R.string.filter_empty_planned
+        FeedView.Filter.RETURNING -> R.string.filter_empty_returning
+        FeedView.Filter.DONE -> R.string.filter_empty_done
+        else -> R.string.filter_empty_buried
+    }
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(horizontal = Space.screen, vertical = Space.xl),
+        verticalArrangement = Arrangement.spacedBy(Space.s),
+    ) {
+        Text(
+            text = stringResource(R.string.topic_empty_title),
+            style = Prinyal.type.itemTitle,
+            color = Prinyal.colors.ink,
+        )
+        Text(
+            text = stringResource(body),
+            style = Prinyal.type.voice,
+            color = Prinyal.colors.inkMuted,
+        )
+    }
+}
+
+/**
+ * Разделитель дня (Д-24): дата один раз на сутки.
+ *
+ * В снимке от 19 августа «19 авг» повторялось семь раз — под каждой записью.
+ * Дата ушла сюда, а в шапке записи осталось время; заодно появилась крупная
+ * отбивка между сутками.
+ */
+@Composable
+private fun DayHeader(section: FeedView.Section) {
+    val text = when (section.kind) {
+        FeedView.Section.Kind.TODAY ->
+            stringResource(R.string.day_today, section.date?.let { Dates.dayFull(it) }.orEmpty())
+        FeedView.Section.Kind.DAY -> section.date?.let { Dates.dayFull(it).uppercase() }.orEmpty()
+        FeedView.Section.Kind.TOMORROW -> stringResource(R.string.day_tomorrow)
+        FeedView.Section.Kind.THIS_WEEK -> stringResource(R.string.day_this_week)
+        FeedView.Section.Kind.LATER -> stringResource(R.string.day_later)
+    }
+    MetaText(
+        text = text,
+        color = Prinyal.colors.inkFaint,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Space.screen)
+            .padding(top = Space.ml, bottom = Space.s),
+    )
 }
 
 /** «Удалить» или «Удалить · 3 пункта» — число и есть предупреждение, модалки нет. */
@@ -177,98 +316,154 @@ private fun JunkSweepRow(count: Int, onSweep: () -> Unit) {
  */
 @Composable
 private fun NoteRow(
-    entry: NoteWithItems,
+    row: FeedView.Row,
     compact: Boolean,
     topicName: String?,
     onClick: () -> Unit,
 ) {
-    val note = entry.note
-    // Живые пункты — текстом, закрытые — сводкой одной строкой (аудит Д-7, п. 3).
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val note = row.entry.note
+
+    // Политика возврата — свойство записи, а не пункта (Д-24).
     //
-    // Зачёркивание придумано для строк списка покупок, где человек вычёркивает
-    // сам и видит свой прогресс. У обычного пункта роль другая: сделанное
-    // больше не требует внимания, а зачёркнутым жирным оно было самым заметным
-    // на экране. Плюс «сделано» повторялось пять раз подряд — то же слово, тот
-    // же цвет, ноль новой информации.
-    val living = entry.items.filter { it.isAlive() }
-    val closedItems = entry.items.filter { it.isClosed() }
-    val alive = entry.items.filter { it.isAlive() || it.isClosed() }
+    // Человек наговорил комок один раз, и продукт возвращается к нему один раз.
+    // Раньше «в плане · просто сохраню» печаталось под каждым пунктом — в
+    // снимке от 19 августа одиннадцать раз подряд, — и текст пунктов разбивался
+    // служебным на каждом шагу. Под пунктом статус остаётся только там, где он
+    // отличается от общего.
+    val plans = row.shown.map { Phrases.plan(context, it) }
+    // Общий статус — тот, что у большинства, а не единственный на всех. Если
+    // требовать полного совпадения, то одна дата среди трёх «просто сохраню»
+    // возвращает нас к статусу под каждым пунктом — то есть к тому, из-за чего
+    // всё и затевалось.
+    val commonPlan = plans.groupingBy { it }.eachCount()
+        .filterValues { it > 1 }
+        .maxByOrNull { it.value }
+        ?.key
+        ?: plans.singleOrNull()
 
     Column(
         Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = Space.screen, vertical = Space.s),
+            .padding(horizontal = Space.screen)
+            // 32 против 12: границу записи держит воздух, а не рамка.
+            .padding(bottom = Space.ml),
     ) {
         Row(
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = if (alive.isEmpty()) 32.dp else 0.dp),
+            Modifier.fillMaxWidth().heightIn(min = 24.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(Space.s),
-                // Время и раздел вместе шире, чем кажется: у длинного имени
-                // раздела строка наезжала на статус справа. Отступ справа —
-                // чтобы обрезанное имя не касалось счётчика вплотную: без него
-                // «аналитика… 2 пункта» слипается в одно слово.
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .padding(end = Space.s),
+                modifier = Modifier.weight(1f, fill = false).padding(end = Space.s),
             ) {
-                MetaText(formatTime(note.createdAt))
-                // «Без раздела» не подписываем: тишина вместо шума (Д-10).
-                // Лента — время, «Разделы» — структура; чип в строке смешал бы
-                // две системы, поэтому здесь имя тихим текстом, а не пилюлей.
-                // Meta-цветом, а не акцентом: в ленте раздел читают, а не правят,
-                // и колонка оранжевого была самым заметным на экране (аудит п. 9).
-                // Акцент остаётся чипу в карточке — там раздел меняют.
-                // Одна строка с многоточием, а не перенос: имя раздела человек
-                // задаёт сам, и на длинном шапка записи распадалась надвое —
-                // «2 пункта» уезжало вниз, а строка переставала быть строкой.
+                // Время без даты: дата ушла в разделитель дня.
+                MetaText(Dates.time(note.createdAt))
                 topicName?.let {
                     MetaText(it, color = Prinyal.colors.inkFaint, maxLines = 1)
                 }
             }
-            if (alive.isEmpty()) {
-                // «0:04 не расслышал»; длительность прячется, когда строка сжата.
-                val status = statusLabel(NoteStatus.of(note.status))
-                val duration = formatDuration(note.durationMs)
-                MetaText(
-                    text = if (compact || duration == null) status else "$duration $status",
-                    color = Prinyal.colors.inkFaint,
-                )
-            } else {
-                MetaText(pluralStringResource(R.plurals.note_items_count, alive.size, alive.size))
+            MetaText(text = headline(row, note, compact), color = Prinyal.colors.inkFaint)
+        }
+
+        if (row.shown.isNotEmpty()) {
+            // Линия слева появляется только у многопунктовых записей — она
+            // отвечает на вопрос «это одна мысль или три».
+            val many = row.shown.size + row.restPlanned > 1
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(top = Space.s)) {
+                // Линия слева появляется только у многопунктовых записей — она
+                // отвечает на вопрос «это одна мысль или три». У одиночной
+                // записи её нет: там нечего объединять.
+                if (many) {
+                    Box(
+                        Modifier
+                            .width(1.dp)
+                            .fillMaxHeight()
+                            .background(Prinyal.colors.hairline)
+                    )
+                }
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(start = if (many) Space.sm else 0.dp),
+                    verticalArrangement = Arrangement.spacedBy(Space.sm),
+                ) {
+                    row.shown.forEachIndexed { index, item ->
+                        ItemLine(
+                            item = item,
+                            // Свой статус — только когда он отличается от общего.
+                            showPlan = commonPlan == null || plans[index] != commonPlan,
+                        )
+                    }
+                }
             }
         }
 
-        living.forEach { item ->
-            ItemLine(item, Modifier.padding(top = Space.sm))
+        rest(row)?.let {
+            MetaText(it, color = Prinyal.colors.inkFaint, modifier = Modifier.padding(top = Space.sm))
         }
 
-        // Сводка ровно та же, что на экране раздела: одна запись обязана
-        // выглядеть одинаково в двух местах.
-        if (closedItems.isNotEmpty()) {
-            val done = closedItems.count { ItemState.of(it.state) == ItemState.DONE }
-            val gone = closedItems.size - done
-            val parts = buildList {
-                if (done > 0) add(stringResource(R.string.topic_summary_done, done))
-                if (gone > 0) add(stringResource(R.string.topic_summary_gone, gone))
-            }
+        // Один статус на запись, внизу группы.
+        if (commonPlan != null && row.shown.isNotEmpty()) {
             MetaText(
-                text = parts.joinToString(" · "),
-                color = Prinyal.colors.inkFaint,
+                text = commonPlan,
+                color = Prinyal.colors.accentSelf,
                 modifier = Modifier.padding(top = Space.sm),
             )
         }
     }
 }
 
+/** Правая часть шапки: «1 пункт», «1 из 4» под фильтром или состояние записи. */
+@Composable
+private fun headline(row: FeedView.Row, note: NoteEntity, compact: Boolean): String {
+    val live = row.shown.size + row.restPlanned
+    return when {
+        // Закрытая запись — словом, а не цифрой: «1 сделано» без текста
+        // читается как сбой, «всё сделано» — как состояние (Д-24).
+        row.allClosed && row.restGone == 0 -> stringResource(R.string.note_all_done)
+        row.allClosed && row.restDone == 0 -> stringResource(R.string.note_all_gone)
+        row.allClosed -> stringResource(R.string.note_all_closed)
+        row.filtered -> stringResource(R.string.note_matched, row.matched, row.total)
+        live > 0 -> pluralStringResource(R.plurals.note_items_count, live, live)
+        else -> {
+            val status = statusLabel(NoteStatus.of(note.status))
+            val duration = formatDuration(note.durationMs)
+            if (compact || duration == null) status else "$duration $status"
+        }
+    }
+}
+
+/** Строка остатка: «ещё 1 в плане · 1 сделано». */
+@Composable
+private fun rest(row: FeedView.Row): String? {
+    // У закрытой записи остатка нет: её состояние уже сказано в шапке одним
+    // словом, и повторять «1 сделано» строкой ниже незачем.
+    if (row.allClosed) return null
+    val parts = buildList {
+        if (row.restPlanned > 0) {
+            add(pluralStringResource(R.plurals.note_rest_planned, row.restPlanned, row.restPlanned))
+        }
+        if (row.restDone > 0) add(stringResource(R.string.topic_summary_done, row.restDone))
+        if (row.restGone > 0) add(stringResource(R.string.topic_summary_gone, row.restGone))
+    }
+    if (parts.isEmpty()) return null
+    return if (row.restPlanned > 0) {
+        stringResource(R.string.note_rest, parts.joinToString(" · "))
+    } else {
+        parts.joinToString(" · ")
+    }
+}
+
 /** Пункт: текст и meta-строка сегментами через « · », пустые сегменты не печатаются. */
 @Composable
-private fun ItemLine(item: ItemEntity, modifier: Modifier = Modifier) {
+private fun ItemLine(
+    item: ItemEntity,
+    showPlan: Boolean = true,
+    modifier: Modifier = Modifier,
+) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val state = ItemState.of(item.state)
     val closed = item.isClosed()
@@ -283,9 +478,10 @@ private fun ItemLine(item: ItemEntity, modifier: Modifier = Modifier) {
         val segments = buildList {
             // Адресат — только у «сказать»: у остальных типов он не звучал.
             if (ItemType.of(item.type) == ItemType.TELL) item.who?.let(::add)
-            add(stateLabel(state))
-            if (!closed) add(Phrases.plan(context, item))
+            if (closed) add(stateLabel(state))
+            if (!closed && showPlan) add(Phrases.plan(context, item))
         }
+        if (segments.isEmpty()) return@Column
         MetaText(
             text = segments.joinToString(" · "),
             color = if (state == ItemState.DONE) Prinyal.colors.done else Prinyal.colors.inkFaint,

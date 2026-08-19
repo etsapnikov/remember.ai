@@ -1,0 +1,148 @@
+package ai.prinim.prinyal
+
+import ai.prinim.prinyal.data.ItemEntity
+import ai.prinim.prinyal.data.ItemState
+import ai.prinim.prinyal.data.NoteEntity
+import ai.prinim.prinyal.data.NoteWithItems
+import ai.prinim.prinyal.domain.FeedView
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.time.Instant
+import java.time.ZoneId
+
+/**
+ * Лента после Д-24 и Д-25: один статус на запись, потолок в три пункта,
+ * закрытая запись одной строкой, пять слов фильтра.
+ */
+class FeedViewTest {
+
+    private val zone: ZoneId = ZoneId.of("Europe/Moscow")
+    private val now: Instant = Instant.parse("2026-08-19T18:00:00Z")
+
+    private fun note(id: String, atHoursAgo: Long = 1) = NoteEntity(
+        id = id,
+        createdAt = now.minusSeconds(atHoursAgo * 3600).toEpochMilli(),
+        audioPath = "",
+        transcript = "речь",
+    )
+
+    private fun item(
+        id: String,
+        state: ItemState = ItemState.PLANNED,
+        dueAt: Long? = null,
+    ) = ItemEntity(
+        id = id,
+        noteId = "n",
+        type = "do",
+        text = "дело $id",
+        dueKind = if (dueAt == null) "none" else "exact",
+        dueAt = dueAt,
+        state = state.wire,
+        confidence = "high",
+    )
+
+    private fun entry(id: String, vararg items: ItemEntity, hoursAgo: Long = 1) =
+        NoteWithItems(note(id, hoursAgo), items.toList())
+
+    @Test
+    fun `в ленте печатается не больше трёх пунктов, остальное — остатком`() {
+        // Запись из шести дел не имеет права занять экран целиком: лента
+        // перестаёт быть лентой.
+        val big = entry("n1", *(1..6).map { item("i$it") }.toTypedArray())
+        val row = FeedView.sections(listOf(big), FeedView.Filter.ALL, now, zone)
+            .single().rows.single()
+
+        assertEquals(FeedView.MAX_ITEMS, row.shown.size)
+        assertEquals(3, row.restPlanned)
+    }
+
+    @Test
+    fun `запись без живого печатается одной строкой`() {
+        val closed = entry("n1", item("i1", ItemState.DONE), item("i2", ItemState.DONE))
+        val row = FeedView.sections(listOf(closed), FeedView.Filter.ALL, now, zone)
+            .single().rows.single()
+
+        assertTrue("закрытая запись развёрнута", row.allClosed)
+        assertTrue(row.shown.isEmpty())
+    }
+
+    @Test
+    fun `закрытая запись знает, чем именно закрыта`() {
+        // Под фильтром «похоронено» продукт называл похороненное сделанным:
+        // счётчики обнулялись у закрытой записи, и шапка выбирала первое слово.
+        val buried = entry("n1", item("i1", ItemState.DISMISSED))
+        val row = FeedView.sections(listOf(buried), FeedView.Filter.BURIED, now, zone)
+            .single().rows.single()
+        assertTrue(row.allClosed)
+        assertEquals(0, row.restDone)
+        assertEquals(1, row.restGone)
+    }
+
+    @Test
+    fun `фильтр выбрасывает записи, где ничего не подошло`() {
+        val live = entry("живая", item("i1"))
+        val done = entry("сделанная", item("i2", ItemState.DONE))
+
+        val onlyDone = FeedView.sections(listOf(live, done), FeedView.Filter.DONE, now, zone)
+            .flatMap { it.rows }
+        assertEquals(listOf("сделанная"), onlyDone.map { it.entry.note.id })
+
+        val onlyBuried = FeedView.sections(listOf(live, done), FeedView.Filter.BURIED, now, zone)
+        assertTrue("похоронённого нет, а записи есть", onlyBuried.isEmpty())
+    }
+
+    @Test
+    fun `шапка знает, сколько пунктов записи прошло фильтр`() {
+        // «1 из 4» — иначе человек решит, что остальные пропали.
+        val mixed = entry(
+            "n1",
+            item("i1", ItemState.DONE),
+            item("i2"), item("i3"), item("i4"),
+        )
+        val row = FeedView.sections(listOf(mixed), FeedView.Filter.DONE, now, zone)
+            .single().rows.single()
+        assertEquals(1, row.matched)
+        assertEquals(4, row.total)
+        assertTrue(row.filtered)
+    }
+
+    @Test
+    fun `«вернусь» берёт только то, у чего срок впереди`() {
+        val soon = entry("завтра", item("i1", dueAt = now.plusSeconds(20 * 3600).toEpochMilli()))
+        val someday = entry("через месяц", item("i2", dueAt = now.plusSeconds(30L * 86400).toEpochMilli()))
+        val noDate = entry("без срока", item("i3"))
+        val past = entry("прошлое", item("i4", dueAt = now.minusSeconds(3600).toEpochMilli()))
+
+        val sections = FeedView.sections(
+            listOf(soon, someday, noDate, past), FeedView.Filter.RETURNING, now, zone,
+        )
+        val ids = sections.flatMap { it.rows }.map { it.entry.note.id }
+        assertEquals(listOf("завтра", "через месяц"), ids)
+        assertEquals(
+            listOf(FeedView.Section.Kind.TOMORROW, FeedView.Section.Kind.LATER),
+            sections.map { it.kind },
+        )
+    }
+
+    @Test
+    fun `закрытое показывается за неделю, старое не тянется`() {
+        val fresh = entry("свежая", item("i1", ItemState.DONE), hoursAgo = 24)
+        val old = entry("старая", item("i2", ItemState.DONE), hoursAgo = 24 * 30)
+
+        val ids = FeedView.sections(listOf(fresh, old), FeedView.Filter.DONE, now, zone)
+            .flatMap { it.rows }.map { it.entry.note.id }
+        assertEquals(listOf("свежая"), ids)
+    }
+
+    @Test
+    fun `записи разложены по дням, сегодня первым`() {
+        val today = entry("сегодня", item("i1"), hoursAgo = 1)
+        val yesterday = entry("вчера", item("i2"), hoursAgo = 30)
+
+        val sections = FeedView.sections(listOf(today, yesterday), FeedView.Filter.ALL, now, zone)
+        assertEquals(FeedView.Section.Kind.TODAY, sections.first().kind)
+        assertEquals(FeedView.Section.Kind.DAY, sections[1].kind)
+        assertEquals("вчера", sections[1].rows.single().entry.note.id)
+    }
+}

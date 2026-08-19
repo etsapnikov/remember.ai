@@ -16,6 +16,8 @@ import java.util.Locale
 object Dates {
 
     private val DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM", Locale("ru"))
+    private val DAY_FULL: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM", Locale("ru"))
+    private val HHMM: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     private val DAY_TIME: DateTimeFormatter =
         DateTimeFormatter.ofPattern("d MMM · HH:mm", Locale("ru"))
 
@@ -26,6 +28,13 @@ object Dates {
         clean(Instant.ofEpochMilli(millis).atZone(zone).format(DAY_TIME))
 
     fun day(temporal: java.time.temporal.TemporalAccessor): String = clean(DAY.format(temporal))
+
+    /** Только время: дата в ленте живёт в разделителе дня (Д-24). */
+    fun time(millis: Long, zone: ZoneId = ZoneId.systemDefault()): String =
+        Instant.ofEpochMilli(millis).atZone(zone).format(HHMM)
+
+    /** «19 августа» — для разделителя дня, где дата названа полностью. */
+    fun dayFull(date: java.time.LocalDate): String = date.format(DAY_FULL)
 
     /** Точка только у сокращения месяца; разделитель и время не трогаем. */
     private fun clean(text: String): String = text.replace(".", "")

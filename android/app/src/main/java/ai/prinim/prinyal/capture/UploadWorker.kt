@@ -166,7 +166,12 @@ class UploadWorker(
                     }
                 }
 
-                is IngestOutcome.Fatal -> app.repository.markFailed(note.id, outcome.code)
+                is IngestOutcome.Fatal -> {
+                    // Речи не было и запись короткая — это карман, а не мысль.
+                    val dropped = outcome.code == "asr_empty" &&
+                        app.repository.dropFalseTap(note.id)
+                    if (!dropped) app.repository.markFailed(note.id, outcome.code)
+                }
 
                 is IngestOutcome.Retryable -> {
                     retryNeeded = true

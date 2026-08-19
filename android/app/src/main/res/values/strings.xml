@@ -79,6 +79,49 @@
 
     <!-- Лента -->
     <string name="feed_title">Записи</string>
+
+    <!-- Строка фильтра (Д-25): пять слов, не чипы. Механика та же, что у трёх
+         поверхностей, — новых органов управления не появилось. -->
+    <string name="filter_all">всё</string>
+    <string name="filter_planned">в плане</string>
+    <string name="filter_returning">вернусь</string>
+    <string name="filter_done">сделано</string>
+    <string name="filter_buried">похоронено</string>
+    <string name="filter_empty_planned">В плане ничего не осталось.</string>
+    <string name="filter_empty_returning">Возвращаться пока не к чему.</string>
+    <string name="filter_empty_done">Сделанного за неделю нет.</string>
+    <string name="filter_empty_buried">Похоронённого пока нет.</string>
+
+    <!-- Разделители дня (Д-24): дата один раз на сутки, а не в каждой записи. -->
+    <string name="day_today">СЕГОДНЯ · %1$s</string>
+    <string name="day_tomorrow">ЗАВТРА</string>
+    <string name="day_this_week">НА ЭТОЙ НЕДЕЛЕ</string>
+    <string name="day_later">ПОЗЖЕ</string>
+
+    <!-- Шапка записи и её остаток -->
+    <string name="note_all_done">всё сделано</string>
+    <string name="note_all_gone">всё похоронено</string>
+    <string name="note_all_closed">всё закрыто</string>
+    <string name="note_matched">%1$d из %2$d</string>
+    <string name="note_rest">ещё %1$s</string>
+    <plurals name="note_rest_planned">
+        <item quantity="one">%1$d в плане</item>
+        <item quantity="few">%1$d в плане</item>
+        <item quantity="many">%1$d в плане</item>
+        <item quantity="other">%1$d в плане</item>
+    </plurals>
+    <plurals name="feed_summary_notes">
+        <item quantity="one">%1$d запись</item>
+        <item quantity="few">%1$d записи</item>
+        <item quantity="many">%1$d записей</item>
+        <item quantity="other">%1$d записи</item>
+    </plurals>
+    <plurals name="feed_summary_items">
+        <item quantity="one">%1$d пункт</item>
+        <item quantity="few">%1$d пункта</item>
+        <item quantity="many">%1$d пунктов</item>
+        <item quantity="other">%1$d пункта</item>
+    </plurals>
     <string name="feed_empty">Здесь появятся записи</string>
     <!-- Пустые состояния единым тоном (аудит Д-7): что здесь будет + откуда
          возьмётся, без кнопок и картинок. -->

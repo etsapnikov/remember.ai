@@ -14,6 +14,7 @@ import ai.prinim.prinyal.data.TopicSource
 import ai.prinim.prinyal.data.ReplacementEntity
 import ai.prinim.prinyal.domain.ContextPack
 import kotlinx.coroutines.withContext
+import ai.prinim.prinyal.domain.FeedView
 import ai.prinim.prinyal.domain.Replacements
 import ai.prinim.prinyal.domain.StructureRepair
 import ai.prinim.prinyal.data.PersonEntity
@@ -120,6 +121,37 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         /** Псевдо-раздел решений: собирается запросом, топиком не является. */
         const val DECISIONS = "@decisions"
     }
+
+    /**
+     * Фильтр ленты (Д-25) и позиция списка.
+     *
+     * Живут во вьюмодели, а не в композиции: экран карточки пересоздаёт ленту,
+     * и `remember` там умирает — человек возвращался в начало списка. Фильтр
+     * при этом **не** переживает перезапуск: приложение открывается на клавише,
+     * и вернуться к отфильтрованной ленте, не помня об этом, значит потерять
+     * записи из виду.
+     */
+    private val _feedFilter = MutableStateFlow(FeedView.Filter.ALL)
+    val feedFilter: StateFlow<FeedView.Filter> = _feedFilter
+
+    fun setFeedFilter(filter: FeedView.Filter) {
+        _feedFilter.value = filter
+        // Смена фильтра — новый список: оставлять прежнюю позицию значит
+        // открыть его посередине неизвестно чего.
+        feedIndex = 0
+        feedOffset = 0
+    }
+
+    /** Фильтр раздела — свой, чтобы выбор в ленте не менял вид раздела. */
+    private val _topicFilter = MutableStateFlow(FeedView.Filter.ALL)
+    val topicFilter: StateFlow<FeedView.Filter> = _topicFilter
+
+    fun setTopicFilter(filter: FeedView.Filter) {
+        _topicFilter.value = filter
+    }
+
+    var feedIndex: Int = 0
+    var feedOffset: Int = 0
 
     fun token(): String = app.settings.token
 

@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
+import ai.prinim.prinyal.domain.FeedView
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -55,29 +57,83 @@ fun TopicScreen(vm: AppViewModel, topicId: String?, onOpenNote: (String) -> Unit
         }
     }
 
-    if (notes.isEmpty()) {
-        Box(Modifier.fillMaxSize(), Alignment.Center) {
-            MetaText(stringResource(R.string.feed_empty))
+    val filter by vm.topicFilter.collectAsState()
+    val sections = androidx.compose.runtime.remember(notes, filter) {
+        FeedView.sections(notes, filter)
+    }
+
+    // Всё живёт в одной колонке.
+    //
+    // Раньше кнопка пака и список были **соседями без родителя**: composable
+    // отдавал два элемента в чужой Box, LazyColumn с fillMaxSize ложился
+    // поверх кнопки и забирал себе касания. Кнопка была видна, не нажималась и
+    // висела на месте при скролле — ровно то, что владелец и описал.
+    Column(Modifier.fillMaxSize()) {
+        // Фильтр тот же, что в ленте: раздел — это та же лента, только уже.
+        if (topicId != AppViewModel.DECISIONS) {
+            TopicFilterRow(filter, onPick = { vm.setTopicFilter(it) })
         }
-        return
-    }
 
-    // Контекст-пак (Р-15.13): всё, что известно по разделу, одним файлом. Кнопка
-    // служебная и стоит над списком, а не парит над ним: она нужна редко и не
-    // должна перекрывать записи.
-    if (topicId != AppViewModel.DECISIONS) {
-        PackButton(vm, topicId, title, context)
-    }
+        // Контекст-пак (Р-15.13): всё, что известно по разделу, одним файлом.
+        if (topicId != AppViewModel.DECISIONS) {
+            PackButton(vm, topicId, title, context)
+        }
 
-    LazyColumn(
-        contentPadding = PaddingValues(
-            start = Space.screen, end = Space.screen, top = Space.s, bottom = Space.xxl,
-        ),
-        modifier = Modifier.fillMaxSize(),
+        if (notes.isEmpty()) {
+            Box(Modifier.fillMaxSize(), Alignment.Center) {
+                MetaText(stringResource(R.string.feed_empty))
+            }
+            return@Column
+        }
+        if (sections.isEmpty()) {
+            Box(Modifier.fillMaxSize(), Alignment.Center) {
+                MetaText(stringResource(R.string.topic_empty_title))
+            }
+            return@Column
+        }
+
+        LazyColumn(
+            contentPadding = PaddingValues(
+                start = Space.screen, end = Space.screen, top = Space.s, bottom = Space.xxl,
+            ),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            sections.flatMap { it.rows }.forEachIndexed { index, row ->
+                item(key = row.entry.note.id) {
+                    TopicNoteRow(row.entry, onClick = { onOpenNote(row.entry.note.id) })
+                    HorizontalDivider(thickness = 1.dp, color = Prinyal.colors.hairline)
+                }
+            }
+        }
+    }
+}
+
+/** Те же пять слов, что в ленте: раздел — та же лента, только уже. */
+@Composable
+private fun TopicFilterRow(current: FeedView.Filter, onPick: (FeedView.Filter) -> Unit) {
+    val words = listOf(
+        FeedView.Filter.ALL to R.string.filter_all,
+        FeedView.Filter.PLANNED to R.string.filter_planned,
+        FeedView.Filter.RETURNING to R.string.filter_returning,
+        FeedView.Filter.DONE to R.string.filter_done,
+        FeedView.Filter.BURIED to R.string.filter_buried,
+    )
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Space.screen)
+            .padding(bottom = Space.xs),
+        horizontalArrangement = Arrangement.spacedBy(Space.m),
     ) {
-        items(notes, key = { it.note.id }) { entry ->
-            TopicNoteRow(entry, onClick = { onOpenNote(entry.note.id) })
-            HorizontalDivider(thickness = 1.dp, color = Prinyal.colors.hairline)
+        words.forEach { (filter, label) ->
+            val active = filter == current
+            Text(
+                text = stringResource(label),
+                style = Prinyal.type.meta,
+                color = if (active) Prinyal.colors.ink else Prinyal.colors.inkFaint,
+                fontWeight = if (active) FontWeight.Medium else FontWeight.Normal,
+                modifier = Modifier.clickable { onPick(filter) },
+            )
         }
     }
 }
