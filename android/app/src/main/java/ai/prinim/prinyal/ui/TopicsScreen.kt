@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -139,6 +140,12 @@ private fun TopicRow(
             text = name,
             style = Prinyal.type.itemTitle,
             color = if (muted) Prinyal.colors.inkMuted else Prinyal.colors.ink,
+            // Имя раздела человек задаёт сам, и оно бывает длинным. В ряду со
+            // SpaceBetween текст без ограничения ширины не переносится, а
+            // наезжает на счётчик: ряд сжимает, а не переносит.
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
         )
         val notesText = pluralStringResource(R.plurals.topics_notes, notes, notes)
         MetaText(

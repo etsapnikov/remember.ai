@@ -23,6 +23,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -204,7 +205,15 @@ private fun TopBar(route: Route, onRoute: (Route) -> Unit) {
                 modifier = Modifier.clickable { onRoute(target) },
             )
             title?.let {
-                Text(it, style = Prinyal.type.itemTitle, color = Prinyal.colors.ink)
+                // Две строки максимум: длинное имя раздела иначе отжимает
+                // содержимое экрана вниз, и списка не видно вовсе.
+                Text(
+                    it,
+                    style = Prinyal.type.itemTitle,
+                    color = Prinyal.colors.ink,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
         return

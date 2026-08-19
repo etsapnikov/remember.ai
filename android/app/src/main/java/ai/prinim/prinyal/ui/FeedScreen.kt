@@ -207,7 +207,16 @@ private fun NoteRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Space.s),
+                // Время и раздел вместе шире, чем кажется: у длинного имени
+                // раздела строка наезжала на статус справа. Отступ справа —
+                // чтобы обрезанное имя не касалось счётчика вплотную: без него
+                // «аналитика… 2 пункта» слипается в одно слово.
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .padding(end = Space.s),
+            ) {
                 MetaText(formatTime(note.createdAt))
                 // «Без раздела» не подписываем: тишина вместо шума (Д-10).
                 // Лента — время, «Разделы» — структура; чип в строке смешал бы
@@ -215,7 +224,12 @@ private fun NoteRow(
                 // Meta-цветом, а не акцентом: в ленте раздел читают, а не правят,
                 // и колонка оранжевого была самым заметным на экране (аудит п. 9).
                 // Акцент остаётся чипу в карточке — там раздел меняют.
-                topicName?.let { MetaText(it, color = Prinyal.colors.inkFaint) }
+                // Одна строка с многоточием, а не перенос: имя раздела человек
+                // задаёт сам, и на длинном шапка записи распадалась надвое —
+                // «2 пункта» уезжало вниз, а строка переставала быть строкой.
+                topicName?.let {
+                    MetaText(it, color = Prinyal.colors.inkFaint, maxLines = 1)
+                }
             }
             if (alive.isEmpty()) {
                 // «0:04 не расслышал»; длительность прячется, когда строка сжата.

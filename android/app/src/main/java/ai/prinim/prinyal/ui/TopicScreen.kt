@@ -108,7 +108,15 @@ private fun TopicNoteRow(entry: NoteWithItems, onClick: () -> Unit) {
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            MetaText(summary(context, entry), color = Prinyal.colors.inkFaint)
+            // Сводка растёт с числом состояний: «3 в плане · 1 сделано ·
+            // 2 закрыто» уже упирается в дату. Жмётся сводка, дата остаётся
+            // целой — она короткая и по ней ищут.
+            MetaText(
+                summary(context, entry),
+                color = Prinyal.colors.inkFaint,
+                maxLines = 1,
+                modifier = Modifier.weight(1f, fill = false),
+            )
             MetaText(shortDate(entry.note.createdAt), color = Prinyal.colors.inkFaint)
         }
     }
@@ -156,18 +164,24 @@ private fun PackButton(
     context: android.content.Context,
 ) {
     val name = title
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Space.screen, vertical = Space.xs),
-    ) {
-        MetaText(
-            text = stringResource(R.string.pack_build),
-            color = Prinyal.colors.accentSelf,
-            modifier = Modifier.clickable {
-                vm.contextPack(topicId, name) { file, _ -> sharePack(context, file) }
-            },
-        )
+    Column {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Space.screen)
+                .padding(top = Space.xs, bottom = Space.sm),
+        ) {
+            MetaText(
+                text = stringResource(R.string.pack_build),
+                color = Prinyal.colors.accentSelf,
+                modifier = Modifier.clickable {
+                    vm.contextPack(topicId, name) { file, _ -> sharePack(context, file) }
+                },
+            )
+        }
+        // Черта отделяет действие от списка: без неё «Собрать контекст»
+        // прилипало к первой заметке и читалось как её часть.
+        HorizontalDivider(thickness = 1.dp, color = Prinyal.colors.hairline)
     }
 }
 

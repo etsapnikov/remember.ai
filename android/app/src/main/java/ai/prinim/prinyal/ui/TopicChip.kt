@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
@@ -38,10 +39,15 @@ import androidx.compose.ui.window.Dialog
  * заморозка не событие, о котором надо рассказывать.
  */
 @Composable
-fun TopicChip(name: String, source: TopicSource, onClick: () -> Unit) {
+fun TopicChip(
+    name: String,
+    source: TopicSource,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
     val machine = source == TopicSource.LLM
     Box(
-        Modifier
+        modifier
             .border(
                 1.dp,
                 if (machine) Prinyal.colors.accentSelf else Prinyal.colors.rule,
@@ -50,9 +56,13 @@ fun TopicChip(name: String, source: TopicSource, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(horizontal = Space.sm, vertical = Space.xs),
     ) {
+        // Одна строка: у длинного имени раздела пилюля разрасталась на две
+        // строки и наезжала на дату слева — в ряду со SpaceBetween нечему было
+        // её остановить.
         MetaText(
             text = name,
             color = if (machine) Prinyal.colors.accentSelf else Prinyal.colors.inkMuted,
+            maxLines = 1,
         )
     }
 }
@@ -149,6 +159,9 @@ private fun Row(label: String, hint: String?, accent: Boolean = false, onClick: 
             text = label,
             style = Prinyal.type.body,
             color = if (accent) Prinyal.colors.accentSelf else Prinyal.colors.ink,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
         )
         hint?.let { MetaText(it, color = Prinyal.colors.inkFaint) }
     }

@@ -223,6 +223,11 @@ fun NoteScreen(
                     TopicChip(
                         name = topicName ?: stringResource(R.string.topics_loose),
                         source = TopicSource.of(note.topicSource),
+                        // Дата остаётся целой, жмётся раздел: дату читают, а
+                        // раздел узнают и по началу имени.
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .padding(start = Space.s),
                         onClick = { picking = true },
                     )
                 }
@@ -250,15 +255,6 @@ fun NoteScreen(
                         onAnswer = { openAppend(context, noteId) },
                         onClose = { vm.closeInterview() },
                     )
-                }
-            }
-
-            // «Связано» (Р-15.11). Блока нет, когда связей нет: пустой заголовок
-            // обещал бы, что продукт что-то нашёл, и не нашёл бы ничего.
-            if (linked.isNotEmpty()) {
-                item { SectionTitle(stringResource(R.string.note_linked)) }
-                items(linked, key = { it.id }) { link ->
-                    LinkRow(link, onClick = { onOpenNote(link.id) })
                 }
             }
 
@@ -299,72 +295,81 @@ fun NoteScreen(
                 item { ParsingBlock() }
             }
 
+            // «Связано» (Р-15.11) — под пунктами, а не над ними: связь про
+            // соседние записи, а содержание этой — пункты. Наверху блок
+            // перехватывал внимание раньше того, ради чего карточку открыли.
+            // Блока нет, когда связей нет: пустой заголовок обещал бы, что
+            // продукт что-то нашёл, и не нашёл бы ничего.
+            if (linked.isNotEmpty()) {
+                item { SectionTitle(stringResource(R.string.note_linked)) }
+                items(linked, key = { it.id }) { link ->
+                    LinkRow(link, onClick = { onOpenNote(link.id) })
+                }
+            }
+
             note.transcript?.takeIf { it.isNotBlank() }?.let { transcript ->
                 item {
-                    Row(
+                    // Шапка сырца: слева имя блока, справа действия.
+                    //
+                    // Объяснение «разбираю — дописать можно через минуту» стоит
+                    // **отдельной строкой**, а не в ряду с заголовком. В ряду
+                    // оно ни во что не помещалось: три текста без ограничения
+                    // ширины наезжали друг на друга, и «Поправить» ломалось
+                    // пополам. Длинная фраза в SpaceBetween-ряду — это всегда
+                    // так: ряд не переносит, он сжимает.
+                    val busy = status == NoteStatus.RECORDED || status == NoteStatus.QUEUED
+                    Column(
                         Modifier.fillMaxWidth().padding(top = Space.s),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalArrangement = Arrangement.spacedBy(Space.xs),
                     ) {
-                        MetaText(
-                            stringResource(R.string.note_transcript),
-                            color = Prinyal.colors.inkFaint,
-                        )
-                        // Вход — строкой у заголовка. Тап по самому тексту остаётся
-                        // выделению и копированию: транскрипт читают чаще, чем правят.
-                        Row(horizontalArrangement = Arrangement.spacedBy(Space.m)) {
-                        // Пока идёт разбор, дописывать нельзя: переразбор пошёл бы
-                        // по половине текста. Кнопка не исчезает и не молчит — она
-                        // прямо говорит, почему сейчас нельзя (Р-15.1).
-                        val busy = status == NoteStatus.RECORDED || status == NoteStatus.QUEUED
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            MetaText(
+                                stringResource(R.string.note_transcript),
+                                color = Prinyal.colors.inkFaint,
+                            )
+                            // Вход — строкой у заголовка. Тап по самому тексту
+                            // остаётся выделению и копированию: транскрипт
+                            // читают чаще, чем правят.
+                            Row(horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+                                // Пока идёт разбор, дописывать нельзя:
+                                // переразбор пошёл бы по половине текста
+                                // (Р-15.1).
+                                if (!busy) {
+                                    // «Дописать» первым: добавляют чаще, чем
+                                    // чинят (Д-3).
+                                    MetaText(
+                                        text = stringResource(R.string.note_append),
+                                        color = Prinyal.colors.accentSelf,
+                                        modifier = Modifier.clickable {
+                                            openAppend(context, noteId)
+                                        },
+                                    )
+                                }
+                                MetaText(
+                                    text = stringResource(R.string.transcript_edit),
+                                    color = Prinyal.colors.accentSelf,
+                                    modifier = Modifier.clickable {
+                                        // Курсор в конец: чаще всего дописывают
+                                        // хвост (Д-6).
+                                        draft = TextFieldValue(
+                                            text = transcript,
+                                            selection = TextRange(transcript.length),
+                                        )
+                                    },
+                                )
+                            }
+                        }
+                        // Кнопка не исчезает молча — продукт прямо говорит,
+                        // почему сейчас нельзя (Р-15.1).
                         if (busy) {
                             MetaText(
                                 text = stringResource(R.string.note_append_busy),
                                 color = Prinyal.colors.inkFaint,
                             )
-                        } else {
-                        // «Дописать» первым: добавляют чаще, чем чинят (Д-3).
-                        MetaText(
-                            text = stringResource(R.string.note_append),
-                            color = Prinyal.colors.accentSelf,
-                            modifier = Modifier.clickable {
-                                context.startActivity(
-                                    android.content.Intent(
-                                        context,
-                                        ai.prinim.prinyal.capture.CaptureActivity::class.java,
-                                    ).apply {
-                                        putExtra(
-                                            ai.prinim.prinyal.capture.CaptureActivity.EXTRA_APPEND_TO,
-                                            noteId,
-                                        )
-                                        // NEW_TASK | CLEAR_TASK: экран захвата
-                                        // живёт в singleTask и после квитанции
-                                        // сам сносит свою задачу. Если нажать
-                                        // «Дописать» ровно в этот момент, интент
-                                        // попадает в **умирающую** задачу и
-                                        // теряется — экран не открывается вовсе.
-                                        // Воспроизведено на эмуляторе, вылечено
-                                        // требованием чистой задачи (Р-15.1).
-                                        addFlags(
-                                            android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
-                                                android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                        )
-                                    }
-                                )
-                            },
-                        )
-                        }
-                        MetaText(
-                            text = stringResource(R.string.transcript_edit),
-                            color = Prinyal.colors.accentSelf,
-                            modifier = Modifier.clickable {
-                                // Курсор в конец: чаще всего дописывают хвост (Д-6).
-                                draft = TextFieldValue(
-                                    text = transcript,
-                                    selection = TextRange(transcript.length),
-                                )
-                            },
-                        )
                         }
                     }
                 }

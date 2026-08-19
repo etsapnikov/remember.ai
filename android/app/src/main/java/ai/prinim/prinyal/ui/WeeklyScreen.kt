@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -89,7 +90,13 @@ fun WeeklyScreen(vm: AppViewModel) {
             verticalArrangement = Arrangement.spacedBy(Space.sm),
         ) {
             MetaText(stringResource(R.string.week_block_label), color = Prinyal.colors.accentSelf)
-            Verdict(data)
+            // Вердикт «Пока нечего рассказать» и наблюдения под ним — прямое
+            // противоречие: экран говорит, что рассказать нечего, и тут же
+            // рассказывает. Пока данных мало, вердикт объясняет пустоту; как
+            // только наблюдения появились, объяснять нечего.
+            if (facts.isEmpty() || data.verdict != WeeklySummary.Verdict.EARLY) {
+                Verdict(data)
+            }
 
             // Сделанное показываем, только когда оно есть. Крупный ноль был
             // единственным числом на экране: продукт большим кеглем сообщал
@@ -108,6 +115,15 @@ fun WeeklyScreen(vm: AppViewModel) {
             }
         }
 
+        // Предложение починить структуру (Р-15.12). Под фактами, а не над ними:
+        // это просьба поработать, и открывать ею неделю невежливо.
+        //
+        // Блок однажды уже пропадал: переменную собирали, а в разметку не
+        // ставили — Kotlin молчит, потому что делегат считается использованным,
+        // и фича просто не показывалась.
+        structure?.let { offer -> StructureOffer(vm, offer) }
+
+        Box(Modifier.height(Space.xl))
     }
 }
 
@@ -211,13 +227,18 @@ private fun StructureOffer(vm: AppViewModel, offer: StructureRepair.Offer) {
         verticalArrangement = Arrangement.spacedBy(Space.sm),
     ) {
         Text(text, style = Prinyal.type.body, color = Prinyal.colors.ink)
+        // Поле без подложки неотличимо от заголовка: человек не догадается, что
+        // имя раздела можно поправить, и примет предложенное слово как данность.
         BasicTextField(
             value = name,
             onValueChange = { name = it.take(24) },
             singleLine = true,
             textStyle = Prinyal.type.itemTitle.copy(color = Prinyal.colors.ink),
             cursorBrush = SolidColor(Prinyal.colors.accentSelf),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Prinyal.colors.paper, Radius.control)
+                .padding(horizontal = Space.sm, vertical = Space.s),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
             Text(

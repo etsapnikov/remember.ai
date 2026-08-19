@@ -51,6 +51,9 @@ object WeeklyFacts {
     const val LONG_WAIT_DAYS = 14
     private const val MOVED_DAYS = 3
     private const val REPEATED_NOTES = 3
+
+    /** Выше этого числа записи об одном — не догадка, а просто активный раздел. */
+    private const val REPEATED_MAX = 6
     private const val DROPPED_MIN = 3
     private const val MAX_FACTS = 5
 
@@ -70,8 +73,12 @@ object WeeklyFacts {
         // одно, сказанное дважды: «Продукт двигался пять дней» и «о Продукте
         // три записи» человек прочтёт как повтор.
         val alreadyToldAbout = filterIsInstance<Fact.TopicMoved>().map { it.topic }
+        // Сверху тоже есть граница. «Шестнадцать записей об одном — возможно,
+        // зреет затея» звучит глупо: шестнадцать записей это не зреющая затея,
+        // а рабочий раздел, и про его активность уже сказано выше. Догадка
+        // уместна, пока замысел ещё можно не заметить.
         if (signal.repeatedTopic != null &&
-            signal.repeatedTopicNotes >= REPEATED_NOTES &&
+            signal.repeatedTopicNotes in REPEATED_NOTES..REPEATED_MAX &&
             signal.repeatedTopic !in alreadyToldAbout
         ) {
             add(Fact.TopicRepeated(signal.repeatedTopic, signal.repeatedTopicNotes))

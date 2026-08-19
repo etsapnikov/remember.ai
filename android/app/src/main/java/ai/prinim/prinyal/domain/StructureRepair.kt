@@ -40,6 +40,21 @@ object StructureRepair {
     /** Слова короче — предлоги и связки, темы они не задают. */
     private const val MIN_WORD = 4
 
+    /** Тот же набор символов, что у токенизатора: имя берётся из сырого текста. */
+    private val WORD = Regex("[а-яёa-z0-9]+")
+
+    /**
+     * Слова, которыми раздел не называют. Они встречаются в половине записей и
+     * дают группу, у которой нет темы, — а человеку показывают её как тему.
+     */
+    private val STOP: Set<String> = setOf(
+        "нужно", "надо", "было", "будет", "может", "мысль", "мысли", "дела", "делать",
+        "сделать", "просто", "очень", "тоже", "поэтому", "который", "этого", "одна",
+        "одно", "ещё", "есть", "чтобы", "потом", "сейчас", "только", "всего", "номер",
+        // Список хранится словами, а сравнивается основами: иначе «одна» в
+        // списке и «одн» в ключе не встретятся, и стоп-слово тихо не сработает.
+    ).map(::stem).toSet()
+
     data class Note(val id: String, val text: String)
 
     /** Что предлагаем сделать. */
@@ -98,11 +113,30 @@ object StructureRepair {
             set.forEach { word -> byWord.getOrPut(word) { mutableListOf() } += id }
         }
 
+        // Полная форма слова — та, что прозвучала.
+        //
+        // Берётся из **сырого** текста, а не из токенов: Bm25.tokenize рубит
+        // слова длиннее шести букв до пяти, и «маркдаун» приезжает оттуда уже
+        // как «маркд». Первая попытка чинила обрубок обрубком — на экране
+        // получилось «выделить раздел „Маркд"», что ничем не лучше «Одн».
+        val fullForm = mutableMapOf<String, String>()
+        notes.forEach { note ->
+            WORD.findAll(note.text.lowercase())
+                .map { it.value }
+                .filter { it.length >= MIN_WORD }
+                .forEach { raw -> fullForm.putIfAbsent(stem(Bm25.tokenize(raw).first()), raw) }
+        }
+
         val best = byWord
             // Слово, встречающееся почти везде, темы не выделяет: оно и есть
             // раздел. «Дача» в разделе «Дача» — не новость.
             .filterValues { it.size >= MIN_CLUSTER && it.size < notes.size }
-            .maxByOrNull { it.value.size }
+            // Служебные слова темой не бывают: «нужно», «одна», «сделать»
+            // встречаются в половине записей и назовут раздел ни о чём.
+            .filterKeys { it !in STOP }
+            // При равном размере берём слово длиннее: «маркдаун» содержательнее
+            // «мысли», а группу они дают одну и ту же.
+            .maxWithOrNull(compareBy({ it.value.size }, { it.key.length }))
 
         // Слова не нашли ничего — но связи могли: две записи бывают про одно, не
         // разделив ни корня, и ради этого случая линковка и существует.
@@ -114,7 +148,8 @@ object StructureRepair {
             if (b in members && a in words.keys) members += a
         }
         if (members.size < MIN_CLUSTER || members.size == notes.size) return null
-        return Cluster(word = best?.key.orEmpty(), noteIds = members.toList())
+        val name = best?.key?.let { fullForm[it] }.orEmpty()
+        return Cluster(word = name, noteIds = members.toList())
     }
 
     /**

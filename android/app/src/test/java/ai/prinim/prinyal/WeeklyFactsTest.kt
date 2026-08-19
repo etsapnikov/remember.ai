@@ -82,6 +82,19 @@ class WeeklyFactsTest {
     }
 
     @Test
+    fun `догадка о зреющей затее не лепится к большому разделу`() {
+        // «Шестнадцать записей об одном — возможно, зреет затея» звучит глупо:
+        // это не зреющая затея, а рабочий раздел. Найдено на живом корпусе.
+        assertTrue(
+            WeeklyFacts.facts(Signal(repeatedTopic = "Работа", repeatedTopicNotes = 16)).isEmpty()
+        )
+        assertEquals(
+            Fact.TopicRepeated("Дача", 4),
+            WeeklyFacts.facts(Signal(repeatedTopic = "Дача", repeatedTopicNotes = 4)).single(),
+        )
+    }
+
+    @Test
     fun `единичный отказ фактом не становится`() {
         // Один «не надо» — обычное дело; три подряд уже говорят, что продукт
         // предлагает не то.

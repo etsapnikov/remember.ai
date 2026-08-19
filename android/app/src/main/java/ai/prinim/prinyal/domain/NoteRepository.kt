@@ -23,6 +23,7 @@ import ai.prinim.prinyal.returns.ReturnScheduler
 import java.io.File
 import java.time.Instant
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 /**
@@ -892,11 +893,40 @@ class NoteRepository(
         db.returns().update(entity.copy(action = action))
     }
 
-    /** После перезагрузки алармы не переживают выключение — ставим заново. */
+    /**
+     * После перезагрузки алармы не переживают выключение — ставим заново.
+     *
+     * Заодно лечим возвраты, назначенные в невозможное будущее. Такие остались
+     * от сборки 1.0.1, где точная дата считалась в секундах, а расписание
+     * читало их как миллисекунды: пункт с датой уезжал в 58601 год и не
+     * приходил никогда — молча, потому что возврат в базе есть и выглядит
+     * запланированным.
+     *
+     * Чинить их надо здесь, а не миграцией: миграция знает только строки, а
+     * правильное время считается от окон и часового пояса, которые живут в
+     * настройках.
+     */
     suspend fun rescheduleAll() {
         val now = Instant.now()
+        val horizon = now.plus(MAX_HORIZON_DAYS, ChronoUnit.DAYS)
+        val windows = settings.windowsNow()
+
         db.returns().upcoming().forEach { entity ->
-            val at = Instant.ofEpochMilli(entity.scheduledAt)
+            var at = Instant.ofEpochMilli(entity.scheduledAt)
+
+            if (at.isAfter(horizon)) {
+                val item = db.items().byId(entity.itemId)
+                val fromItem = item?.dueAt
+                    ?.let(Instant::ofEpochMilli)
+                    ?.takeIf { it.isAfter(now) && !it.isAfter(horizon) }
+                at = fromItem ?: Scheduler.nextWindowAfter(now, windows, zone)
+                db.returns().update(entity.copy(scheduledAt = at.toEpochMilli()))
+                analytics.log(
+                    "return_repaired",
+                    mapOf("return" to entity.id, "was" to entity.scheduledAt),
+                )
+            }
+
             scheduler.schedule(entity.id, if (at.isAfter(now)) at else now.plusSeconds(60))
         }
     }
@@ -919,5 +949,11 @@ class NoteRepository(
         const val STEM = 4
 
         const val MAX_AUTO_TOPICS = 24
+
+        /**
+         * Дальше этого горизонта возврат не бывает настоящим: столько человек
+         * не планирует, а вот ошибка в единицах времени даёт ровно такие даты.
+         */
+        const val MAX_HORIZON_DAYS = 400L
     }
 }

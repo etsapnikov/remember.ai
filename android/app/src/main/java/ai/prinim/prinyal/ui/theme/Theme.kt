@@ -102,11 +102,19 @@ fun MetaText(
     text: String,
     modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier,
     color: Color? = null,
+    /**
+     * Ограничение строк. Служебные подписи чаще всего и оказываются той
+     * стороной ряда, которую сжимают, — а без предела текст в `Row` не
+     * переносится, он наезжает на соседа.
+     */
+    maxLines: Int = Int.MAX_VALUE,
 ) {
     Text(
         text = text,
         style = Prinyal.type.meta,
         color = color ?: Prinyal.colors.inkFaint,
+        maxLines = maxLines,
+        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
         modifier = modifier,
     )
 }

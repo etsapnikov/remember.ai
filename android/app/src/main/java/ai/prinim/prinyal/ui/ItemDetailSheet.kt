@@ -78,12 +78,10 @@ fun ItemDetail(
     ) {
         run {
             Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
-                // Состояние и срок — одной строкой тем же языком, что в карточке.
-                MetaText(
-                    // Дату печатает сама фраза плана — второй раз не повторяем.
-                    text = Phrases.plan(context, item),
-                    color = Prinyal.colors.inkMuted,
-                )
+                // Плана здесь нет намеренно. Раскрытие живёт **под** карточкой
+                // пункта, а карточка ту же фразу уже напечатала строкой выше —
+                // получалось «напомню утром» дважды подряд. Раскрытие отвечает
+                // на вопрос «откуда это взялось», а не повторяет видимое.
 
                 rawSpan?.takeIf { it.isNotBlank() }?.let { span ->
                     Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
