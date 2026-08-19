@@ -103,13 +103,21 @@ fun NoteScreen(
     var draft by remember(noteId) { mutableStateOf<TextFieldValue?>(null) }
     // Разворот сырца. У идеи закрыт по умолчанию, у остальных записей открыт:
     // там транскрипт и есть содержимое.
-    var transcriptOpen by remember(noteId, entry?.note?.noteKind) {
-        mutableStateOf(NoteKind.of(entry?.note?.noteKind) != NoteKind.IDEA)
-    }
+    // Замысел — это запись, у которой есть «Собрано».
+    //
+    // Раньше признаков было два: тело собиралось для idea и mixed, а сворачивал
+    // сырец и предлагал «Покрутить» только idea. На записи с «Собрано», но
+    // видом mixed, выходило нелепое: собранное есть, крутить нечего, сырец
+    // развёрнут во весь экран. Один признак вместо двух согласует все три места.
+    val hasBody = !entry?.note?.bodyMd.isNullOrBlank()
+    var transcriptOpen by remember(noteId, hasBody) { mutableStateOf(!hasBody) }
 
     if (note == null) {
+        // Своё сообщение, а не строка пустой ленты. Карточка теряет запись,
+        // когда её удалили из-под открытого экрана, — и «Здесь появятся записи»
+        // человек прочтёт как «пропало всё», хотя пропала одна.
         Box(Modifier.fillMaxSize(), Alignment.Center) {
-            Text(stringResource(R.string.feed_empty), style = Prinyal.type.body)
+            Text(stringResource(R.string.note_gone), style = Prinyal.type.body)
         }
         return
     }
@@ -242,9 +250,10 @@ fun NoteScreen(
                 item { MarkdownBody(body) }
             }
 
-            // «Покрутить» (Р-15.14) — только у идей: у списка покупок крутить
-            // нечего, а кнопка, которая иногда бессмысленна, учит её не замечать.
-            if (NoteKind.of(note.noteKind) == NoteKind.IDEA) {
+            // «Покрутить» (Р-15.14) — там же, где «Собрано»: у списка покупок
+            // крутить нечего, а кнопка, которая иногда бессмысленна, учит её
+            // не замечать.
+            if (hasBody) {
                 item {
                     Interview(
                         question = question,

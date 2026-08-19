@@ -3,6 +3,7 @@ package ai.prinim.prinyal.ui
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.domain.Dates
 import ai.prinim.prinyal.data.ItemState
+import ai.prinim.prinyal.data.ItemType
 import ai.prinim.prinyal.data.NoteWithItems
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
@@ -133,11 +134,17 @@ private fun shortDate(millis: Long): String = Dates.day(millis)
  */
 @Composable
 private fun summary(context: android.content.Context, entry: NoteWithItems): String {
-    val planned = entry.items.count {
+    // Решение и факт делами не считаются: они не «в плане», их не делают.
+    // Иначе раздел «Решения» показывал «1 в плане» под принятым решением —
+    // продукт обещал вернуться к тому, к чему возвращаться не собирается.
+    val live = entry.items.filterNot {
+        ItemType.of(it.type) in setOf(ItemType.DECISION, ItemType.FACT)
+    }
+    val planned = live.count {
         ItemState.of(it.state) in setOf(ItemState.PLANNED, ItemState.RETURNED, ItemState.SNOOZED)
     }
-    val done = entry.items.count { ItemState.of(it.state) == ItemState.DONE }
-    val gone = entry.items.count {
+    val done = live.count { ItemState.of(it.state) == ItemState.DONE }
+    val gone = live.count {
         ItemState.of(it.state) in setOf(ItemState.DISMISSED, ItemState.EXPIRED)
     }
 

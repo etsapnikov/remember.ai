@@ -219,12 +219,16 @@ interface TopicDao {
      *
      * Пустые не попадают в выборку по INNER JOIN: раздела без заметок в
      * продукте не существует, показывать его было бы обещанием папки.
+     *
+     * Решения и факты в «живых» не считаются: они не дела и возвратов не
+     * порождают, а в счётчике выглядели как невыполненное.
      */
     @Query(
         """
         SELECT t.id AS id, t.name AS name,
                COUNT(DISTINCT n.id) AS notes,
                COUNT(DISTINCT CASE WHEN i.state IN ('planned','returned','snoozed')
+                                    AND i.type NOT IN ('decision','fact')
                                    THEN i.id END) AS liveItems,
                MAX(n.created_at) AS lastAt
         FROM topics t
