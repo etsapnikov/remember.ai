@@ -6,6 +6,7 @@ import ai.prinim.prinyal.domain.WeeklyFacts
 import ai.prinim.prinyal.domain.WeeklySummary
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
+import ai.prinim.prinyal.ui.theme.tap
 import ai.prinim.prinyal.ui.theme.Radius
 import ai.prinim.prinyal.ui.theme.Space
 import androidx.compose.foundation.background
@@ -245,7 +246,7 @@ private fun StructureOffer(vm: AppViewModel, offer: StructureRepair.Offer) {
                 text = stringResource(R.string.repair_yes),
                 style = Prinyal.type.label,
                 color = if (name.isBlank()) Prinyal.colors.inkFaint else Prinyal.colors.accentSelf,
-                modifier = Modifier.clickable(enabled = name.isNotBlank()) {
+                modifier = Modifier.tap(enabled = name.isNotBlank()) {
                     vm.acceptStructure(name)
                 },
             )
@@ -253,7 +254,7 @@ private fun StructureOffer(vm: AppViewModel, offer: StructureRepair.Offer) {
                 text = stringResource(R.string.repair_no),
                 style = Prinyal.type.label,
                 color = Prinyal.colors.inkMuted,
-                modifier = Modifier.clickable { vm.refuseStructure() },
+                modifier = Modifier.tap { vm.refuseStructure() },
             )
         }
     }

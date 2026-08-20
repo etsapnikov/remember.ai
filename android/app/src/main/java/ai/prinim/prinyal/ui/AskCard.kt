@@ -2,6 +2,7 @@ package ai.prinim.prinyal.ui
 
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.ui.theme.Prinyal
+import ai.prinim.prinyal.ui.theme.tap
 import ai.prinim.prinyal.ui.theme.Radius
 import ai.prinim.prinyal.ui.theme.Space
 import androidx.compose.foundation.background
@@ -60,14 +61,14 @@ fun AskCard(
                     text = stringResource(R.string.ask_tell),
                     style = Prinyal.type.label,
                     color = Prinyal.colors.accentSelf,
-                    modifier = Modifier.clickable { answering = true },
+                    modifier = Modifier.tap { answering = true },
                 )
                 // «Не надо» — молча и навсегда для этого имени.
                 Text(
                     text = stringResource(R.string.ask_no),
                     style = Prinyal.type.label,
                     color = Prinyal.colors.inkMuted,
-                    modifier = Modifier.clickable(onClick = onDecline),
+                    modifier = Modifier.tap(onClick = onDecline),
                 )
             }
         } else {
@@ -83,7 +84,7 @@ fun AskCard(
                 text = stringResource(R.string.ask_save),
                 style = Prinyal.type.label,
                 color = Prinyal.colors.accentSelf,
-                modifier = Modifier.clickable { if (draft.isNotBlank()) onAnswer(draft.trim()) },
+                modifier = Modifier.tap { if (draft.isNotBlank()) onAnswer(draft.trim()) },
             )
         }
     }

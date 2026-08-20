@@ -9,6 +9,7 @@ import ai.prinim.prinyal.domain.Phrases
 import ai.prinim.prinyal.ui.components.TypeGlyph
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
+import ai.prinim.prinyal.ui.theme.tap
 import ai.prinim.prinyal.ui.theme.Radius
 import ai.prinim.prinyal.ui.theme.Space
 import androidx.compose.foundation.background
@@ -188,7 +189,7 @@ fun EditItemSheet(
                             style = Prinyal.type.label,
                             color = Prinyal.colors.accentSelf,
                             modifier = Modifier
-                                .clickable {
+                                .tap {
                                     picker.selectedDateMillis?.let { day ->
                                         // Полдень выбранного дня: полночь читается
                                         // как «ночью», а окно утра у нас своё.
@@ -216,7 +217,7 @@ fun EditItemSheet(
                 androidx.compose.foundation.layout.Box(
                     Modifier
                         .background(Prinyal.colors.accentSelf, Radius.pill)
-                        .clickable {
+                        .tap {
                             onSave(
                                 text.text,
                                 type,
@@ -237,7 +238,7 @@ fun EditItemSheet(
                     text = stringResource(R.string.edit_cancel),
                     style = Prinyal.type.label,
                     color = Prinyal.colors.inkMuted,
-                    modifier = Modifier.clickable(onClick = onDismiss),
+                    modifier = Modifier.tap(onClick = onDismiss),
                 )
             }
 
@@ -248,9 +249,7 @@ fun EditItemSheet(
             MetaText(
                 text = stringResource(R.string.item_bury),
                 color = Prinyal.colors.inkMuted,
-                modifier = Modifier
-                    .clickable(onClick = onBury)
-                    .padding(vertical = Space.xs),
+                modifier = Modifier.tap(onClick = onBury),
             )
         }
     }

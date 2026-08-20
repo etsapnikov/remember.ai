@@ -3,6 +3,7 @@ package ai.prinim.prinyal.ui
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
+import ai.prinim.prinyal.ui.theme.tap
 import ai.prinim.prinyal.ui.theme.Space
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -144,7 +145,7 @@ private fun UndoSnackbar(
                 style = Prinyal.type.label,
                 color = Prinyal.colors.accentSelf,
                 modifier = Modifier
-                    .clickable {
+                    .tap {
                         vm.runUndo(event)
                         onUndone()
                     }
@@ -202,7 +203,7 @@ private fun TopBar(route: Route, onRoute: (Route) -> Unit) {
             MetaText(
                 text = "‹ $parentName",
                 color = Prinyal.colors.inkFaint,
-                modifier = Modifier.clickable { onRoute(target) },
+                modifier = Modifier.tap { onRoute(target) },
             )
             title?.let {
                 // Две строки максимум: длинное имя раздела иначе отжимает
@@ -243,7 +244,7 @@ private fun TopBar(route: Route, onRoute: (Route) -> Unit) {
                     text = label,
                     style = if (current) Prinyal.type.itemTitle else Prinyal.type.body,
                     color = if (current) Prinyal.colors.ink else Prinyal.colors.inkFaint,
-                    modifier = Modifier.clickable { onRoute(target) },
+                    modifier = Modifier.tap { onRoute(target) },
                 )
             }
         }
@@ -252,7 +253,7 @@ private fun TopBar(route: Route, onRoute: (Route) -> Unit) {
             text = "···",
             style = Prinyal.type.itemTitle,
             color = Prinyal.colors.inkFaint,
-            modifier = Modifier.clickable { onRoute(Route.Settings) },
+            modifier = Modifier.tap { onRoute(Route.Settings) },
         )
     }
 }

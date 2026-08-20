@@ -10,6 +10,7 @@ import ai.prinim.prinyal.returns.ReturnDiag
 import ai.prinim.prinyal.ui.components.SwipeRevealRow
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
+import ai.prinim.prinyal.ui.theme.tap
 import ai.prinim.prinyal.ui.theme.Radius
 import ai.prinim.prinyal.ui.theme.Space
 import android.content.Intent
@@ -234,7 +235,7 @@ fun SettingsScreen(vm: AppViewModel) {
                         // Акцент означает «продукт сделал сам», а выгружает
                         // человек — обычная строка (аудит Д-7).
                         color = Prinyal.colors.ink,
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.tap {
                             vm.export { file ->
                                 vm.showMessage(
                                     context.getString(R.string.settings_export_done, file.name)
@@ -258,7 +259,7 @@ fun SettingsScreen(vm: AppViewModel) {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .clickable(enabled = !granted) {
+                        .tap(enabled = !granted) {
                             runCatching {
                                 context.startActivity(
                                     Intent(AndroidSettings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
@@ -296,7 +297,7 @@ fun SettingsScreen(vm: AppViewModel) {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .clickable(enabled = !ignoring) {
+                        .tap(enabled = !ignoring) {
                             runCatching {
                                 context.startActivity(
                                     Intent(
@@ -673,7 +674,7 @@ private fun DeveloperSection(vm: AppViewModel, threshold: Int) {
                     text = stringResource(R.string.settings_check),
                     style = Prinyal.type.label,
                     color = Prinyal.colors.accentSelf,
-                    modifier = Modifier.clickable { vm.checkHealth() },
+                    modifier = Modifier.tap { vm.checkHealth() },
                 )
                 health?.let {
                     MetaText(

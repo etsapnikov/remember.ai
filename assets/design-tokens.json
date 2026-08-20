@@ -89,7 +89,7 @@
     "display": {
       "font": "Spectral",
       "weight": 600,
-      "size": 34,
+      "size": 36,
       "line": 1.12,
       "letterSpacing": -0.02,
       "use": "квитанция «Запомнил.»; SemiBold по R1.2 §14 — при переходе на систему 1.0 вес потерялся молча (аудит Д-7); 38 не влезало на 320 dp"
@@ -98,41 +98,41 @@
       "font": "Spectral",
       "weight": 400,
       "style": "italic",
-      "size": 18,
+      "size": 19,
       "line": 1.45,
       "use": "план возврата, реплики продукта"
     },
     "itemTitle": {
       "font": "Golos Text",
       "weight": 600,
-      "size": 21,
+      "size": 22,
       "line": 1.3,
       "use": "текст айтема"
     },
     "body": {
       "font": "Golos Text",
       "weight": 400,
-      "size": 17,
+      "size": 18,
       "line": 1.5
     },
     "label": {
       "font": "Golos Text",
       "weight": 600,
-      "size": 16,
+      "size": 17,
       "line": 1.3,
       "use": "кнопки"
     },
     "meta": {
       "font": "JetBrains Mono",
       "weight": 400,
-      "size": 13,
+      "size": 15,
       "letterSpacing": 0.02,
       "use": "время, статусы, служебное"
     },
     "timer": {
       "font": "JetBrains Mono",
       "weight": 400,
-      "size": 22,
+      "size": 23,
       "line": 1.2,
       "letterSpacing": 0.04,
       "use": "таймер записи; жизнь показывает кольцо, таймеру хватает 22 — R1.2 §13"
@@ -140,18 +140,19 @@
     "verdict": {
       "font": "Golos Text",
       "weight": 700,
-      "size": 30,
+      "size": 32,
       "line": 1.13,
       "use": "вердикт недели («Петля жива»); в спеке дизайнера — Roboto, семейство взято из системы"
     },
     "metric": {
       "font": "Golos Text",
       "weight": 700,
-      "size": 26,
+      "size": 28,
       "line": 1.15,
       "use": "значение kill-метрики"
     },
-    "minSize": 16
+    "minSize": 16,
+    "_note": "шкала поднята на шаг в 1.0.3: на телефоне набор читался мелко; выросли все уровни разом, чтобы иерархия осталась прежней"
   },
   "space": {
     "base": 4,

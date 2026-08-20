@@ -17,6 +17,7 @@ import ai.prinim.prinyal.data.Window
 import ai.prinim.prinyal.domain.Phrases
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
+import ai.prinim.prinyal.ui.theme.tap
 import ai.prinim.prinyal.ui.theme.Haptics
 import ai.prinim.prinyal.ui.theme.Radius
 import ai.prinim.prinyal.ui.theme.Space
@@ -353,7 +354,7 @@ fun NoteScreen(
                                     MetaText(
                                         text = stringResource(R.string.note_append),
                                         color = Prinyal.colors.accentSelf,
-                                        modifier = Modifier.clickable {
+                                        modifier = Modifier.tap {
                                             openAppend(context, noteId)
                                         },
                                     )
@@ -361,7 +362,7 @@ fun NoteScreen(
                                 MetaText(
                                     text = stringResource(R.string.transcript_edit),
                                     color = Prinyal.colors.accentSelf,
-                                    modifier = Modifier.clickable {
+                                    modifier = Modifier.tap {
                                         // Курсор в конец: чаще всего дописывают
                                         // хвост (Д-6).
                                         draft = TextFieldValue(
@@ -401,7 +402,7 @@ fun NoteScreen(
                         MetaText(
                             text = stringResource(R.string.note_transcript_show),
                             color = Prinyal.colors.accentSelf,
-                            modifier = Modifier.clickable { transcriptOpen = true },
+                            modifier = Modifier.tap { transcriptOpen = true },
                         )
                     }
                 }
@@ -425,12 +426,12 @@ fun NoteScreen(
                     MetaText(
                         text = stringResource(R.string.note_split_line),
                         color = Prinyal.colors.accentSelf,
-                        modifier = Modifier.clickable { onOpenNote(siblingId) },
+                        modifier = Modifier.tap { onOpenNote(siblingId) },
                     )
                     MetaText(
                         text = stringResource(R.string.note_merge),
                         color = Prinyal.colors.inkMuted,
-                        modifier = Modifier.clickable { vm.mergeSiblings(noteId) },
+                        modifier = Modifier.tap { vm.mergeSiblings(noteId) },
                     )
                 }
             }
@@ -567,13 +568,13 @@ private fun ItemCard(
                     text = stringResource(R.string.action_done),
                     style = Prinyal.type.label,
                     color = Prinyal.colors.done,
-                    modifier = Modifier.clickable(onClick = onDone),
+                    modifier = Modifier.tap(onClick = onDone),
                 )
                 Text(
                     text = stringResource(R.string.action_dismiss),
                     style = Prinyal.type.label,
                     color = Prinyal.colors.inkMuted,
-                    modifier = Modifier.clickable(onClick = onDismiss),
+                    modifier = Modifier.tap(onClick = onDismiss),
                 )
             }
         }
@@ -696,7 +697,7 @@ private fun TranscriptEditing(
                 text = stringResource(R.string.edit_cancel),
                 style = Prinyal.type.label,
                 color = Prinyal.colors.inkMuted,
-                modifier = Modifier.clickable(onClick = onCancel),
+                modifier = Modifier.tap(onClick = onCancel),
             )
         }
     }
@@ -802,7 +803,7 @@ private fun AudioRow(file: File, durationMs: Long) {
             text = stringResource(if (playing) R.string.note_pause else R.string.note_audio_play),
             style = Prinyal.type.label,
             color = if (file.exists()) Prinyal.colors.accentSelf else Prinyal.colors.inkFaint,
-            modifier = Modifier.clickable(enabled = file.exists()) {
+            modifier = Modifier.tap(enabled = file.exists()) {
                 runCatching {
                     if (playing) {
                         player.pause()
@@ -895,7 +896,7 @@ private fun Interview(
         question == null -> MetaText(
             text = stringResource(R.string.interview_start),
             color = Prinyal.colors.accentSelf,
-            modifier = Modifier.clickable(onClick = onAsk),
+            modifier = Modifier.tap(onClick = onAsk),
         )
 
         question.isBlank() -> MetaText(
@@ -915,12 +916,12 @@ private fun Interview(
                 MetaText(
                     text = stringResource(R.string.interview_answer),
                     color = Prinyal.colors.accentSelf,
-                    modifier = Modifier.clickable(onClick = onAnswer),
+                    modifier = Modifier.tap(onClick = onAnswer),
                 )
                 MetaText(
                     text = stringResource(R.string.interview_enough),
                     color = Prinyal.colors.inkMuted,
-                    modifier = Modifier.clickable(onClick = onClose),
+                    modifier = Modifier.tap(onClick = onClose),
                 )
             }
         }

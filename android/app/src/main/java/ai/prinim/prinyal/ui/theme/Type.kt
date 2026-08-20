@@ -89,6 +89,16 @@ data class PrinyalTypography(
     val timer: TextStyle,
 )
 
+/**
+ * Шкала поднята на шаг относительно 1.0.2 по замечанию владельца: на телефоне
+ * набор читался мелко. Выросли **все** уровни, а не отдельные строки, — иначе
+ * иерархия поплыла бы: служебное подтянулось бы к основному, и текст перестал
+ * бы делиться на «что сказано» и «что продукт про это думает».
+ *
+ * Сильнее прочих подрос meta (13 → 15): это самый частый уровень в продукте —
+ * им набраны планы, статусы, даты и слова-кнопки, — и именно он читался хуже
+ * всего.
+ */
 val PrinyalType = PrinyalTypography(
     display = TextStyle(
         fontFamily = Spectral,
@@ -99,7 +109,7 @@ val PrinyalType = PrinyalTypography(
         // 34, не 38: «Запомнил.» на 38 занимало 178 dp и съедало поля на узком
         // экране. Трекинг −2% заодно возвращает точку в ритм после длинного
         // слова (R1.2 §14).
-        fontSize = 34.sp,
+        fontSize = 36.sp,
         letterSpacing = (-0.02).em,
         lineHeight = 1.12.em,
         lineHeightStyle = EvenLines,
@@ -108,42 +118,42 @@ val PrinyalType = PrinyalTypography(
         fontFamily = Spectral,
         fontWeight = FontWeight.Normal,
         fontStyle = FontStyle.Italic,
-        fontSize = 18.sp,
+        fontSize = 19.sp,
         lineHeight = 1.45.em,
         lineHeightStyle = EvenLines,
     ),
     itemTitle = TextStyle(
         fontFamily = GolosText,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 21.sp,
+        fontSize = 23.sp,
         lineHeight = 1.3.em,
         lineHeightStyle = EvenLines,
     ),
     body = TextStyle(
         fontFamily = GolosText,
         fontWeight = FontWeight.Normal,
-        fontSize = 17.sp,
+        fontSize = 18.sp,
         lineHeight = 1.5.em,
         lineHeightStyle = EvenLines,
     ),
     label = TextStyle(
         fontFamily = GolosText,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 16.sp,
+        fontSize = 17.sp,
         lineHeight = 1.3.em,
         lineHeightStyle = EvenLines,
     ),
     verdict = TextStyle(
         fontFamily = GolosText,
         fontWeight = FontWeight.Bold,
-        fontSize = 30.sp,
+        fontSize = 32.sp,
         lineHeight = 1.13.em,
         lineHeightStyle = EvenLines,
     ),
     metric = TextStyle(
         fontFamily = GolosText,
         fontWeight = FontWeight.Bold,
-        fontSize = 26.sp,
+        fontSize = 28.sp,
         lineHeight = 1.15.em,
         lineHeightStyle = EvenLines,
     ),
@@ -152,7 +162,7 @@ val PrinyalType = PrinyalTypography(
         fontWeight = FontWeight.Normal,
         // 22, не 30: крупным таймер был потому, что был единственным признаком
         // жизни. Теперь жизнь показывает кольцо (R1.2 §13).
-        fontSize = 22.sp,
+        fontSize = 23.sp,
         letterSpacing = 0.04.em,
         lineHeight = 1.2.em,
         lineHeightStyle = EvenLines,
@@ -160,7 +170,7 @@ val PrinyalType = PrinyalTypography(
     meta = TextStyle(
         fontFamily = JetBrainsMono,
         fontWeight = FontWeight.Normal,
-        fontSize = 13.sp,
+        fontSize = 15.sp,
         letterSpacing = 0.02.em,
         lineHeight = 1.3.em,
         lineHeightStyle = EvenLines,

@@ -7,6 +7,8 @@ import ai.prinim.prinyal.data.ItemType
 import ai.prinim.prinyal.data.NoteWithItems
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
+import ai.prinim.prinyal.ui.theme.Touch
+import ai.prinim.prinyal.ui.theme.tap
 import ai.prinim.prinyal.ui.theme.Space
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * Экран одного раздела (Д-1).
@@ -118,21 +121,36 @@ private fun TopicFilterRow(current: FeedView.Filter, onPick: (FeedView.Filter) -
         FeedView.Filter.DONE to R.string.filter_done,
         FeedView.Filter.BURIED to R.string.filter_buried,
     )
+    // Пять слов обязаны влезть в строку целиком: скролла и обрезки здесь нет
+    // по решению дизайнера. После того как кегль вырос, а у слов появилась
+    // зона нажатия, фиксированный шаг между ними перестал помещаться —
+    // «похоронено» вывалилось в вертикальный столбик по букве. Поэтому шаг
+    // задаёт не константа, а сама строка: SpaceBetween раскладывает слова по
+    // ширине, а зазор между ними даёт отступ зоны нажатия.
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = Space.screen)
+            .padding(horizontal = Space.screen - Touch.PAD_DP.dp)
             .padding(bottom = Space.xs),
-        horizontalArrangement = Arrangement.spacedBy(Space.m),
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         words.forEach { (filter, label) ->
             val active = filter == current
             Text(
                 text = stringResource(label),
-                style = Prinyal.type.meta,
+                // Golos, а не моно: так сказано в макете («пять слов Golos 14»),
+                // и так они помещаются. Моноширинный набор шире почти вдвое —
+                // после того как кегль вырос, «похоронено» стало обрезаться
+                // краем экрана, а на телефоне владельца строка вообще не
+                // помещалась: у него экран уже, чем у эмулятора.
+                style = Prinyal.type.body.copy(fontSize = 15.sp),
                 color = if (active) Prinyal.colors.ink else Prinyal.colors.inkFaint,
                 fontWeight = if (active) FontWeight.Medium else FontWeight.Normal,
-                modifier = Modifier.clickable { onPick(filter) },
+                // Слово не переносится ни при каких обстоятельствах: перенос по
+                // буквам читается как поломка, а не как узкий экран.
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.tap { onPick(filter) },
             )
         }
     }
@@ -237,7 +255,7 @@ private fun PackButton(
             MetaText(
                 text = stringResource(R.string.pack_build),
                 color = Prinyal.colors.accentSelf,
-                modifier = Modifier.clickable {
+                modifier = Modifier.tap {
                     vm.contextPack(topicId, name) { file, _ -> sharePack(context, file) }
                 },
             )

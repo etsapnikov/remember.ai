@@ -4,6 +4,7 @@ import ai.prinim.prinyal.R
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Motion
 import ai.prinim.prinyal.ui.theme.Prinyal
+import ai.prinim.prinyal.ui.theme.tap
 import ai.prinim.prinyal.ui.theme.Radius
 import ai.prinim.prinyal.ui.theme.Space
 import androidx.compose.animation.core.RepeatMode
@@ -83,7 +84,7 @@ fun ParsingFailed(onRetry: () -> Unit, modifier: Modifier = Modifier) {
     MetaText(
         text = stringResource(R.string.note_parse_failed),
         color = Prinyal.colors.accentSelf,
-        modifier = modifier.clickable(onClick = onRetry),
+        modifier = modifier.tap(onClick = onRetry),
     )
 }
 

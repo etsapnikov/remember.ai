@@ -9,6 +9,7 @@ import ai.prinim.prinyal.data.ReturnEntity
 import ai.prinim.prinyal.domain.Phrases
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
+import ai.prinim.prinyal.ui.theme.tap
 import ai.prinim.prinyal.ui.theme.Radius
 import ai.prinim.prinyal.ui.theme.Space
 import androidx.compose.foundation.background
@@ -124,14 +125,14 @@ fun ItemDetail(
                             text = stringResource(R.string.item_edit),
                             style = Prinyal.type.label,
                             color = Prinyal.colors.accentSelf,
-                            modifier = Modifier.clickable(onClick = onEdit),
+                            modifier = Modifier.tap(onClick = onEdit),
                         )
                     }
                     Text(
                         text = stringResource(R.string.item_close),
                         style = Prinyal.type.label,
                         color = Prinyal.colors.inkMuted,
-                        modifier = Modifier.clickable(onClick = onDismiss),
+                        modifier = Modifier.tap(onClick = onDismiss),
                     )
                 }
             }
