@@ -141,6 +141,34 @@ object Notifications {
 
     private const val ID_PACK = 7714
 
+    /**
+     * Команда услышана, пак ждёт выбора (Д-28).
+     *
+     * Уведомление, а не готовый файл: человек говорил голосом и экрана перед
+     * собой не держит, но и отдавать наружу непросмотренное продукт не вправе.
+     * Тап открывает выбор записей.
+     */
+    fun showPackPick(context: Context, topic: String) {
+        // Явный интент в MainActivity — тот же способ, что у открытия
+        // карточки: экран не экспортирован, и схема живёт только внутри.
+        val open = Intent(context, MainActivity::class.java).apply {
+            data = Uri.parse("prinyal://pack/${Uri.encode(topic)}")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(MainActivity.EXTRA_PACK_TOPIC, topic)
+        }
+        val pending = PendingIntent.getActivity(
+            context, topic.hashCode(), open,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val notification = base(context, CHANNEL_UNDERSTANDING)
+            .setContentTitle(context.getString(R.string.pack_ready, topic))
+            .setContentText(context.getString(R.string.pack_pick_open))
+            .setContentIntent(pending)
+            .setAutoCancel(true)
+            .build()
+        notify(context, ID_PACK, notification)
+    }
+
     /** Пункт переписан (Р-15.8): человек должен увидеть, во что превратилось дело. */
     fun showReworded(context: Context, noteId: String, text: String) {
         val notification = base(context, CHANNEL_UNDERSTANDING)

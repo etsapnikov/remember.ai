@@ -92,12 +92,12 @@ class UploadWorker(
             // руками.
             val command = transcript?.let { VoiceCommand.packOf(it) }
             if (command != null && !appended) {
-                val sources = app.repository.markCommand(note.id, command.topic)
-                val markdown = ContextPack.build(command.topic, sources)
-                val dir = File(applicationContext.filesDir, "exports").apply { mkdirs() }
-                val file = File(dir, ContextPack.fileName(command.topic))
-                    .apply { writeText(markdown) }
-                Notifications.showPack(applicationContext, command.topic, file)
+                // Пак больше не собирается молча (Д-28): команда открывает
+                // экран выбора. Раньше первые четыре буквы темы решали всё —
+                // «по работе» тянуло и «работать», и «рабочий», — и файл уходил
+                // наружу прежде, чем человек видел, что в нём.
+                app.repository.markCommand(note.id, command.topic)
+                Notifications.showPackPick(applicationContext, command.topic)
                 continue
             }
 

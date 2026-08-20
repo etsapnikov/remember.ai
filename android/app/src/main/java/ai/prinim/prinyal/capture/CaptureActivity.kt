@@ -131,12 +131,18 @@ class CaptureActivity : ComponentActivity() {
         }
     }
 
+    /** О ком запись, если пришли из карточки человека (Д-27). */
+    private var about: String? = null
+
     /** Цель дописывания и подпись для плашки контекста. */
     private fun applyAppendTarget(intent: android.content.Intent) {
         appendTo = intent.getStringExtra(EXTRA_APPEND_TO)
+        about = intent.getStringExtra(EXTRA_ABOUT)
         val id = appendTo
         if (id == null) {
-            state.appendHint = null
+            // «Рассказать про Веру» (Д-27): плашка та же, что у дописывания, —
+            // человек видит, о ком говорит, и не гадает, куда попадёт запись.
+            state.appendHint = about
             return
         }
         lifecycleScope.launch {
@@ -419,6 +425,13 @@ class CaptureActivity : ComponentActivity() {
         const val EXTRA_SOURCE = "source"
         /** id заметки, к которой дописываем (Р-14.3). */
         const val EXTRA_APPEND_TO = "append_to"
+
+        /**
+         * Про кого запись (Д-27). Плашка «про Веру» на экране захвата — тот же
+         * механизм, что у дописывания: продукт не заводит форму для факта, он
+         * слушает тем же жестом, каким слушает всё остальное.
+         */
+        const val EXTRA_ABOUT = "about"
         private const val TAG = "PrinyalCapture"
         private const val TICK_MS = 100L
         private const val HINT_CANCEL = "cancel"

@@ -73,6 +73,7 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
     val notes by vm.feed.collectAsState()
     val llmEnabled by vm.llmEnabled.collectAsState()
     val ask by vm.askCandidate.collectAsState()
+    val merge by vm.mergeCandidate.collectAsState()
     // Имена разделов для строки заметки: раздел виден там же, где время (Р-15.3).
     val topics by vm.topics.collectAsState()
     val topicNames = remember(topics) { topics.associate { it.id to it.name } }
@@ -151,6 +152,33 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
             if (junk.size >= 3 && filter == FeedView.Filter.ALL) {
                 item(key = "junk-sweep") {
                     JunkSweepRow(count = junk.size, onSweep = { vm.sweepJunk() })
+                }
+            }
+
+            // Вопросы продукта — наверху ленты и по одному за раз (Д-30).
+            // Доспрос идёт первым: сначала узнать, кто это, и только потом
+            // выяснять, не один ли это человек.
+            ask?.let { person ->
+                item(key = "ask-${person.id}") {
+                    AskCard(
+                        name = person.name,
+                        onAnswer = { vm.answerPerson(person.id, it) },
+                        onDecline = { vm.declinePerson(person.id) },
+                    )
+                    Hairline()
+                }
+            }
+            if (ask == null) {
+                merge?.let { (first, second) ->
+                    item(key = "merge-${first.id}") {
+                        MergeAskCard(
+                            first = first.name,
+                            second = second.name,
+                            onSame = { vm.mergePeople(second, first) },
+                            onApart = { vm.keepApart(first, second) },
+                        )
+                        Hairline()
+                    }
                 }
             }
 

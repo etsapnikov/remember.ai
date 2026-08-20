@@ -45,7 +45,12 @@ import androidx.compose.ui.unit.sp
  * это выборка, и читается он сверху вниз ровно как лента.
  */
 @Composable
-fun TopicScreen(vm: AppViewModel, topicId: String?, onOpenNote: (String) -> Unit) {
+fun TopicScreen(
+    vm: AppViewModel,
+    topicId: String?,
+    onOpenNote: (String) -> Unit,
+    onPickPack: (String?, String) -> Unit = { _, _ -> },
+) {
     val notes by vm.notesOf(topicId).collectAsState(initial = emptyList())
     val context = androidx.compose.ui.platform.LocalContext.current
     // Заголовок пака — имя раздела: там падеж правильный по определению, в
@@ -79,7 +84,7 @@ fun TopicScreen(vm: AppViewModel, topicId: String?, onOpenNote: (String) -> Unit
 
         // Контекст-пак (Р-15.13): всё, что известно по разделу, одним файлом.
         if (topicId != AppViewModel.DECISIONS) {
-            PackButton(vm, topicId, title, context)
+            PackButton(topicId, title, onPickPack)
         }
 
         if (notes.isEmpty()) {
@@ -239,10 +244,9 @@ private fun summary(context: android.content.Context, entry: NoteWithItems): Str
  */
 @Composable
 private fun PackButton(
-    vm: AppViewModel,
     topicId: String?,
     title: String,
-    context: android.content.Context,
+    onPickPack: (String?, String) -> Unit,
 ) {
     val name = title
     Column {
@@ -255,9 +259,9 @@ private fun PackButton(
             MetaText(
                 text = stringResource(R.string.pack_build),
                 color = Prinyal.colors.accentSelf,
-                modifier = Modifier.tap {
-                    vm.contextPack(topicId, name) { file, _ -> sharePack(context, file) }
-                },
+                // Кнопка больше не собирает молча: открывает выбор записей
+                // (Д-28). Раньше отсюда уходил весь раздел целиком.
+                modifier = Modifier.tap { onPickPack(topicId, name) },
             )
         }
         // Черта отделяет действие от списка: без неё «Собрать контекст»
@@ -266,7 +270,7 @@ private fun PackButton(
     }
 }
 
-private fun sharePack(context: android.content.Context, file: java.io.File) {
+fun sharePack(context: android.content.Context, file: java.io.File) {
     val uri = androidx.core.content.FileProvider.getUriForFile(
         context, "${context.packageName}.files", file,
     )

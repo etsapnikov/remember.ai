@@ -12,6 +12,7 @@ import ai.prinim.prinyal.data.TopicEntity
 import ai.prinim.prinyal.data.TopicKind
 import ai.prinim.prinyal.data.TopicSource
 import ai.prinim.prinyal.data.PersonEntity
+import ai.prinim.prinyal.data.PersonNote
 import ai.prinim.prinyal.data.SegmentEntity
 import ai.prinim.prinyal.data.NoteStatus
 import ai.prinim.prinyal.data.PrinyalDb
@@ -135,7 +136,7 @@ class NoteRepository(
         items.forEach { item -> planReturn(item, recordedAt, windows, now) }
 
         val topicId = resolveTopic(note, result.topic)
-        rememberPeople(result.entities)
+        rememberPeople(noteId, result.entities)
 
         db.notes().update(
             note.copy(
@@ -673,25 +674,107 @@ class NoteRepository(
         return true
     }
 
-    private suspend fun rememberPeople(names: List<String>) {
+    /**
+     * Кого назвала эта запись (Д-26).
+     *
+     * Ключ имени считает [PersonIdentity], а не `lowercase()`: раньше «Юля» и
+     * «Юле» заводили две строки со счётчиком 1, и порог доспроса в два
+     * упоминания не брался никогда — механика молчала две недели.
+     *
+     * Пара человек↔запись пишется здесь же: посчитать упоминания мало, их надо
+     * ещё и показать. Искать имена по тексту задним числом нельзя — «верну»
+     * притворяется Верой.
+     */
+    private suspend fun rememberPeople(noteId: String, names: List<String>) {
         names.forEach { name ->
             val clean = name.trim()
             if (clean.isEmpty()) return@forEach
-            val norm = clean.lowercase()
+            val norm = PersonIdentity.norm(clean)
             val existing = db.people().byNorm(norm)
-            if (existing == null) {
-                db.people().insert(
-                    PersonEntity(
-                        id = newId(),
-                        name = clean,
-                        nameNorm = norm,
-                        firstSeen = System.currentTimeMillis(),
-                    )
+            val id = if (existing == null) {
+                val fresh = PersonEntity(
+                    id = newId(),
+                    name = clean,
+                    nameNorm = norm,
+                    firstSeen = System.currentTimeMillis(),
                 )
+                db.people().insert(fresh)
+                fresh.id
             } else {
                 db.people().sawAgain(existing.id)
+                // Склеенный живёт под именем того, в кого склеен: записи и
+                // история копятся в одном месте, а не в двух.
+                existing.mergedInto ?: existing.id
+            }
+            db.people().link(PersonNote(personId = id, noteId = noteId))
+        }
+    }
+
+    /**
+     * Разовый пересчёт людей по уже накопленным записям (Д-26).
+     *
+     * Без него раздел «Люди» был бы пуст ещё недели: пары человек↔запись
+     * пишутся при разборе, а весь прежний корпус разобран до того, как они
+     * появились.
+     *
+     * Имена ищутся **целым словом** ([PersonIdentity.mentions]) — по основе
+     * замер давал «Вера — 13 заметок», из которых одиннадцать были словами
+     * «верну» и «проверить». Здесь это не косметика: на таком сигнале раздел
+     * показывал бы выдумку.
+     *
+     * Заодно пересчитывается ключ имени: строки, заведённые до нормализации,
+     * иначе так и остались бы порознь.
+     *
+     * @return сколько пар записано
+     */
+    suspend fun backfillPeople(): Int {
+        val people = db.people().allLive()
+        if (people.isEmpty()) return 0
+        val notes = db.notes().all().filter { !it.transcript.isNullOrBlank() }
+
+        // Сначала ключи: без них однофамильцы в разных падежах останутся
+        // разными строками, и пересчёт закрепит старую ошибку.
+        val byNorm = mutableMapOf<String, PersonEntity>()
+        people.forEach { person ->
+            val norm = PersonIdentity.norm(person.name)
+            val canonical = byNorm[norm]
+            if (canonical == null) {
+                byNorm[norm] = person
+                if (person.nameNorm != norm) db.people().update(person.copy(nameNorm = norm))
+            } else {
+                // Тот же ключ — та же строка, просто заведённая дважды. Это не
+                // вопрос к человеку: «Юля» и «Юле» одно имя, а не два лица.
+                db.people().mergeInto(person.id, canonical.id)
             }
         }
+
+        var pairs = 0
+        byNorm.values.forEach { person ->
+            notes.forEach { note ->
+                if (PersonIdentity.mentions(note.transcript.orEmpty(), person.name)) {
+                    db.people().link(PersonNote(personId = person.id, noteId = note.id))
+                    pairs++
+                }
+            }
+        }
+        analytics.log("people_backfill", mapOf("people" to byNorm.size, "pairs" to pairs))
+        return pairs
+    }
+
+    /**
+     * Ответ на вопрос о склейке (Д-30): «один» — записи и история съезжаются в
+     * одного человека; «разные» — фиксируем навсегда, чтобы не переспрашивать.
+     */
+    suspend fun mergePeople(fromId: String, intoId: String) {
+        db.people().mergeInto(fromId, intoId)
+        analytics.log("people_merged", mapOf("from" to fromId, "into" to intoId))
+    }
+
+    /** «Разные» (Д-30): фиксируем навсегда, чтобы не переспрашивать. */
+    suspend fun keepPeopleApart(a: String, b: String) {
+        db.people().keepApart(a, b)
+        db.people().keepApart(b, a)
+        analytics.log("people_apart", mapOf("a" to a, "b" to b))
     }
 
     private suspend fun dropSchedule(noteId: String) {

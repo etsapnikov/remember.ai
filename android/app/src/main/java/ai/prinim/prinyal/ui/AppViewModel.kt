@@ -15,6 +15,8 @@ import ai.prinim.prinyal.data.ReplacementEntity
 import ai.prinim.prinyal.domain.ContextPack
 import kotlinx.coroutines.withContext
 import ai.prinim.prinyal.domain.FeedView
+import ai.prinim.prinyal.domain.PackPick
+import ai.prinim.prinyal.domain.PersonIdentity
 import ai.prinim.prinyal.domain.Replacements
 import ai.prinim.prinyal.domain.StructureRepair
 import ai.prinim.prinyal.data.PersonEntity
@@ -141,6 +143,188 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         feedIndex = 0
         feedOffset = 0
     }
+
+    /**
+     * Пара однофамильцев, про которую стоит спросить (Д-30).
+     *
+     * Спрашиваем **только при совпавшей фамилии** — так решено дизайнером:
+     * «Саня Иванов» и «Саша Иванов» вопрос заслуживают, «Саня» и «Саша»
+     * порознь — нет, иначе продукт начнёт свататься к каждому созвучию.
+     *
+     * Квота та же, что у доспроса: одна карточка-вопрос в ленте. Поэтому
+     * склейка уступает дорогу — сначала продукт узнаёт, кто это, и только
+     * потом выясняет, не один ли это человек.
+     */
+    val mergeCandidate: StateFlow<Pair<PersonEntity, PersonEntity>?> =
+        app.db.people().watchLive()
+            .map { people ->
+                people.firstNotNullOfOrNull { a ->
+                    people.firstOrNull { b ->
+                        a.id < b.id && PersonIdentity.mayBeSame(a.name, b.name)
+                    }?.let { a to it }
+                }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** «Один» — записи и история съезжаются к первому имени. */
+    fun mergePeople(from: PersonEntity, into: PersonEntity) = viewModelScope.launch {
+        app.repository.mergePeople(from.id, into.id)
+    }
+
+    /**
+     * «Разные» — фиксируем навсегда.
+     *
+     * Отказ хранится тем же полем, что и склейка, но указывает на самого себя:
+     * строка перестаёт быть кандидатом, оставаясь видимой. Заводить второе поле
+     * ради «нет» значило бы держать два способа сказать одно.
+     */
+    fun keepApart(a: PersonEntity, b: PersonEntity) = viewModelScope.launch {
+        app.repository.keepPeopleApart(a.id, b.id)
+    }
+
+    /**
+     * Люди (Д-26): только те, кого упоминают две разные записи.
+     *
+     * Пересчёт по прежним записям делается один раз при первом обращении:
+     * пары человек↔запись пишутся при разборе, а весь накопленный корпус
+     * разобран до того, как они появились, — иначе раздел молчал бы неделями.
+     */
+    val people = app.db.people().people(PersonIdentity.MIN_NOTES)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun ensurePeopleBackfilled() = viewModelScope.launch {
+        if (app.settings.peopleBackfilled()) return@launch
+        app.repository.backfillPeople()
+        app.settings.setPeopleBackfilled()
+    }
+
+    /**
+     * Черновик пака (Д-28): что показать на экране выбора.
+     *
+     * Экран открывается **до** сборки файла — и кнопкой в разделе, и голосом.
+     * Раньше оба пути собирали молча и по-разному, отсюда и «наполняется
+     * рандомно».
+     */
+    data class PackDraft(
+        val title: String,
+        val notes: List<ai.prinim.prinyal.data.NoteWithItems>,
+        val picked: Set<String>,
+    )
+
+    private val _packDraft = MutableStateFlow<PackDraft?>(null)
+    val packDraft: StateFlow<PackDraft?> = _packDraft
+
+    fun openPackPick(topicId: String?, title: String) = viewModelScope.launch {
+        val notes = withContext(Dispatchers.IO) { notesOnce(topicId) }
+        _packDraft.value = PackDraft(title, notes, PackPick.preselected(notes))
+    }
+
+    /**
+     * Пак по теме, названной голосом (Д-28).
+     *
+     * Раздел ищется по имени; не нашёлся — берём записи, где тема прозвучала
+     * словом. Это тот же поиск, что был, но теперь он лишь **предлагает**
+     * набор, а не решает за человека: экран выбора стоит между поиском и
+     * файлом.
+     */
+    fun openPackPickByTopic(topic: String) = viewModelScope.launch {
+        val notes = withContext(Dispatchers.IO) {
+            val topicId = app.db.topics().live()
+                .firstOrNull { PersonIdentity.norm(it.name) == PersonIdentity.norm(topic) }
+                ?.id
+            if (topicId != null) {
+                notesOnce(topicId)
+            } else {
+                app.db.notes().all()
+                    .filter { PersonIdentity.mentions(it.transcript.orEmpty(), topic) }
+                    .map {
+                        ai.prinim.prinyal.data.NoteWithItems(it, app.db.items().forNote(it.id))
+                    }
+                    .sortedByDescending { it.note.createdAt }
+            }
+        }
+        _packDraft.value = PackDraft(topic, notes, PackPick.preselected(notes))
+    }
+
+    fun togglePacked(noteId: String) {
+        val draft = _packDraft.value ?: return
+        val picked = draft.picked.toMutableSet()
+        if (!picked.remove(noteId)) picked += noteId
+        _packDraft.value = draft.copy(picked = picked)
+    }
+
+    /** Долгий тап — «только эту»: снимает все остальные. */
+    fun packOnly(noteId: String) {
+        val draft = _packDraft.value ?: return
+        _packDraft.value = draft.copy(picked = setOf(noteId))
+    }
+
+    fun closePackPick() {
+        _packDraft.value = null
+    }
+
+    /** Собрать отмеченное и отдать файл наружу. */
+    fun buildPack(onDone: (File) -> Unit) = viewModelScope.launch {
+        val draft = _packDraft.value ?: return@launch
+        val chosen = PackPick.chosen(draft.notes, draft.picked)
+        val sources = chosen.map { ContextPack.Source(it.note, it.items) }
+        val markdown = ContextPack.build(draft.title, sources)
+        val file = withContext(Dispatchers.IO) {
+            val dir = File(getApplication<Application>().filesDir, "exports").apply { mkdirs() }
+            File(dir, ContextPack.fileName(draft.title)).apply { writeText(markdown) }
+        }
+        _packDraft.value = null
+        onDone(file)
+    }
+
+    private suspend fun notesOnce(topicId: String?): List<ai.prinim.prinyal.data.NoteWithItems> {
+        val all = app.db.notes().all().filter { !it.transcript.isNullOrBlank() }
+        val picked = when (topicId) {
+            null -> all.filter { it.topicId == null }
+            else -> all.filter { it.topicId == topicId }
+        }
+        return picked.map {
+            ai.prinim.prinyal.data.NoteWithItems(it, app.db.items().forNote(it.id))
+        }.sortedByDescending { it.note.createdAt }
+    }
+
+    /**
+     * «Собрать контекст» с карточки человека (Д-27): та же механика, что у
+     * раздела, только выборка по упоминаниям.
+     */
+    fun contextPackForPerson(personId: String, name: String) = viewModelScope.launch {
+        val notes = withContext(Dispatchers.IO) {
+            app.db.people().notesOfOnce(personId).map {
+                ai.prinim.prinyal.data.NoteWithItems(it, app.db.items().forNote(it.id))
+            }
+        }
+        _packDraft.value = PackDraft(name, notes, PackPick.preselected(notes))
+    }
+
+    /**
+     * «Рассказать» о человеке (Д-27): второй вход для факта.
+     *
+     * Открывает обычный захват с плашкой «про Веру» — тот же экран, которым
+     * человек и записывает. Отдельной формы для факта нет: продукт слушает, а
+     * не анкетирует.
+     */
+    fun tellAbout(context: android.content.Context, name: String) {
+        context.startActivity(
+            android.content.Intent(
+                context,
+                ai.prinim.prinyal.capture.CaptureActivity::class.java,
+            ).apply {
+                putExtra(ai.prinim.prinyal.capture.CaptureActivity.EXTRA_ABOUT, name)
+                addFlags(
+                    android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                        android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                )
+            }
+        )
+    }
+
+    /** Записи, где упомянут человек, — для его карточки (Д-27). */
+    fun notesOfPerson(personId: String) = app.db.people().notesOf(personId)
 
     /** Фильтр раздела — свой, чтобы выбор в ленте не менял вид раздела. */
     private val _topicFilter = MutableStateFlow(FeedView.Filter.ALL)

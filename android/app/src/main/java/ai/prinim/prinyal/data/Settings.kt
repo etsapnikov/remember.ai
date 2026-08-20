@@ -151,6 +151,14 @@ class Settings(private val context: Context) {
         context.dataStore.edit { it[longPreferencesKey("structure_no_$key")] = at }
     }
 
+    /** Пересчёт людей по прежним записям делается один раз (Д-26). */
+    suspend fun peopleBackfilled(): Boolean =
+        context.dataStore.data.first()[booleanPreferencesKey("people_backfilled")] ?: false
+
+    suspend fun setPeopleBackfilled() {
+        context.dataStore.edit { it[booleanPreferencesKey("people_backfilled")] = true }
+    }
+
     suspend fun setWindow(window: Window, time: LocalTime) {
         val key = when (window) {
             Window.MORNING, Window.TOMORROW_MORNING -> W_MORNING

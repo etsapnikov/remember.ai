@@ -39,6 +39,7 @@ import kotlinx.coroutines.delay
  */
 @Composable
 fun AppScaffold(route: Route, onRoute: (Route) -> Unit) {
+    val shareContext = androidx.compose.ui.platform.LocalContext.current
     val vm: AppViewModel = viewModel()
     val undo by vm.undo.collectAsState()
 
@@ -48,7 +49,13 @@ fun AppScaffold(route: Route, onRoute: (Route) -> Unit) {
     // к списку разделов. Без этого человек, ушедший вглубь структуры, вылетал
     // бы к времени одним жестом.
     BackHandler(enabled = route !is Route.Feed) {
-        onRoute(if (route is Route.Topic) Route.Topics else Route.Feed)
+        onRoute(
+            when (route) {
+                is Route.Topic, is Route.People, is Route.PackPick -> Route.Topics
+                is Route.Person -> Route.People
+                else -> Route.Feed
+            }
+        )
     }
 
     // Выход с экрана — точка невозврата для мягко удалённого (спека §2.2).
@@ -79,11 +86,32 @@ fun AppScaffold(route: Route, onRoute: (Route) -> Unit) {
                     is Route.Topics -> TopicsScreen(
                         vm,
                         onOpen = { id, name -> onRoute(Route.Topic(id, name)) },
+                        onPeople = { onRoute(Route.People) },
+                    )
+                    is Route.People -> PeopleScreen(
+                        vm,
+                        onOpen = { id, name -> onRoute(Route.Person(id, name)) },
+                    )
+                    is Route.Person -> PersonScreen(
+                        vm,
+                        personId = route.id,
+                        onOpenNote = { onRoute(Route.Note(it)) },
+                    )
+                    is Route.PackPick -> PackPickScreen(
+                        vm,
+                        onShare = { file ->
+                            sharePack(shareContext, file)
+                            onRoute(Route.Topics)
+                        },
                     )
                     is Route.Topic -> TopicScreen(
                         vm,
                         topicId = route.id,
                         onOpenNote = { onRoute(Route.Note(it)) },
+                        onPickPack = { id, title ->
+                            vm.openPackPick(id, title)
+                            onRoute(Route.PackPick(title))
+                        },
                     )
                 }
             }
@@ -183,6 +211,9 @@ private fun TopBar(route: Route, onRoute: (Route) -> Unit) {
     val parent: Pair<Route, String>? = when (route) {
         is Route.Note -> Route.Feed to stringResource(R.string.feed_title)
         is Route.Topic -> Route.Topics to stringResource(R.string.topics_title)
+        is Route.People -> Route.Topics to stringResource(R.string.topics_title)
+        is Route.Person -> Route.People to stringResource(R.string.topics_people)
+        is Route.PackPick -> Route.Topics to stringResource(R.string.topics_title)
         is Route.Settings -> Route.Feed to stringResource(R.string.feed_title)
         else -> null
     }
@@ -191,6 +222,9 @@ private fun TopBar(route: Route, onRoute: (Route) -> Unit) {
         val (target, parentName) = parent
         val title = when (route) {
             is Route.Topic -> route.name.ifBlank { stringResource(R.string.topics_loose) }
+            is Route.People -> stringResource(R.string.topics_people)
+            is Route.Person -> route.name
+            is Route.PackPick -> stringResource(R.string.pack_pick_title)
             is Route.Settings -> stringResource(R.string.settings_title)
             else -> null
         }

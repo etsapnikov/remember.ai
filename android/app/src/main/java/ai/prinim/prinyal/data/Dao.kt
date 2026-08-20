@@ -342,6 +342,53 @@ interface PersonDao {
     suspend fun known(): List<PersonEntity>
 
     /** Когда спрашивали в последний раз — по всем сущностям сразу. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun link(pair: PersonNote)
+
+    @Query("UPDATE entities SET merged_into = :target WHERE id = :id")
+    suspend fun mergeInto(id: String, target: String)
+
+    @Query("UPDATE entities SET apart = :other WHERE id = :id")
+    suspend fun keepApart(id: String, other: String)
+
+    /**
+     * Люди для раздела: только те, кого упоминают **две разные записи**, и
+     * только несклеенные — склеенный живёт под именем того, в кого склеен.
+     */
+    @Query(
+        "SELECT e.id AS id, e.name AS name, e.fact AS fact, " +
+            "COUNT(DISTINCT pn.note_id) AS notes, " +
+            "MIN(n.created_at) AS firstAt, MAX(n.created_at) AS lastAt " +
+            "FROM entities e " +
+            "JOIN person_notes pn ON pn.person_id = e.id " +
+            "JOIN notes n ON n.id = pn.note_id AND n.deleted_at IS NULL " +
+            "WHERE e.merged_into IS NULL " +
+            "GROUP BY e.id HAVING notes >= :minNotes ORDER BY lastAt DESC"
+    )
+    fun people(minNotes: Int): Flow<List<PersonOverview>>
+
+    @Query("SELECT * FROM entities WHERE merged_into IS NULL")
+    suspend fun allLive(): List<PersonEntity>
+
+    @Query("SELECT * FROM entities WHERE merged_into IS NULL AND apart IS NULL")
+    fun watchLive(): Flow<List<PersonEntity>>
+
+    /** Записи, где упомянут человек, — свежие впереди. */
+    @Transaction
+    @Query(
+        "SELECT n.* FROM notes n JOIN person_notes pn ON pn.note_id = n.id " +
+            "WHERE pn.person_id = :personId AND n.deleted_at IS NULL " +
+            "ORDER BY n.created_at DESC"
+    )
+    fun notesOf(personId: String): Flow<List<NoteWithItems>>
+
+    @Query(
+        "SELECT n.* FROM notes n JOIN person_notes pn ON pn.note_id = n.id " +
+            "WHERE pn.person_id = :personId AND n.deleted_at IS NULL " +
+            "ORDER BY n.created_at ASC"
+    )
+    suspend fun notesOfOnce(personId: String): List<NoteEntity>
+
     @Query("SELECT MAX(asked_at) FROM entities")
     suspend fun lastAskedAt(): Long?
 }
@@ -404,3 +451,14 @@ interface QuestionDao {
     @Query("SELECT * FROM questions WHERE note_id = :noteId ORDER BY asked_at ASC")
     fun watch(noteId: String): Flow<List<QuestionEntity>>
 }
+
+
+/** Человек в списке: имя, факт и сколько записей его упоминают (Д-26). */
+data class PersonOverview(
+    val id: String,
+    val name: String,
+    val fact: String?,
+    val notes: Int,
+    val firstAt: Long,
+    val lastAt: Long,
+)

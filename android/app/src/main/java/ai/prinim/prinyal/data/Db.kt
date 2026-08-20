@@ -18,8 +18,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PersonEntity::class,
         LinkEntity::class,
         QuestionEntity::class,
+        PersonNote::class,
     ],
-    version = 9,
+    version = 11,
     exportSchema = true,
 )
 abstract class PrinyalDb : RoomDatabase() {
@@ -221,10 +222,33 @@ abstract class PrinyalDb : RoomDatabase() {
             }
         }
 
+        /** v9 → v10: кого упоминает запись и склейка имён (Д-26, Д-30). */
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE entities ADD COLUMN merged_into TEXT DEFAULT NULL")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS person_notes (" +
+                        "person_id TEXT NOT NULL, note_id TEXT NOT NULL, " +
+                        "PRIMARY KEY(person_id, note_id), " +
+                        "FOREIGN KEY(person_id) REFERENCES entities(id) ON DELETE CASCADE, " +
+                        "FOREIGN KEY(note_id) REFERENCES notes(id) ON DELETE CASCADE)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_person_notes_person_id ON person_notes(person_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_person_notes_note_id ON person_notes(note_id)")
+            }
+        }
+
+        /** v10 → v11: ответ «разные» по паре однофамильцев (Д-30). */
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE entities ADD COLUMN apart TEXT DEFAULT NULL")
+            }
+        }
+
         private fun build(context: Context): PrinyalDb =
             Room.databaseBuilder(context, PrinyalDb::class.java, "prinyal.db")
                 // Destructive-падения нет намеренно: dogfood-корпус терять нельзя.
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                 .build()
 
         /** Только для тестов. */

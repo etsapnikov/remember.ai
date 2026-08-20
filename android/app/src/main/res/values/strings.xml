@@ -441,11 +441,53 @@
     <string name="dict_empty">Пока пусто. Задержи палец на слове в «Что услышал».</string>
     <string name="topics_loose">Без раздела</string>
     <string name="topics_decisions">Решения</string>
+    <!-- Люди (Д-26…Д-30). Счётчик считает людей, а не записи: он обязан
+         совпадать с тем, что человек увидит после тапа. -->
+    <string name="topics_people">Люди</string>
+    <plurals name="people_count">
+        <item quantity="one">%1$d человек</item>
+        <item quantity="few">%1$d человека</item>
+        <item quantity="many">%1$d человек</item>
+        <item quantity="other">%1$d человека</item>
+    </plurals>
+    <plurals name="person_notes">
+        <item quantity="one">%1$d запись</item>
+        <item quantity="few">%1$d записи</item>
+        <item quantity="many">%1$d записей</item>
+        <item quantity="other">%1$d записи</item>
+    </plurals>
+    <string name="person_since">с %1$s</string>
+    <string name="person_known">Что известно</string>
+    <string name="person_told">рассказал %1$s</string>
+    <string name="person_tell">рассказать</string>
+    <string name="person_open">Открытые дела</string>
+    <string name="person_notes_title">Записи</string>
+    <!-- Карточка вопроса после ревизии (Д-30). Метка того же семейства, что
+         «СОБРАНО» и «ЗА НЕДЕЛЮ», но здесь продукт не отдаёт сделанное, а
+         просит. Цена нажатия сказана до нажатия, а не в снекбаре после. -->
+    <string name="ask_label">СПРАШИВАЮ</string>
+    <string name="ask_never">больше не спрошу</string>
+    <string name="ask_same_question">%1$s и %2$s — это один человек?</string>
+    <string name="ask_same_yes">один</string>
+    <string name="ask_same_no">разные</string>
+
+    <string name="empty_people_title">Пока никого.</string>
+    <string name="empty_people_body">Людей я узнаю из речи. Скажешь «звонил Игорю» в двух разных записях — Игорь появится сам.</string>
     <!-- Контекст-пак (Р-15.13): глагол, а не существительное — кнопка обещает
          действие, а не раздел. -->
     <string name="pack_build">Собрать контекст</string>
+    <!-- Экран выбора записей (Д-28). Отметка — приглушением, а не галочкой:
+         способ сказать «это сейчас не участвует» в системе уже был. -->
+    <string name="pack_pick_title">Что взять в пак</string>
+    <string name="pack_pick_none">ничего не отмечено</string>
+    <string name="pack_pick_all">%1$d из %1$d · всё</string>
+    <string name="pack_pick_some">%1$d из %2$d</string>
+    <string name="pack_pick_go">Собрать</string>
+    <string name="empty_pick_title">Здесь одна запись.</string>
+    <string name="empty_pick_body">Пак получится короче самой записи — открой её, это быстрее.</string>
     <string name="pack_ready">Собрал контекст по «%1$s»</string>
     <string name="pack_share">Нажми — поделиться файлом</string>
+    <string name="pack_pick_open">Нажми — выбрать записи</string>
     <string name="pack_empty">Записей по этой теме нет</string>
     <plurals name="topics_live">
         <item quantity="one">%1$d живая</item>

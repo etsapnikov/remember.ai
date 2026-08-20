@@ -306,6 +306,48 @@ data class PersonEntity(
     val fact: String? = null,
     /** Когда спрашивали в последний раз — чаще раза в три дня нельзя. */
     @ColumnInfo(name = "asked_at") val askedAt: Long? = null,
+    /**
+     * Куда склеен этот человек, если владелец подтвердил, что это одно лицо
+     * (Д-30). Строка остаётся: «разные» тоже ответ, и переспрашивать его
+     * продукт не вправе.
+     */
+    @ColumnInfo(name = "merged_into") val mergedInto: String? = null,
+    /**
+     * С кем этот человек **не** один и тот же (Д-30). Ответ «разные» тоже
+     * ответ, и переспрашивать его продукт не вправе.
+     */
+    @ColumnInfo(name = "apart") val apart: String? = null,
+)
+
+/**
+ * Кого упоминает запись (Д-26).
+ *
+ * Пара, а не счётчик: «три записи про Веру» надо не только посчитать, но и
+ * показать. Пишется при разборе, когда модель уже назвала имена, — искать их
+ * по тексту задним числом значит ловить «верну» вместо «Веры».
+ */
+@Entity(
+    tableName = "person_notes",
+    primaryKeys = ["person_id", "note_id"],
+    foreignKeys = [
+        ForeignKey(
+            entity = PersonEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["person_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+        ForeignKey(
+            entity = NoteEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["note_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("person_id"), Index("note_id")],
+)
+data class PersonNote(
+    @ColumnInfo(name = "person_id") val personId: String,
+    @ColumnInfo(name = "note_id") val noteId: String,
 )
 
 enum class PersonStatus(val wire: String) {

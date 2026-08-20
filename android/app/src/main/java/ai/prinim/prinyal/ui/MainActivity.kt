@@ -25,6 +25,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val openNoteId = intent.getStringExtra(EXTRA_NOTE_ID)
+        val packTopic = intent.getStringExtra(EXTRA_PACK_TOPIC)
 
         // §6: после исчерпанного backoff очередь разгребается по открытию приложения.
         // Человек открыл ленту посмотреть, почему тихо, — это и есть момент повторить.
@@ -34,8 +35,18 @@ class MainActivity : ComponentActivity() {
             PrinyalTheme {
                 var route by remember {
                     mutableStateOf<Route>(
-                        if (openNoteId != null) Route.Note(openNoteId) else Route.Feed
+                        when {
+                            openNoteId != null -> Route.Note(openNoteId)
+                            // Голосом собранный пак открывает выбор записей, а
+                            // не готовый файл (Д-28).
+                            packTopic != null -> Route.PackPick(packTopic)
+                            else -> Route.Feed
+                        }
                     )
+                }
+                val vm: AppViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+                androidx.compose.runtime.LaunchedEffect(packTopic) {
+                    packTopic?.let { vm.openPackPickByTopic(it) }
                 }
                 AppScaffold(route = route, onRoute = { route = it })
             }
@@ -43,6 +54,9 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
+        /** Тема пака из голосовой команды (Д-28): открываем выбор, а не файл. */
+        const val EXTRA_PACK_TOPIC = "pack_topic"
+
         const val EXTRA_NOTE_ID = "note_id"
     }
 }
@@ -55,5 +69,12 @@ sealed interface Route {
     data object Topics : Route
     /** Заметки одного раздела. `id == null` — «Без раздела». */
     data class Topic(val id: String?, val name: String) : Route
+
+    /** Список людей и карточка человека (Д-26, Д-27). */
+    data object People : Route
+    data class Person(val id: String, val name: String) : Route
+
+    /** Выбор записей в пак (Д-28) — экран, а не диалог: список бывает длинным. */
+    data class PackPick(val title: String) : Route
     data class Note(val id: String) : Route
 }

@@ -39,12 +39,18 @@ import androidx.compose.ui.unit.dp
  * раздела без заметок в продукте не существует.
  */
 @Composable
-fun TopicsScreen(vm: AppViewModel, onOpen: (String?, String) -> Unit) {
+fun TopicsScreen(
+    vm: AppViewModel,
+    onOpen: (String?, String) -> Unit,
+    onPeople: () -> Unit = {},
+) {
     val topics by vm.topics.collectAsState()
     val loose by vm.looseNotes.collectAsState()
     val decisions by vm.decisionCount.collectAsState()
+    val people by vm.people.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(Unit) { vm.ensurePeopleBackfilled() }
 
-    if (topics.isEmpty() && loose == 0 && decisions == 0) {
+    if (topics.isEmpty() && loose == 0 && decisions == 0 && people.isEmpty()) {
         Box(Modifier.fillMaxSize(), Alignment.Center) {
             Column(
                 Modifier.padding(horizontal = Space.screen),
@@ -73,6 +79,29 @@ fun TopicsScreen(vm: AppViewModel, onOpen: (String?, String) -> Unit) {
         ),
         modifier = Modifier.fillMaxSize(),
     ) {
+        // Выборки — наверху, до разделов (Д-26): их всегда две-три, а разделов
+        // со временем станет десять, и внизу выборки уезжали бы за край.
+        // «Без раздела» при этом обязан оставаться последним.
+        //
+        // Пустая выборка не показывается вовсе — правило разделов без
+        // исключений: пока людей меньше двух, строки «Люди» в списке нет.
+        if (people.isNotEmpty()) {
+            item {
+                val name = stringResource(R.string.topics_people)
+                TopicRow(
+                    name = name,
+                    // Счётчик считает людей, а не записи: он обязан совпадать с
+                    // тем, что человек увидит после тапа (Д-26).
+                    notes = people.size,
+                    liveItems = 0,
+                    countsLive = false,
+                    unit = pluralStringResource(R.plurals.people_count, people.size, people.size),
+                    onClick = { onPeople() },
+                )
+                HorizontalDivider(thickness = 1.dp, color = Prinyal.colors.hairline)
+            }
+        }
+
         // «Решения» — не раздел, а выборка (Р-15.10): решение о релизе остаётся
         // в «Работе», а здесь видна их хронология. Появляется, только когда
         // решения есть: пустая строка обещала бы содержимое, которого нет.
@@ -125,6 +154,8 @@ private fun TopicRow(
     notes: Int,
     liveItems: Int,
     countsLive: Boolean = true,
+    /** Своя форма счётчика: у «Людей» считаются люди, а не записи (Д-26). */
+    unit: String? = null,
     muted: Boolean = false,
     onClick: () -> Unit,
 ) {
@@ -147,7 +178,7 @@ private fun TopicRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f, fill = false),
         )
-        val notesText = pluralStringResource(R.plurals.topics_notes, notes, notes)
+        val notesText = unit ?: pluralStringResource(R.plurals.topics_notes, notes, notes)
         MetaText(
             // «Живых» — про невыполненные пункты: слово уже есть в речи продукта
             // про возвраты, второго термина заводить незачем.
