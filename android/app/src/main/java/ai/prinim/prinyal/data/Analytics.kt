@@ -46,6 +46,8 @@ class Analytics(context: Context) {
         const val CAPTURE_CANCEL = "capture_cancel"
         const val RECEIPT_SHOWN = "receipt_shown"
         const val PARSE_OK = "parse_ok"
+        /** Расход токенов одного запроса к модели — из него считаются деньги. */
+        const val LLM_USAGE = "llm_usage"
         const val PARSE_FAIL = "parse_fail"
         const val RETURN_FIRED = "return_fired"
         const val RETURN_ACTION = "return_action"

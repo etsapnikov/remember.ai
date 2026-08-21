@@ -19,6 +19,7 @@ import ai.prinim.prinyal.domain.PackPick
 import ai.prinim.prinyal.domain.PersonIdentity
 import ai.prinim.prinyal.domain.Replacements
 import ai.prinim.prinyal.domain.StructureRepair
+import ai.prinim.prinyal.domain.TokenSpend
 import ai.prinim.prinyal.data.PersonEntity
 import ai.prinim.prinyal.data.PersonStatus
 import ai.prinim.prinyal.domain.AskPolicy
@@ -116,12 +117,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _weeklyFacts = MutableStateFlow<List<WeeklyFacts.Fact>>(emptyList())
     val weeklyFacts: StateFlow<List<WeeklyFacts.Fact>> = _weeklyFacts
 
+    /** Идёт пересборка «Собрано» после разговора — экран говорит об этом. */
+    private val _polishing = MutableStateFlow(false)
+    val polishing: StateFlow<Boolean> = _polishing
+
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
 
     companion object {
         /** Псевдо-раздел решений: собирается запросом, топиком не является. */
         const val DECISIONS = "@decisions"
+
+        /** Сколько ждём разбора ответа, прежде чем спросить снова. */
+        private const val PARSE_WAIT_TRIES = 40
+        private const val PARSE_WAIT_STEP_MS = 500L
     }
 
     /**
@@ -858,9 +867,69 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (question == null) _message.value = null
     }
 
+    /**
+     * Вернулись с ответом — спрашиваем дальше.
+     *
+     * Ждём, пока ответ разберётся: вопрос строится по всему тексту заметки, и
+     * заданный по старому тексту он повторил бы сам себя слово в слово. Ждём
+     * не вечно — если разбор не пришёл (сеть), режим просто остаётся открытым
+     * без вопроса, и человек нажмёт сам.
+     */
+    fun resumeInterview(noteId: String) = viewModelScope.launch {
+        _question.value = ""
+        val ready = withContext(Dispatchers.IO) {
+            repeat(PARSE_WAIT_TRIES) {
+                val status = app.db.notes().byId(noteId)?.status
+                if (status == ai.prinim.prinyal.data.NoteStatus.PARSED.wire) return@withContext true
+                kotlinx.coroutines.delay(PARSE_WAIT_STEP_MS)
+            }
+            false
+        }
+        if (!ready) {
+            _question.value = null
+            return@launch
+        }
+        askAboutIdea(noteId)
+    }
+
     /** Выход из режима — в любой момент и без последствий. */
     fun closeInterview() {
         _question.value = null
+    }
+
+    /**
+     * «Закончить»: пересобрать «Собрано» с учётом разговора (Р-16.3).
+     *
+     * Пинг-понг менял текст заметки — ответы приходили сегментами и уходили в
+     * общий разбор, — но «Собрано» оставалось прежним: человек видел старый
+     * пересказ под свежим разговором. Здесь модель перечитывает всё вместе и
+     * пишет **отдельный** блок «Что докрутили»: изначальный замысел остаётся
+     * на месте, и видно, что доросло в разговоре, а что было с самого начала.
+     */
+    fun finishInterview(noteId: String) = viewModelScope.launch {
+        _question.value = null
+        _polishing.value = true
+        val done = withContext(Dispatchers.IO) {
+            val note = app.db.notes().byId(noteId) ?: return@withContext false
+            val text = app.repository.joinedTranscript(noteId).ifBlank { note.transcript.orEmpty() }
+            if (text.isBlank()) return@withContext false
+            val asked = app.db.questions().forNote(noteId).map { it.text }
+            val block = app.llm.polish(text, note.bodyMd.orEmpty(), asked) ?: return@withContext false
+            app.repository.appendToBody(noteId, block)
+            true
+        }
+        _polishing.value = false
+        if (!done) _message.value = getApplication<Application>().getString(R.string.interview_polish_failed)
+    }
+
+    /** Расход на модель (Р-16.4): за неделю и за всё время. */
+    private val _spend = MutableStateFlow<Pair<TokenSpend.Spend, TokenSpend.Spend>?>(null)
+    val spend: StateFlow<Pair<TokenSpend.Spend, TokenSpend.Spend>?> = _spend
+
+    fun loadSpend() = viewModelScope.launch {
+        val events = app.analytics.readAll()
+        val week = java.time.Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS)
+        _spend.value = TokenSpend.of(events, week) to TokenSpend.of(events)
     }
 
     fun showMessage(text: String?) {

@@ -75,37 +75,16 @@ object ContextPack {
         if (from != to) out.append(" — ").append(to)
         out.append('\n')
 
-        section(out, "Решения", live.flatMap { source ->
-            source.items
-                .filter { ItemType.of(it.type) == ItemType.DECISION }
-                .map { line(it.text, it.who, source.note.createdAt, zone) }
-        })
-
-        section(out, "Факты и вводные", live.flatMap { source ->
-            source.items
-                .filter { ItemType.of(it.type) == ItemType.FACT }
-                .map { line(it.text, null, source.note.createdAt, zone) }
-        })
-
-        section(out, "Открытые вопросы", live.flatMap { source ->
-            source.items
-                .filter { ItemState.of(it.state) in OPEN && ItemType.of(it.type) !in CLOSED_TYPES }
-                .map { item ->
-                    val age = daysBetween(source.note.createdAt, now.toEpochMilli())
-                    // Возраст пункта — часть вопроса: «висит с июля» и «сказано
-                    // вчера» требуют разного разговора.
-                    "- ${item.text} — ${day(source.note.createdAt, zone)}, " +
-                        "$age ${daysWord(age)} назад"
-                }
-        })
-
-        // Сырьё последним: это то, чем можно проверить всё, что выше.
+        // Дальше — запись за записью: что продукт понял и что человек сказал.
         //
-        // Каждая запись — свой подзаголовок с датой и цитата блоком, а не
-        // абзац через тире. Раньше двенадцать расшифровок сливались в стену
-        // текста, где не видно, где кончается одна запись и начинается другая,
-        // — а именно за границами сюда и приходят.
-        rawSection(out, live.takeLast(RAW_NOTES).reversed(), zone)
+        // Сводных разделов («Решения», «Факты и вводные», «Открытые вопросы»)
+        // здесь больше нет. Они собирались по типу пункта через весь корпус, и
+        // на живых темах выходила мешанина: решение из июля стояло рядом с
+        // фактом из августа без всякой связи между ними, а понять, откуда что
+        // взялось, можно было только сверив даты с «Сырьём» внизу. Владелец
+        // назвал это «билебердой», и он прав: пак ценен ровно тем, что в нём
+        // слова человека и то, что из них поняли, — рядом друг с другом.
+        live.reversed().forEach { source -> noteBlock(out, source, zone) }
 
         return out.toString()
     }
@@ -116,30 +95,44 @@ object ContextPack {
     private val CLOSED_TYPES = setOf(ItemType.DECISION, ItemType.FACT, ItemType.THOUGHT)
 
     /**
-     * «Сырьё» — расшифровки целиком, каждая своим блоком.
+     * Одна запись: заголовок с датой, что понято, что сказано.
      *
-     * Цитата оформлена как цитата (`>`), а не как абзац: в любом просмотрщике
-     * markdown это даёт вертикальную черту слева, и границу записи видно, не
-     * читая текста. Дата — подзаголовком, чтобы по ней можно было прыгать
-     * оглавлением.
+     * Порядок внутри блока такой же, как на экране карточки, и это не
+     * совпадение: человек уже знает, где что искать. Расшифровка идёт цитатой
+     * (`>`), а не абзацем: в любом просмотрщике markdown это даёт вертикальную
+     * черту слева, и границу записи видно, не читая текста.
      */
-    private fun rawSection(out: StringBuilder, sources: List<Source>, zone: ZoneId) {
-        if (sources.isEmpty()) return
-        out.append('\n').append("## Сырьё").append('\n')
-        sources.forEach { source ->
-            val text = source.note.transcript.orEmpty().trim()
-            if (text.isEmpty()) return@forEach
-            out.append('\n').append("### ").append(day(source.note.createdAt, zone))
-            // Раздел у записи подсказывает, о чём она, ещё до чтения.
-            source.items.firstOrNull()?.let { out.append(" · ").append(it.text.take(TITLE)) }
-            out.append('\n').append('\n')
-            // Каждая строка цитаты со своим маркером: без него длинный текст
-            // ломается в первом же переносе и перестаёт быть цитатой.
-            text.take(RAW).split('\n').forEach { line ->
-                out.append("> ").append(line.trim()).append('\n')
+    private fun noteBlock(out: StringBuilder, source: Source, zone: ZoneId) {
+        val text = source.note.transcript.orEmpty().trim()
+        if (text.isEmpty()) return
+
+        // Время рядом с датой: в один день записей бывает несколько, и без
+        // него два блока подряд выглядят как повтор одного.
+        out.append('\n').append("## ").append(day(source.note.createdAt, zone))
+            .append(" · ").append(time(source.note.createdAt, zone)).append('\n')
+
+        // Саммари — то, что модель уже написала словами человека. Если его нет
+        // (в записи-делах его и не бывает), сводкой служат сами пункты: это то
+        // же «Что понял», что и на экране, а не новый пересказ.
+        val body = source.note.bodyMd?.trim().orEmpty()
+        if (body.isNotEmpty()) {
+            out.append('\n').append(body).append('\n')
+        } else if (source.items.isNotEmpty()) {
+            out.append('\n')
+            source.items.forEach { item ->
+                out.append("- ").append(item.text)
+                if (!item.who.isNullOrBlank()) out.append(" · ").append(item.who)
+                out.append('\n')
             }
-            if (text.length > RAW) out.append("> …").append('\n')
         }
+
+        out.append('\n')
+        // Каждая строка цитаты со своим маркером: без него длинный текст
+        // ломается в первом же переносе и перестаёт быть цитатой.
+        text.take(RAW).split('\n').forEach { line ->
+            out.append("> ").append(line.trim()).append('\n')
+        }
+        if (text.length > RAW) out.append("> …").append('\n')
     }
 
     /** Сколько знаков первого пункта уходит в подзаголовок записи. */
@@ -160,6 +153,11 @@ object ContextPack {
 
     private val DAY: DateTimeFormatter =
         DateTimeFormatter.ofPattern("d MMMM yyyy", Locale("ru"))
+
+    private val HHMM: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+    private fun time(millis: Long, zone: ZoneId): String =
+        Instant.ofEpochMilli(millis).atZone(zone).format(HHMM)
 
     private fun day(millis: Long, zone: ZoneId): String =
         Instant.ofEpochMilli(millis).atZone(zone).toLocalDate().format(DAY)

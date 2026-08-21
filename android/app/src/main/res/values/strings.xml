@@ -134,6 +134,18 @@
         <item quantity="many">%1$d в плане</item>
         <item quantity="other">%1$d в плане</item>
     </plurals>
+    <plurals name="spend_tokens">
+        <item quantity="one">%1$s токен</item>
+        <item quantity="few">%1$s токена</item>
+        <item quantity="many">%1$s токенов</item>
+        <item quantity="other">%1$s токенов</item>
+    </plurals>
+    <plurals name="spend_calls">
+        <item quantity="one">%1$d запрос</item>
+        <item quantity="few">%1$d запроса</item>
+        <item quantity="many">%1$d запросов</item>
+        <item quantity="other">%1$d запросов</item>
+    </plurals>
     <plurals name="repeat_count">
         <item quantity="one">%1$d повторяется</item>
         <item quantity="few">%1$d повторяются</item>
@@ -191,7 +203,14 @@
 
     <!-- Интервьюер (Р-15.14). Глагол приглашает, а не обещает результат:
          продукт спрашивает, думает по-прежнему человек. -->
-    <string name="interview_start">Покрутить</string>
+    <!-- «Покрутить идею», а не «Покрутить»: слово в ряду других действий
+         записи должно говорить, что именно крутим. -->
+    <string name="interview_start">Покрутить идею</string>
+    <!-- Выход из разговора не «хватит», а «закончить»: он не бросает
+         разговор, а подводит ему итог — пересобирает «Собрано». -->
+    <string name="interview_finish">Закончить</string>
+    <string name="interview_polishing">Перечитываю разговор…</string>
+    <string name="interview_polish_failed">Не смог перечитать разговор. Попробую ещё раз позже.</string>
     <string name="interview_thinking">Думаю, о чём спросить…</string>
     <string name="interview_answer">Ответить голосом</string>
     <string name="interview_enough">Хватит</string>
@@ -357,6 +376,13 @@
     <string name="set_dev_returns">Судьба возвратов</string>
     <string name="set_dev_returns_empty">Возвратов ещё не было</string>
     <string name="set_dev_kill">Kill-критерии недели</string>
+    <!-- Деньги на модель (Р-16.4). Слово «примерно» обязательно: токены
+         посчитаны, а цена вбита в код и живёт до следующего прайса. -->
+    <string name="set_dev_spend">Расход на модель</string>
+    <string name="set_dev_spend_empty">Запросов к модели ещё не было</string>
+    <string name="set_dev_spend_week">за неделю примерно %1$s · %2$s · %3$s</string>
+    <string name="set_dev_spend_all">за всё время примерно %1$s · %2$s · %3$s</string>
+    <string name="set_dev_spend_note">цена вбита в код, токены посчитаны по ответам</string>
     <string name="set_dev_section">Для разработчика</string>
     <plurals name="settings_notes_count">
         <item quantity="one">%1$d запись</item>
@@ -532,6 +558,7 @@
     <string name="pack_pick_all">%1$d из %1$d · всё</string>
     <string name="pack_pick_some">%1$d из %2$d</string>
     <string name="pack_pick_go">Собрать</string>
+    <string name="pack_pick_save">Сохранить</string>
     <string name="empty_pick_title">Здесь одна запись.</string>
     <string name="empty_pick_body">Пак получится короче самой записи — открой её, это быстрее.</string>
     <string name="pack_ready">Собрал контекст по «%1$s»</string>

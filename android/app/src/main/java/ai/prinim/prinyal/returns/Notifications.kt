@@ -14,6 +14,8 @@ import android.net.Uri
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.drawable.IconCompat
 import java.time.Instant
 
 /**
@@ -273,10 +275,42 @@ object Notifications {
         NotificationManagerCompat.from(context).cancel(returnId.hashCode())
     }
 
+    /**
+     * Значок уведомления картинкой, а не ссылкой на ресурс.
+     *
+     * `setSmallIcon(R.drawable…)` уходит наружу парой «имя пакета + id», и
+     * получатель должен сам достать картинку из ресурсов приложения. Телефон
+     * может, часы — нет: приложения на них не стоит, и вместо нашего знака они
+     * рисуют серую заглушку. Растеризуем вектор здесь и отдаём пиксели —
+     * тогда значок доезжает куда угодно.
+     *
+     * Считается один раз: рисунок один и тот же на все уведомления.
+     */
+    @Volatile
+    private var iconCache: IconCompat? = null
+
+    private fun icon(context: Context): IconCompat = iconCache ?: synchronized(this) {
+        iconCache ?: run {
+            val size = context.resources.getDimensionPixelSize(
+                android.R.dimen.notification_large_icon_width
+            ).coerceIn(48, 192)
+            val drawable = ContextCompat.getDrawable(context, R.drawable.ic_stat_note)
+            val bitmap = createBitmap(size, size)
+            drawable?.apply {
+                setBounds(0, 0, size, size)
+                // Белым с альфой: систему интересует только альфа-канал, она
+                // сама красит значок под свою шторку.
+                setTint(android.graphics.Color.WHITE)
+                draw(android.graphics.Canvas(bitmap))
+            }
+            IconCompat.createWithBitmap(bitmap).also { iconCache = it }
+        }
+    }
+
     private fun base(context: Context, channel: String): NotificationCompat.Builder =
         NotificationCompat.Builder(context, channel)
             // Вектор с альфа-маской (Р-3): PNG без альфы был невидим в статус-баре.
-            .setSmallIcon(R.drawable.ic_stat_note)
+            .setSmallIcon(icon(context))
             // Акцент «это он мне принёс»: по цвету нашу карточку находят в чужой
             // шторке за пару секунд (ТЗ айдентики §9.2).
             .setColor(ContextCompat.getColor(context, R.color.accent_self))

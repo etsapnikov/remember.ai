@@ -26,6 +26,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val openNoteId = intent.getStringExtra(EXTRA_NOTE_ID)
         val packTopic = intent.getStringExtra(EXTRA_PACK_TOPIC)
+        val keepAsking = intent.getBooleanExtra(EXTRA_KEEP_ASKING, false)
 
         // §6: после исчерпанного backoff очередь разгребается по открытию приложения.
         // Человек открыл ленту посмотреть, почему тихо, — это и есть момент повторить.
@@ -48,6 +49,11 @@ class MainActivity : ComponentActivity() {
                 androidx.compose.runtime.LaunchedEffect(packTopic) {
                     packTopic?.let { vm.openPackPickByTopic(it) }
                 }
+                // Следующий вопрос ждёт разбора ответа: спрашивать по старому
+                // тексту значит спросить ровно то же самое второй раз.
+                androidx.compose.runtime.LaunchedEffect(keepAsking, openNoteId) {
+                    if (keepAsking && openNoteId != null) vm.resumeInterview(openNoteId)
+                }
                 AppScaffold(route = route, onRoute = { route = it })
             }
         }
@@ -58,6 +64,15 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_PACK_TOPIC = "pack_topic"
 
         const val EXTRA_NOTE_ID = "note_id"
+
+        /**
+         * Вернулись из ответа на вопрос — разговор продолжается.
+         *
+         * Флаг живёт здесь, а не во вьюмодели: между вопросом и ответом
+         * приложение успевает умереть (экран записи убирает задачу), и любое
+         * состояние в памяти к этому моменту уже потеряно.
+         */
+        const val EXTRA_KEEP_ASKING = "keep_asking"
     }
 }
 

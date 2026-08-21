@@ -58,7 +58,24 @@ class PrinyalApp : Application() {
      * переопределить, если ключ придётся сменить без пересборки.
      */
     val llm: DeepSeekClient by lazy {
-        DeepSeekClient(apiKey = settings.deepSeekKey.ifBlank { BuildConfig.DEEPSEEK_KEY })
+        DeepSeekClient(
+            apiKey = settings.deepSeekKey.ifBlank { BuildConfig.DEEPSEEK_KEY },
+            // Расход токенов копится в той же аналитике, что и всё остальное:
+            // отдельного хранилища ради одной цифры заводить нечего.
+            usageListener = { usage ->
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                    analytics.log(
+                        Analytics.LLM_USAGE,
+                        mapOf(
+                            "kind" to usage.kind,
+                            "cached_in" to usage.cachedIn,
+                            "fresh_in" to usage.freshIn,
+                            "out" to usage.out,
+                        ),
+                    )
+                }
+            },
+        )
     }
 
     override fun onCreate() {

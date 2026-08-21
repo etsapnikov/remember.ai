@@ -4,6 +4,7 @@ import ai.prinim.prinyal.BuildConfig
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.capture.SilenceWindow
 import ai.prinim.prinyal.data.Window
+import ai.prinim.prinyal.domain.TokenSpend
 import ai.prinim.prinyal.domain.WeeklySummary
 import ai.prinim.prinyal.returns.ReturnScheduler
 import ai.prinim.prinyal.returns.ReturnDiag
@@ -486,6 +487,54 @@ private fun <T> Segments(
  * Здесь слово «Провал» уместно — это ответ на вопрос «продолжаем ли мы вообще»,
  * а не оценка человека. На «Неделе» его нет намеренно (Р-13.1).
  */
+/**
+ * Сколько стоила модель (Р-16.4).
+ *
+ * Токены и деньги рядом, и разница между ними названа словом: токены —
+ * посчитанный факт, доллары — оценка по вбитому в код прайсу. Цифра, которая
+ * молча устареет вместе с прайсом, хуже отсутствующей.
+ */
+@Composable
+private fun TokenSpendBlock(vm: AppViewModel) {
+    val spend by vm.spend.collectAsState()
+    LaunchedEffect(Unit) { vm.loadSpend() }
+    val (week, all) = spend ?: return
+
+    Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
+        MetaText(stringResource(R.string.set_dev_spend))
+        if (all.calls == 0) {
+            MetaText(stringResource(R.string.set_dev_spend_empty), color = Prinyal.colors.inkFaint)
+            return@Column
+        }
+        // Числа склоняются: «3 запросов» в служебной строке читается как
+        // недоделка ровно так же, как в любой другой.
+        listOf(R.string.set_dev_spend_week to week, R.string.set_dev_spend_all to all)
+            .forEach { (line, data) ->
+                MetaText(
+                    stringResource(
+                        line,
+                        TokenSpend.money(data.dollars),
+                        pluralStringResource(
+                            R.plurals.spend_tokens,
+                            data.tokens.toInt(),
+                            TokenSpend.tokens(data.tokens),
+                        ),
+                        pluralStringResource(R.plurals.spend_calls, data.calls, data.calls),
+                    ),
+                    color = Prinyal.colors.inkFaint,
+                )
+            }
+        // По видам видно, за что платим: разбор, второй заход, пинг-понг.
+        all.byKind.entries.sortedByDescending { it.value }.forEach { (kind, money) ->
+            MetaText("$kind · ${TokenSpend.money(money)}", color = Prinyal.colors.inkFaint)
+        }
+        MetaText(
+            stringResource(R.string.set_dev_spend_note),
+            color = Prinyal.colors.inkFaint,
+        )
+    }
+}
+
 @Composable
 private fun KillMetrics(vm: AppViewModel) {
     val report by vm.weekly.collectAsState()
@@ -654,6 +703,7 @@ private fun DeveloperSection(vm: AppViewModel, threshold: Int) {
                 )
             }
 
+            TokenSpendBlock(vm)
             KillMetrics(vm)
             VersionState(vm)
             ReturnTrace()

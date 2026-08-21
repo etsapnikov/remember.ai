@@ -312,6 +312,29 @@ class CaptureActivity : ComponentActivity() {
 
         receiptJob = lifecycleScope.launch {
             delay(RECEIPT_MS)
+            // Дописывание возвращает туда, откуда пришли, — в тело заметки.
+            //
+            // Раньше экран просто убирал задачу, и человек оказывался на
+            // рабочем столе: после ответа на вопрос «Покрутить идею» петля
+            // рвалась ровно там, где должна была продолжиться следующим
+            // вопросом. Новая запись по-прежнему уходит в никуда — она ни
+            // откуда и не приходила.
+            if (appendTo != null) {
+                startActivity(
+                    android.content.Intent(
+                        this@CaptureActivity,
+                        ai.prinim.prinyal.ui.MainActivity::class.java,
+                    ).apply {
+                        putExtra(ai.prinim.prinyal.ui.MainActivity.EXTRA_NOTE_ID, appendTo)
+                        // Продолжаем разговор: экран заметки сам снова спросит.
+                        putExtra(
+                            ai.prinim.prinyal.ui.MainActivity.EXTRA_KEEP_ASKING,
+                            intent.getBooleanExtra(EXTRA_ASKING, false),
+                        )
+                        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                )
+            }
             finishAndRemoveTask()
         }
     }
@@ -432,6 +455,9 @@ class CaptureActivity : ComponentActivity() {
          * слушает тем же жестом, каким слушает всё остальное.
          */
         const val EXTRA_ABOUT = "about"
+
+        /** Ответ на вопрос «Покрутить идею»: после квитанции разговор продолжается. */
+        const val EXTRA_ASKING = "asking"
         private const val TAG = "PrinyalCapture"
         private const val TICK_MS = 100L
         private const val HINT_CANCEL = "cancel"

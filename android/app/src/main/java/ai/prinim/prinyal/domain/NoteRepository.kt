@@ -651,6 +651,27 @@ class NoteRepository(
     }
 
     /** Транскрипт заметки целиком: сегменты по порядку, разделённые меткой. */
+    /**
+     * Приписать к «Собрано» блок «Что докрутили» (Р-16.3).
+     *
+     * Именно приписать: прежний пересказ остаётся слово в слово. Повторный
+     * «Закончить» заменяет **свой же** блок, а не громоздит второй — разговор
+     * продолжается, и итог у него один.
+     */
+    suspend fun appendToBody(noteId: String, block: String): Boolean {
+        val note = db.notes().byId(noteId) ?: return false
+        val text = block.trim()
+        if (text.isEmpty()) return false
+        val base = note.bodyMd.orEmpty().substringBefore(POLISH_HEADING).trimEnd()
+        val body = buildString {
+            if (base.isNotEmpty()) append(base).append("\n\n")
+            append(POLISH_HEADING).append("\n\n").append(text)
+        }
+        db.notes().update(note.copy(bodyMd = body))
+        analytics.log("interview_polish", mapOf("note" to noteId, "chars" to text.length))
+        return true
+    }
+
     suspend fun joinedTranscript(noteId: String): String =
         db.segments().forNote(noteId)
             .mapNotNull { it.transcript?.takeIf(String::isNotBlank) }
@@ -1029,6 +1050,12 @@ class NoteRepository(
         analytics.log(Analytics.RETURN_ACTION, mapOf("item" to itemId, "action" to "done"))
         return null
     }
+
+    /**
+     * Заголовок блока пинг-понга. Он же граница: по нему прежний блок находят
+     * и заменяют, поэтому менять его текст — значит оставить в базе сироту.
+     */
+    private val POLISH_HEADING = "## Что докрутили"
 
     /** Метка сделанного раза в истории повтора. */
     private val ACTION_DONE = "done"

@@ -49,6 +49,8 @@ class DeepSeekClient(
     private val retries: Int = 2,
     private val client: OkHttpClient = defaultClient(),
     private val transport: LlmTransport? = null,
+    /** Куда сообщать о расходе токенов. Null — не считаем (тесты, плёнка). */
+    private val usageListener: ((Usage) -> Unit)? = null,
 ) {
 
     fun parse(
@@ -84,6 +86,7 @@ class DeepSeekClient(
         for (attempt in 0..retries) {
             val response = try {
                 call(transcript, now, topics, glossary, people, existing, candidates, thinking)
+                    .also { account(if (thinking) "parse_deep" else "parse", it) }
             } catch (error: Exception) {
                 when {
                     error is java.net.UnknownHostException ||
@@ -224,8 +227,13 @@ class DeepSeekClient(
             put("temperature", 0.4)
             put("max_tokens", MAX_TOKENS)
             put("stream", false)
+            // Вопрос человек ждёт стоя, глядя в экран, — здесь секунды дороже
+            // всего в продукте. Рассуждения стоили десятки секунд и ничего не
+            // добавляли: задача не логическая, а формулировочная (Р-16.1).
+            put("thinking", JSONObject().put("type", "disabled"))
         }
         val response = runCatching { post(payload) }.getOrNull() ?: return null
+        account("interview", response)
         if (response.code != 200) return null
         val text = response.body
             ?.optJSONArray("choices")?.optJSONObject(0)
@@ -233,6 +241,48 @@ class DeepSeekClient(
             .orEmpty().trim().trim('"', '«', '»')
         val question = text.takeIf { it.isNotBlank() } ?: return null
         return question.takeIf { InterviewPolicy.accepts(it, idea, asked) }
+    }
+
+    /**
+     * Что добавил разговор (Р-16.3).
+     *
+     * Возвращает **только новый блок**, а не пересобранное «Собрано»: старый
+     * пересказ остаётся нетронутым. Пустой ответ модели — законный: значит,
+     * ответы ничего не добавили, и блока не будет.
+     */
+    fun polish(text: String, previous: String, asked: List<String>): String? {
+        if (apiKey.isBlank()) return null
+        val user = buildString {
+            append("Весь текст записи:\n").append(text).append('\n')
+            if (previous.isNotBlank()) {
+                append("\nПрежний пересказ:\n").append(previous).append('\n')
+            }
+            if (asked.isNotEmpty()) {
+                append("\nЗаданные вопросы:\n")
+                asked.forEach { append("  ").append(it).append('\n') }
+            }
+        }
+        val payload = JSONObject().apply {
+            put("model", model)
+            put("messages", JSONArray().apply {
+                put(JSONObject().put("role", "system").put("content", Prompt.POLISH))
+                put(JSONObject().put("role", "user").put("content", user))
+            })
+            put("temperature", 0.3)
+            put("max_tokens", MAX_TOKENS)
+            put("stream", false)
+            // Рассуждения здесь не нужны по той же причине, что и в разборе:
+            // задача пересказательная, а не логическая (Р-16.1).
+            put("thinking", JSONObject().put("type", "disabled"))
+        }
+        val response = runCatching { post(payload) }.getOrNull() ?: return null
+        account("polish", response)
+        if (response.code != 200) return null
+        return response.body
+            ?.optJSONArray("choices")?.optJSONObject(0)
+            ?.optJSONObject("message")?.optString("content")
+            .orEmpty().trim()
+            .takeIf { it.isNotBlank() }
     }
 
     /**
@@ -260,6 +310,7 @@ class DeepSeekClient(
             put("stream", false)
         }
         val response = runCatching { post(payload) }.getOrNull() ?: return null
+        account("rework", response)
         if (response.code != 200) return null
         val fresh = response.body
             ?.optJSONArray("choices")?.optJSONObject(0)
@@ -280,6 +331,34 @@ class DeepSeekClient(
     private class Response(val code: Int, val body: JSONObject?)
 
     /** Один запрос к модели: плёнка в тестах, сеть в жизни. */
+    /**
+     * Счёт токенов: сколько ушло и сколько вернулось.
+     *
+     * Живёт в клиенте, потому что это единственное место, через которое
+     * проходят **все** запросы. Считать по вызывающим значило бы забыть
+     * очередной — и получить счёт, который тем неправдивее, чем больше в
+     * продукте функций.
+     */
+    private fun account(kind: String, response: Response) {
+        val usage = response.body?.optJSONObject("usage") ?: return
+        val listener = usageListener ?: return
+        listener(
+            Usage(
+                kind = kind,
+                // Кэшированные входные токены стоят у DeepSeek в разы дешевле,
+                // и складывать их с обычными значит завысить счёт.
+                cachedIn = usage.optInt("prompt_cache_hit_tokens", 0),
+                freshIn = usage.optInt(
+                    "prompt_cache_miss_tokens",
+                    usage.optInt("prompt_tokens", 0),
+                ),
+                out = usage.optInt("completion_tokens", 0),
+            )
+        )
+    }
+
+    data class Usage(val kind: String, val cachedIn: Int, val freshIn: Int, val out: Int)
+
     private fun post(payload: JSONObject): Response {
         transport?.let { tape ->
             val (code, text) = tape.send(payload.toString())

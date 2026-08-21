@@ -63,19 +63,33 @@ class ContextPackTest {
     private fun pack() = ContextPack.build("Авторизация", sources, now, zone)
 
     @Test
-    fun `все четыре секции на месте и с датами`() {
+    fun `запись за записью — что понято и что сказано`() {
         val md = pack()
+        // Сводных разделов по типу пункта больше нет: они собирали корпус
+        // поперёк времени, и связь между строками терялась.
         listOf("## Решения", "## Факты и вводные", "## Открытые вопросы", "## Сырьё")
-            .forEach { assertTrue("нет секции $it:\n$md", it in md) }
-        assertTrue("нет даты решения", "4 августа 2026" in md)
-        assertTrue("нет «с кем»", "с кем: Дима" in md)
+            .forEach { assertTrue("вернулась сводная секция $it:\n$md", it !in md) }
+
+        // Заголовок записи — дата и время, дальше понятое, дальше сказанное.
+        assertTrue("нет заголовка записи:\n$md", "## 4 августа 2026 · " in md)
+        assertTrue("нет пункта записи:\n$md", "- перенести релиз на октябрь" in md)
+        assertTrue("нет «с кем»:\n$md", "· Дима" in md)
+        assertTrue("нет расшифровки:\n$md", "> созвонились с димой" in md)
     }
 
     @Test
-    fun `у висящего пункта виден возраст`() {
-        // «Висит с июля» и «сказано вчера» требуют разного разговора, и в
-        // бумаге эту разницу видно только по возрасту.
-        assertTrue("нет возраста пункта:\n${pack()}", "6 дней назад" in pack())
+    fun `саммари заметки идёт вместо списка пунктов, когда оно есть`() {
+        // «Как сейчас генерится»: если модель написала связный пересказ, в пак
+        // идёт он, а пункты не дублируют его же другими словами.
+        val withBody = listOf(
+            ContextPack.Source(
+                note("n4", "речь про замысел", 12).copy(bodyMd = "## Замысел\n\nЧто задумано."),
+                listOf(item("i4", "сделать замысел", ItemType.DO)),
+            )
+        )
+        val md = ContextPack.build("Замысел", withBody, now, zone)
+        assertTrue("нет саммари:\n$md", "## Замысел" in md && "Что задумано." in md)
+        assertTrue("пункты продублировали саммари:\n$md", "- сделать замысел" !in md)
     }
 
     @Test
@@ -90,8 +104,8 @@ class ContextPackTest {
         pack().lines()
             .filter { it.startsWith("- ") }
             .forEach { line ->
-                // Отрезаем служебный хвост «— дата, N дней назад» и «с кем».
-                val body = line.removePrefix("- ").substringBefore(" — ").lowercase()
+                // Отрезаем служебный хвост «· с кем».
+                val body = line.removePrefix("- ").substringBefore(" · ").lowercase()
                 assertTrue("строка не из корпуса: $line", body in corpus)
             }
     }
@@ -104,11 +118,14 @@ class ContextPackTest {
     }
 
     @Test
-    fun `секции без содержимого не рисуются`() {
-        val onlyFacts = listOf(sources[1])
-        val md = ContextPack.build("Факты", onlyFacts, now, zone)
-        assertTrue("нарисован пустой раздел решений:\n$md", "## Решения" !in md)
-        assertTrue("## Факты и вводные" in md)
+    fun `запись без речи в пак не попадает`() {
+        // Пустая расшифровка — это не блок с пустой цитатой, а отсутствие
+        // блока: заголовок без текста читается как потерянная запись.
+        val silent = listOf(
+            ContextPack.Source(note("n5", "", 12), listOf(item("i5", "дело", ItemType.DO)))
+        )
+        val md = ContextPack.build("Тихая", silent, now, zone)
+        assertTrue("нарисован блок пустой записи:\n$md", "##" !in md)
     }
 
     @Test

@@ -57,6 +57,24 @@ import androidx.compose.ui.unit.sp
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PackPickScreen(vm: AppViewModel, onShare: (java.io.File) -> Unit) {
+    // Сохранение на телефон — системным диалогом выбора папки, а не записью в
+    // «Загрузки» украдкой. Разрешений он не требует и показывает человеку, куда
+    // именно лёг файл: пак уносят наружу, и знать, где он, — половина смысла.
+    val saveContext = LocalContext.current
+    var pending by remember { mutableStateOf<java.io.File?>(null) }
+    val saver = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/markdown")
+    ) { uri ->
+        val file = pending
+        pending = null
+        // Человек передумал в системном диалоге — это не ошибка, молчим.
+        if (uri == null || file == null) return@rememberLauncherForActivityResult
+        runCatching {
+            saveContext.contentResolver.openOutputStream(uri)?.use { out ->
+                out.write(file.readBytes())
+            }
+        }
+    }
     val draft by vm.packDraft.collectAsState()
     val current = draft ?: return
     var filter by remember { mutableStateOf(FeedView.Filter.ALL) }
@@ -168,6 +186,25 @@ fun PackPickScreen(vm: AppViewModel, onShare: (java.io.File) -> Unit) {
                     text = stringResource(R.string.pack_pick_go),
                     style = Prinyal.type.label,
                     color = if (ready) Prinyal.colors.paper else Prinyal.colors.inkFaint,
+                )
+            }
+            // Второй выход — словом и приглушённо: «Собрать» отдаёт пак наружу
+            // (почта, мессенджер), «Сохранить» кладёт файл на телефон. Раньше
+            // второго не было вовсе, и до файла добирались через шторку
+            // «Поделиться», где он есть не на каждой прошивке.
+            if (ready) {
+                Text(
+                    text = stringResource(R.string.pack_pick_save),
+                    style = Prinyal.type.label,
+                    color = Prinyal.colors.inkMuted,
+                    modifier = Modifier
+                        .align(androidx.compose.ui.Alignment.CenterEnd)
+                        .tap {
+                            vm.buildPack { file ->
+                                pending = file
+                                saver.launch(file.name)
+                            }
+                        },
                 )
             }
         }

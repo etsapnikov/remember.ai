@@ -89,6 +89,7 @@ fun NoteScreen(
     val note = entry?.note
     val linked by vm.linked(noteId).collectAsState(initial = emptyList())
     val question by vm.question.collectAsState()
+    val polishing by vm.polishing.collectAsState()
 
     var editing by remember { mutableStateOf<ItemEntity?>(null) }
     // Раскрытие пункта: тап показывает, а меняет — второй жест (Р-15.4).
@@ -261,11 +262,14 @@ fun NoteScreen(
                 item {
                     Interview(
                         question = question,
+                        polishing = polishing,
                         onAsk = { vm.askAboutIdea(noteId) },
                         // Отвечают тем же жестом, каким записывают: ответ
                         // становится сегментом заметки по механике Р-14.3, а не
-                        // отдельной сущностью «ответ на вопрос».
-                        onAnswer = { openAppend(context, noteId) },
+                        // отдельной сущностью «ответ на вопрос». Флаг «asking»
+                        // возвращает человека сюда же, а не на рабочий стол.
+                        onAnswer = { openAppend(context, noteId, asking = true) },
+                        onFinish = { vm.finishInterview(noteId) },
                         onClose = { vm.closeInterview() },
                     )
                 }
@@ -918,13 +922,19 @@ private fun LinkRow(link: LinkedNote, onClick: () -> Unit) {
 
 
 /** Экран записи в режиме дописывания — общий вход для «Дописать» и ответа. */
-private fun openAppend(context: android.content.Context, noteId: String) {
+private fun openAppend(
+    context: android.content.Context,
+    noteId: String,
+    /** Ответ на вопрос: после квитанции вернуться в заметку и спросить дальше. */
+    asking: Boolean = false,
+) {
     context.startActivity(
         android.content.Intent(
             context,
             ai.prinim.prinyal.capture.CaptureActivity::class.java,
         ).apply {
             putExtra(ai.prinim.prinyal.capture.CaptureActivity.EXTRA_APPEND_TO, noteId)
+            putExtra(ai.prinim.prinyal.capture.CaptureActivity.EXTRA_ASKING, asking)
             // NEW_TASK | CLEAR_TASK — по той же причине, что и у «Дописать»
             // (Р-15.1): интент не должен попасть в умирающую задачу.
             addFlags(
@@ -945,11 +955,20 @@ private fun openAppend(context: android.content.Context, noteId: String) {
 @Composable
 private fun Interview(
     question: String?,
+    polishing: Boolean,
     onAsk: () -> Unit,
     onAnswer: () -> Unit,
+    onFinish: () -> Unit,
     onClose: () -> Unit,
 ) {
     when {
+        // Пересборка «Собрано» — не мгновенная, и молчать о ней нельзя: экран
+        // выглядел бы так, будто «Закончить» ничего не сделало.
+        polishing -> MetaText(
+            text = stringResource(R.string.interview_polishing),
+            color = Prinyal.colors.inkFaint,
+        )
+
         question == null -> MetaText(
             text = stringResource(R.string.interview_start),
             color = Prinyal.colors.accentSelf,
@@ -974,6 +993,14 @@ private fun Interview(
                     text = stringResource(R.string.interview_answer),
                     color = Prinyal.colors.accentSelf,
                     modifier = Modifier.tap(onClick = onAnswer),
+                )
+                // «Закончить» подводит итог: перечитывает разговор и
+                // дописывает к «Собрано» блок «Что докрутили». «Хватит» просто
+                // закрывает — им выходят, когда крутить оказалось нечего.
+                MetaText(
+                    text = stringResource(R.string.interview_finish),
+                    color = Prinyal.colors.accentSelf,
+                    modifier = Modifier.tap(onClick = onFinish),
                 )
                 MetaText(
                     text = stringResource(R.string.interview_enough),
