@@ -224,6 +224,13 @@ data class ItemEntity(
      * именно: замена без следа неотличима от подмены.
      */
     @ColumnInfo(name = "previous_text") val previousText: String? = null,
+    /**
+     * Правило повтора (Р-16.2): `weekly:mon`, `monthly:14`, `daily` или null.
+     *
+     * Строкой, а не парой колонок: правил три, читаются они глазом в дампе, а
+     * колонка «день недели», пустая у месячных, врала бы про схему.
+     */
+    @ColumnInfo(name = "repeat_rule") val repeatRule: String? = null,
 )
 
 @Entity(

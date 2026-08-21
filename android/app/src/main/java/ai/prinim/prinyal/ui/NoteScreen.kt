@@ -293,6 +293,10 @@ fun NoteScreen(
                                 editing = item
                                 opened = null
                             },
+                            onStopRepeat = {
+                                vm.stopRepeat(item.id)
+                                opened = null
+                            },
                             onDismiss = { opened = null },
                         )
                     }
@@ -332,19 +336,26 @@ fun NoteScreen(
                         Modifier.fillMaxWidth().padding(top = Space.s),
                         verticalArrangement = Arrangement.spacedBy(Space.xs),
                     ) {
+                        // Заголовок отдельной строкой, действия под ним.
+                        //
+                        // Раньше всё жило одним рядом, и это работало ровно до
+                        // третьего действия: «Заново» обрезалось многоточием,
+                        // а до него — складывалось в столбик из букв. Ряд из
+                        // подписи и трёх слов в 411 dp не помещается, и
+                        // подбирать отступы здесь значит ждать четвёртого.
+                        MetaText(
+                            stringResource(R.string.note_transcript),
+                            color = Prinyal.colors.inkFaint,
+                        )
                         Row(
                             Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.spacedBy(Space.ml),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            MetaText(
-                                stringResource(R.string.note_transcript),
-                                color = Prinyal.colors.inkFaint,
-                            )
-                            // Вход — строкой у заголовка. Тап по самому тексту
-                            // остаётся выделению и копированию: транскрипт
-                            // читают чаще, чем правят.
-                            Row(horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+                            // Вход — строкой под заголовком. Тап по самому
+                            // тексту остаётся выделению и копированию:
+                            // транскрипт читают чаще, чем правят.
+                            run {
                                 // Пока идёт разбор, дописывать нельзя:
                                 // переразбор пошёл бы по половине текста
                                 // (Р-15.1).
@@ -354,6 +365,7 @@ fun NoteScreen(
                                     MetaText(
                                         text = stringResource(R.string.note_append),
                                         color = Prinyal.colors.accentSelf,
+                                        maxLines = 1,
                                         modifier = Modifier.tap {
                                             openAppend(context, noteId)
                                         },
@@ -362,6 +374,7 @@ fun NoteScreen(
                                 MetaText(
                                     text = stringResource(R.string.transcript_edit),
                                     color = Prinyal.colors.accentSelf,
+                                    maxLines = 1,
                                     modifier = Modifier.tap {
                                         // Курсор в конец: чаще всего дописывают
                                         // хвост (Д-6).
@@ -371,6 +384,19 @@ fun NoteScreen(
                                         )
                                     },
                                 )
+                                // Переразбор руками. Раньше он жил только на
+                                // экране ошибки и внутри правки транскрипта —
+                                // то есть был доступен, когда разбор **не**
+                                // удался, и недоступен, когда удался плохо. А
+                                // просят его именно во втором случае.
+                                if (!busy) {
+                                    MetaText(
+                                        text = stringResource(R.string.note_reparse_short),
+                                        color = Prinyal.colors.inkMuted,
+                                        maxLines = 1,
+                                        modifier = Modifier.tap { vm.reparse(noteId) },
+                                    )
+                                }
                             }
                         }
                         // Кнопка не исчезает молча — продукт прямо говорит,

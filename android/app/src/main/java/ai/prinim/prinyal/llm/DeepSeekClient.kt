@@ -61,6 +61,16 @@ class DeepSeekClient(
         existing: List<Pair<String, String>> = emptyList(),
         /** Прежние записи, среди которых модель ищет связь (Р-15.11). */
         candidates: List<Pair<String, String>> = emptyList(),
+        /**
+         * Думать ли модели.
+         *
+         * По умолчанию **нет**: замер на всех тринадцати фикстурах показал
+         * медиану 3,4 с без рассуждений против 14,7 с с ними — вчетверо
+         * быстрее, — при том что ожидания сходятся одинаково везде, кроме
+         * одного случая (`docs/eval-reasoning.md`). Человек ждал минуту за
+         * единственный признак.
+         */
+        thinking: Boolean = false,
     ): IngestOutcome {
         if (apiKey.isBlank()) {
             return degraded(transcript, "llm_disabled", 0)
@@ -73,7 +83,7 @@ class DeepSeekClient(
 
         for (attempt in 0..retries) {
             val response = try {
-                call(transcript, now, topics, glossary, people, existing, candidates)
+                call(transcript, now, topics, glossary, people, existing, candidates, thinking)
             } catch (error: Exception) {
                 when {
                     error is java.net.UnknownHostException ||
@@ -294,6 +304,7 @@ class DeepSeekClient(
         people: List<String>,
         existing: List<Pair<String, String>>,
         candidates: List<Pair<String, String>>,
+        thinking: Boolean,
     ): Response {
         val payload = JSONObject().apply {
             put("model", model)
@@ -317,6 +328,14 @@ class DeepSeekClient(
             put("max_tokens", MAX_TOKENS)
             put("response_format", JSONObject().put("type", "json_object"))
             put("stream", false)
+            // Ключ именно такой. Первый замер выключал рассуждения через
+            // `reasoning: {max_tokens: 0}` — API молча его проигнорировал,
+            // модель думала в обоих прогонах, и сравнение мерило шум. Ложный
+            // вывод («рассуждения ничего не стоят») продержался ровно до
+            // проверки числа токенов рассуждений в ответе.
+            if (!thinking) {
+                put("thinking", JSONObject().put("type", "disabled"))
+            }
             // Рассуждения включены. Прогон корпуса 16.08 (18 записей): число
             // пунктов почти не меняется, но качество разбора заметно лучше —
             // «камера опафаиндекс шесть» становится «узнать, на каком месте

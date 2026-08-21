@@ -98,6 +98,70 @@ class NoteRepositoryTest {
     ) = ParsedItem(type, text, null, dueKind, window, null, Confidence.HIGH, "капли")
 
     @Test
+    fun `повтор ставит следующий раз и не кончается`() = runTest {
+        // Р-16.2. Ценность повтора вся в том, что он переживает срабатывание:
+        // напоминание, умирающее после первого раза, — это обычный возврат.
+        val id = note()
+        val items = repo.applyParse(
+            id,
+            parsed(item(text = "выложить отчёт", window = null, dueKind = DueKind.NONE)
+                .copy(repeat = "weekly:mon")),
+        )
+        val item = items.single()
+        assertEquals("weekly:mon", db.items().byId(item.id)!!.repeatRule)
+
+        val first = db.returns().all().single()
+        val firstDay = Instant.ofEpochMilli(first.scheduledAt).atZone(zone).toLocalDate()
+        assertEquals("возврат не в понедельник", java.time.DayOfWeek.MONDAY, firstDay.dayOfWeek)
+
+        repo.markFired(first.id)
+        val next = db.returns().all().filter { it.id != first.id }.single()
+        val nextDay = Instant.ofEpochMilli(next.scheduledAt).atZone(zone).toLocalDate()
+        assertEquals(java.time.DayOfWeek.MONDAY, nextDay.dayOfWeek)
+        assertTrue("следующий раз обязан быть позже", nextDay.isAfter(firstDay))
+        assertTrue("аларм на следующий раз не поставлен", scheduler.scheduled.containsKey(next.id))
+    }
+
+    @Test
+    fun `молчание не хоронит повторяющийся пункт`() = runTest {
+        // Обычный пункт после двух неотвеченных возвратов уходит в expired.
+        // Повторяющемуся это противопоказано: он и не рассчитан на ответ.
+        val id = note()
+        val items = repo.applyParse(
+            id,
+            parsed(item(text = "показания счётчиков", window = null, dueKind = DueKind.NONE)
+                .copy(repeat = "monthly:15")),
+        )
+        val first = db.returns().all().single()
+        repo.markFired(first.id)
+        repo.scheduleSecondAttempt(first.id)
+
+        assertEquals(
+            "повторяющийся пункт похоронен молчанием",
+            ItemState.RETURNED.wire,
+            db.items().byId(items.single().id)!!.state,
+        )
+    }
+
+    @Test
+    fun `хватит напоминать снимает и правило, и назначенный раз`() = runTest {
+        val id = note()
+        val items = repo.applyParse(
+            id,
+            parsed(item(text = "выложить отчёт", window = null, dueKind = DueKind.NONE)
+                .copy(repeat = "daily")),
+        )
+        val itemId = items.single().id
+        val planned = db.returns().all().single().id
+
+        repo.stopRepeat(itemId)
+
+        assertNull(db.items().byId(itemId)!!.repeatRule)
+        assertTrue("аларм остался жив", scheduler.cancelled.contains(planned))
+        assertTrue("возврат остался в базе", db.returns().all().none { it.firedAt == null })
+    }
+
+    @Test
     fun `разбор кладёт пункты и ставит возвраты`() = runTest {
         val id = note()
         val items = repo.applyParse(id, parsed(item(), item(text = "соня", window = Window.MORNING)))

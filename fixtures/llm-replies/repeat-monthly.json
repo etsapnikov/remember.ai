@@ -1,0 +1,45 @@
+{
+ "id": "repeat-monthly",
+ "prompt_version": "9",
+ "recorded_at": "2026-08-21T14:47:36",
+ "took_s": 2.7,
+ "finish_reason": "stop",
+ "usage": {
+  "prompt_tokens": 2632,
+  "completion_tokens": 148,
+  "total_tokens": 2780,
+  "prompt_tokens_details": {
+   "cached_tokens": 2560
+  },
+  "prompt_cache_hit_tokens": 2560,
+  "prompt_cache_miss_tokens": 72
+ },
+ "response": {
+  "id": "76e2b10d-5267-4a36-b3e6-bddd7a2e6c8f",
+  "object": "chat.completion",
+  "created": 1787312855,
+  "model": "deepseek-v4-flash",
+  "choices": [
+   {
+    "index": 0,
+    "message": {
+     "role": "assistant",
+     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Дом\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"передавать показания счётчиков\",\n      \"who\": null,\n      \"due_kind\": \"none\",\n      \"window\": null,\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"передавать показания счётчиков\",\n      \"repeat\": \"monthly:15\"\n    }\n  ],\n  \"note_exact_local\": null,\n  \"links\": []\n}"
+    },
+    "logprobs": null,
+    "finish_reason": "stop"
+   }
+  ],
+  "usage": {
+   "prompt_tokens": 2632,
+   "completion_tokens": 148,
+   "total_tokens": 2780,
+   "prompt_tokens_details": {
+    "cached_tokens": 2560
+   },
+   "prompt_cache_hit_tokens": 2560,
+   "prompt_cache_miss_tokens": 72
+  },
+  "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
+ }
+}

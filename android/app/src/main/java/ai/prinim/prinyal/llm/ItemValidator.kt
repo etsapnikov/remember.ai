@@ -1,6 +1,7 @@
 package ai.prinim.prinyal.llm
 
 import ai.prinim.prinyal.data.Confidence
+import ai.prinim.prinyal.domain.Repeat
 import ai.prinim.prinyal.data.DueKind
 import ai.prinim.prinyal.data.ItemType
 import ai.prinim.prinyal.data.Window
@@ -172,6 +173,10 @@ object ItemValidator {
             rawSpan = rawSpan,
             // Пустая строка от модели — это «нет ссылки», а не пункт с пустым id.
             ref = json.optString("ref").trim().takeIf { it.isNotEmpty() && it != "null" },
+            // Повтор пропускаем через разбор правила: неизвестная форма
+            // («каждый второй четверг») отбрасывается, а не хранится строкой,
+            // которую планировщик потом не поймёт и промолчит.
+            repeat = Repeat.of(json.optString("repeat"))?.wire(),
         ) to salvaged
     }
 

@@ -384,6 +384,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             )
         )
         app.analytics.log(Analytics.REPLACEMENT_ADD, mapOf("from" to from, "to" to to))
+
+        // Новое правило применяется к тому, что уже распознано.
+        //
+        // Раньше оно ждало следующей записи — из соображения «транскрипт это
+        // то, что было услышано тогда». Но человек заводит правило, глядя на
+        // **этот** транскрипт и на **эту** ошибку: он поправил слово, а слово
+        // осталось прежним, и правило выглядело несработавшим. Смысл словаря в
+        // том, чтобы чинить распознавание, а не хранить его ошибки.
+        //
+        // Настоящей записью остаётся аудио: оно не трогается никогда. Пункты
+        // тоже не пересобираются — их формулировки могут быть правлены рукой,
+        // и переразбор человек запускает сам.
+        val fixed = app.repository.applyRuleToTranscripts()
+        if (fixed > 0) {
+            app.analytics.log("replacement_backfill", mapOf("notes" to fixed))
+        }
     }
 
     fun removeReplacement(id: String) = viewModelScope.launch {
@@ -561,6 +577,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun reparse(noteId: String) = viewModelScope.launch {
         app.db.notes().setStatus(noteId, ai.prinim.prinyal.data.NoteStatus.RECORDED.wire)
         UploadWorker.enqueue(getApplication(), noteId)
+    }
+
+    /** «Хватит напоминать» (Р-16.2): правило снимается, назначенный раз отменяется. */
+    fun stopRepeat(itemId: String) = viewModelScope.launch {
+        app.repository.stopRepeat(itemId)
     }
 
     // --- удаление с undo (спека R1.1 §2.2) ---

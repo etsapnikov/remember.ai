@@ -38,6 +38,10 @@
     <string name="plan_window_tomorrow_morning">напомню завтра утром</string>
     <string name="plan_window_weekend">напомню в выходные</string>
     <string name="plan_none">просто сохраню</string>
+    <!-- Повтор (Р-16.2). Глагол тот же, что у обычного возврата: для человека
+         это то же напоминание, просто не один раз. -->
+    <string name="plan_repeat">напомню %1$s</string>
+    <string name="item_repeat_off">Не повторять</string>
     <string name="plan_low_confidence">не уверен, что понял — проверь</string>
 
     <!-- Причина возврата: у каждого действия машины видна причина. -->
@@ -163,6 +167,10 @@
     <string name="note_play">Слушать</string>
     <string name="note_pause">Пауза</string>
     <string name="note_reparse">Разобрать заново</string>
+    <!-- То же действие в тесном ряду над расшифровкой: рядом уже стоят
+         «Дописать» и «Поправить», и третье длинное слово ломало строку
+         в столбик из букв. -->
+    <string name="note_reparse_short">Заново</string>
     <string name="item_bury">Похоронить пункт</string>
     <string name="item_buried_undo">Похоронил · вернуть</string>
 

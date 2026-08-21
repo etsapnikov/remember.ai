@@ -84,6 +84,17 @@ object FeedView {
         val today = now.atZone(zone).toLocalDate()
 
         val rows = notes.mapNotNull { entry ->
+            // Закрытая запись из «всего» уходит: строка «всё сделано» без
+            // текста не несёт ничего — ни дела, ни новости. Смотреть закрытое
+            // человек приходит фильтром, и там оно разворачивается целиком.
+            //
+            // Записи без пунктов при этом остаются: там ещё может быть речь,
+            // которую не разобрали, и прятать её значило бы терять сказанное.
+            if (filter == Filter.ALL && entry.items.isNotEmpty() &&
+                entry.items.none { ItemState.of(it.state) in LIVE }
+            ) {
+                return@mapNotNull null
+            }
             val matched = entry.items.filter { matches(it, filter, now) }
             // Запись без единого подходящего пункта из выдачи уходит целиком:
             // показывать её пустой шапкой значит отвечать «вот записи» на вопрос

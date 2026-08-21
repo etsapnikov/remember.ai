@@ -28,8 +28,14 @@ import java.util.Locale
  */
 object ContextPack {
 
-    /** Сколько знаков сырья показываем на заметку. */
-    private const val RAW = 400
+    /**
+     * Сколько знаков расшифровки берём.
+     *
+     * Было 400 — на живых записях это обрывало мысль на середине, и пак терял
+     * ровно то, ради чего собирался. Полторы тысячи покрывают запись на минуту
+     * речи целиком.
+     */
+    private const val RAW = 1500
 
     /** Сколько заметок цитируем в «Сырьё» — дальше файл перестают читать. */
     private const val RAW_NOTES = 12
@@ -94,10 +100,12 @@ object ContextPack {
         })
 
         // Сырьё последним: это то, чем можно проверить всё, что выше.
-        section(out, "Сырьё", live.takeLast(RAW_NOTES).reversed().map { source ->
-            "**${day(source.note.createdAt, zone)}** — " +
-                "«${source.note.transcript.orEmpty().trim().take(RAW)}»"
-        })
+        //
+        // Каждая запись — свой подзаголовок с датой и цитата блоком, а не
+        // абзац через тире. Раньше двенадцать расшифровок сливались в стену
+        // текста, где не видно, где кончается одна запись и начинается другая,
+        // — а именно за границами сюда и приходят.
+        rawSection(out, live.takeLast(RAW_NOTES).reversed(), zone)
 
         return out.toString()
     }
@@ -106,6 +114,36 @@ object ContextPack {
 
     /** Что не бывает «открытым вопросом»: решение принято, факт не действие. */
     private val CLOSED_TYPES = setOf(ItemType.DECISION, ItemType.FACT, ItemType.THOUGHT)
+
+    /**
+     * «Сырьё» — расшифровки целиком, каждая своим блоком.
+     *
+     * Цитата оформлена как цитата (`>`), а не как абзац: в любом просмотрщике
+     * markdown это даёт вертикальную черту слева, и границу записи видно, не
+     * читая текста. Дата — подзаголовком, чтобы по ней можно было прыгать
+     * оглавлением.
+     */
+    private fun rawSection(out: StringBuilder, sources: List<Source>, zone: ZoneId) {
+        if (sources.isEmpty()) return
+        out.append('\n').append("## Сырьё").append('\n')
+        sources.forEach { source ->
+            val text = source.note.transcript.orEmpty().trim()
+            if (text.isEmpty()) return@forEach
+            out.append('\n').append("### ").append(day(source.note.createdAt, zone))
+            // Раздел у записи подсказывает, о чём она, ещё до чтения.
+            source.items.firstOrNull()?.let { out.append(" · ").append(it.text.take(TITLE)) }
+            out.append('\n').append('\n')
+            // Каждая строка цитаты со своим маркером: без него длинный текст
+            // ломается в первом же переносе и перестаёт быть цитатой.
+            text.take(RAW).split('\n').forEach { line ->
+                out.append("> ").append(line.trim()).append('\n')
+            }
+            if (text.length > RAW) out.append("> …").append('\n')
+        }
+    }
+
+    /** Сколько знаков первого пункта уходит в подзаголовок записи. */
+    private const val TITLE = 60
 
     private fun section(out: StringBuilder, title: String, lines: List<String>) {
         // Пустой раздел не рисуется вовсе. Заголовок без содержимого обещает

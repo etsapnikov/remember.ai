@@ -57,6 +57,10 @@ class Analytics(context: Context) {
         const val REPLACEMENT_HIT = "replacement_hit"
         const val NOTE_APPEND = "note_append"
         const val NOTE_SPLIT = "note_split"
+        /** Второй заход с рассуждениями поделил запись — то, ради чего он есть. */
+        const val DEEP_PARSE_SPLIT = "deep_parse_split"
+        /** …и не поделил: человек успел тронуть пункты руками. */
+        const val DEEP_PARSE_SKIPPED = "deep_parse_skipped"
         const val NOTE_MERGE = "note_merge"
         const val ENTITY_ASK = "entity_ask"
         const val ENTITY_ANSWER = "entity_answer"

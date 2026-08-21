@@ -43,7 +43,14 @@ def api_key() -> str:
     raise SystemExit("ключа нет в backend/.env")
 
 
-def ask(transcript: str, now: datetime, key: str, candidates=None) -> dict:
+def ask(transcript: str, now: datetime, key: str, candidates=None, thinking=False) -> dict:
+    """Запрос ровно тот, что уходит из приложения.
+
+    По умолчанию **без рассуждений**: с версии 1.0.4 так работает первый разбор
+    (Р-16.1), и плёнка, записанная с рассуждениями, проверяла бы не тот тракт.
+    Исключение помечается в фикстуре флагом `deep`: деление записи надвое
+    решает как раз второй заход, и записывать его надо думающей моделью.
+    """
     payload = {
         "model": MODEL,
         "max_tokens": MAX_TOKENS,
@@ -55,6 +62,9 @@ def ask(transcript: str, now: datetime, key: str, candidates=None) -> dict:
             {"role": "user", "content": build_user_prompt(transcript, now, candidates=candidates)},
         ],
     }
+    if not thinking:
+        # Ключ именно такой: `reasoning: {max_tokens: 0}` API игнорирует молча.
+        payload["thinking"] = {"type": "disabled"}
     request = urllib.request.Request(
         "https://api.deepseek.com/chat/completions",
         data=json.dumps(payload).encode(),
@@ -89,6 +99,8 @@ def main() -> None:
             # плёнка обязана записываться тем же запросом, каким она потом
             # воспроизводится (Р-15.11).
             candidates=[tuple(c) for c in fixture.get("candidates", [])],
+            # Второй заход пишем только там, где он в проде и решает.
+            thinking=bool(fixture.get("deep")),
         )
         choice = body["choices"][0]
         took = time.time() - started

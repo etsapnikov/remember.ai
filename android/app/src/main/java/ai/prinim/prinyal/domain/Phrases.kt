@@ -24,8 +24,13 @@ object Phrases {
 
     /** План возврата: «верну в 19:30» / «напомню завтра утром» / «просто сохраню». */
 
-    fun plan(context: Context, item: ItemEntity, zone: ZoneId = ZoneId.systemDefault()): String =
-        when (DueKind.of(item.dueKind)) {
+    fun plan(context: Context, item: ItemEntity, zone: ZoneId = ZoneId.systemDefault()): String {
+        // Повтор перебивает срок: у повторяющегося пункта «вернусь 25 авг»
+        // сообщает про один раз из многих и потому врёт про суть.
+        Repeat.of(item.repeatRule)?.let {
+            return context.getString(R.string.plan_repeat, it.human())
+        }
+        return when (DueKind.of(item.dueKind)) {
             DueKind.EXACT -> {
                 // Миллисекунды: третье место, где жила та же ошибка единиц.
                 // Здесь она была особенно тихой — «вернусь в 03:00» выглядит
@@ -51,6 +56,7 @@ object Phrases {
             }
             DueKind.NONE -> context.getString(R.string.plan_none)
         }
+    }
 
     /** Пометка низкой уверенности. Продукт никогда не выглядит увереннее, чем он есть. */
     fun uncertainty(context: Context, item: ItemEntity): String? =

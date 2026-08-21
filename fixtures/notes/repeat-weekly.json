@@ -1,0 +1,17 @@
+{
+  "id": "repeat-weekly",
+  "kind": "повтор каждую неделю",
+  "at": "2026-08-17T09:30",
+  "transcript": "напоминай мне каждый понедельник утром выкладывать отчёт по неделе",
+  "expect": {
+    "items_min": 1,
+    "items_max": 1,
+    "types_any": [
+      "do"
+    ],
+    "repeat_any": [
+      "weekly:mon"
+    ],
+    "split": false
+  }
+}

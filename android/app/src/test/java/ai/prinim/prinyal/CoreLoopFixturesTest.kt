@@ -234,11 +234,14 @@ class CoreLoopFixturesTest {
                 expected,
                 Instant.ofEpochMilli(at!!).atZone(zone).toLocalDate().toString(),
             )
-            // Сами пункты своего срока не получили — он общий, и раздавать его
-            // должен репозиторий, а не модель.
+            // Своей **даты** у пунктов быть не должно: срок один на запись, и
+            // раздаёт его репозиторий. Окно модель поставить может — общий
+            // срок его перебивает (см. applyParse), и проверять форму ответа
+            // вместо этого правила значит держать тест на том, что модель
+            // сегодня отвечает так, а завтра иначе.
             assertTrue(
-                "$id: модель раздала срок пунктам сама",
-                result.items.all { it.dueKind == DueKind.NONE },
+                "$id: модель раздала дату пунктам сама",
+                result.items.none { it.dueKind == DueKind.EXACT },
             )
         }
     }
@@ -308,6 +311,23 @@ class CoreLoopFixturesTest {
             val wanted = expect.getBoolean("split")
             val split = (parse(fixture, reply) as IngestOutcome.Ok).result.second != null
             assertEquals("$id: разбиение", wanted, split)
+        }
+    }
+
+    @Test
+    fun `повтор слышен и записан правилом, а не датой`() {
+        // «Каждый понедельник» превращённое в одну дату — самая дорогая ошибка
+        // этой фичи: выглядит исполненным, а напомнит ровно один раз.
+        fixtures().forEach { (fixture, reply) ->
+            val id = fixture.getString("id")
+            val expect = fixture.getJSONObject("expect")
+            val wanted = expect.optJSONArray("repeat_any") ?: return@forEach
+            val rules = (0 until wanted.length()).map { wanted.getString(it) }
+            val items = (parse(fixture, reply) as IngestOutcome.Ok).result.items
+            assertTrue(
+                "$id: ждали повтор $rules, получили ${items.map { it.repeat }}",
+                items.any { it.repeat in rules },
+            )
         }
     }
 

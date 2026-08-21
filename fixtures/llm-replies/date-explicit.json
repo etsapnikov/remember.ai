@@ -1,51 +1,44 @@
 {
  "id": "date-explicit",
- "prompt_version": "8",
- "recorded_at": "2026-08-19T00:23:58",
- "took_s": 8.6,
+ "prompt_version": "9",
+ "recorded_at": "2026-08-21T14:47:02",
+ "took_s": 2.7,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2556,
-  "completion_tokens": 735,
-  "total_tokens": 3291,
+  "prompt_tokens": 2629,
+  "completion_tokens": 138,
+  "total_tokens": 2767,
   "prompt_tokens_details": {
-   "cached_tokens": 512
+   "cached_tokens": 0
   },
-  "completion_tokens_details": {
-   "reasoning_tokens": 611
-  },
-  "prompt_cache_hit_tokens": 512,
-  "prompt_cache_miss_tokens": 2044
+  "prompt_cache_hit_tokens": 0,
+  "prompt_cache_miss_tokens": 2629
  },
  "response": {
-  "id": "2e4e4ea4-0407-4d2a-b1bb-9724f7f0de34",
+  "id": "4e3a36fb-1f17-4ea7-a281-8d40aa4da410",
   "object": "chat.completion",
-  "created": 1787088231,
+  "created": 1787312821,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\"note_kind\": \"tasks\", \"topic\": \"Садик\", \"entities\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"do\", \"text\": \"оплатить счёт за садик десятого сентября\", \"who\": null, \"due_kind\": \"exact\", \"window\": null, \"exact_local\": \"2026-09-10T09:00\", \"confidence\": \"high\", \"raw_span\": \"счёт за садик оплатить десятого сентября\"}]}",
-     "reasoning_content": "We need answer JSON. Need parse. Need follow schema. Need think carefully.\n\nUser transcript: \"счёт за садик оплатить десятого сентября не забыть\" (no punctuation). It means \"pay the kindergarten bill on September 10, don't forget\". Need items? One task: pay bill. Exact date \"десятого сентября\" named. Current date 2026-08-17 Monday. September 10 next future? Since Aug 17, Sept 10 2026 future. exact_local \"2026-09-10T09:00\" (time not named -> 09:00). due_kind exact. note_kind tasks. topic? \"Садик\" or \"Дом\"? Need choose. Existing sections none, завести подходящий. \"счёт за садик\" — это финансы/ребёнок/дом. Topic short 1-2 words. Maybe \"Садик\" or \"Оплата\". Better \"Дом\" maybe not. \"Садик\" is good section? The instruction: if suitable existing section take exactly its name; none. New only when none fits. \"Садик\" perhaps as \"Садик\". But topic should be short name of section: \"Дом\", \"Работа\", \"Дача\", \"Здоровье\". Since no existing, choose \"Садик\". Entities: no people mentioned. \"садик\" not person. entities [].\n\nNeed ensure \"не забыть\" no separate item? It's emphasis. One item type \"do\" maybe \"do\" (сделать) or \"buy\"? It's оплатить = do. text: \"счёт за садик оплатить\" or \"оплатить счёт за садик десятого сентября\". Need keep under 120. raw_span: \"счёт за садик оплатить десятого сентября не забыть\" maybe whole. But if exact in raw span? Better raw_span exactly fragment from which item taken: \"счёт за садик оплатить десятого сентября\". Or maybe include \"не забыть\"? Since item itself includes \"оплатить счёт за садик десятого сентября\". Raw span \"счёт за садик оплатить десятого сентября\". Include date? yes.\n\nNeed note_exact_local? \"не забыть\" refers to paying on date, no general deadline. null.\n\nNeed second null. body_md null.\n\nNeed confidence high.\n\nNeed check rule 12: Названная дата — exact. «десятого сентября» → exact_local \"2026-09-10T09:00\". Current date 2026-08-17, so future. Good.\n\nNeed maybe note_kind tasks. topic? Perhaps \"Садик\". Could be \"Дети\"? But \"Садик\" better.\n\nNeed output exactly JSON no markdown. Ensure correct JSON."
+     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Дом\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"оплатить счёт за садик\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2026-09-10T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"счёт за садик оплатить десятого сентября\"\n    }\n  ]\n}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2556,
-   "completion_tokens": 735,
-   "total_tokens": 3291,
+   "prompt_tokens": 2629,
+   "completion_tokens": 138,
+   "total_tokens": 2767,
    "prompt_tokens_details": {
-    "cached_tokens": 512
+    "cached_tokens": 0
    },
-   "completion_tokens_details": {
-    "reasoning_tokens": 611
-   },
-   "prompt_cache_hit_tokens": 512,
-   "prompt_cache_miss_tokens": 2044
+   "prompt_cache_hit_tokens": 0,
+   "prompt_cache_miss_tokens": 2629
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

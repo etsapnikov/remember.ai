@@ -23,6 +23,7 @@ import ai.prinim.prinyal.net.ParseResult
 import ai.prinim.prinyal.returns.ReturnScheduler
 import java.io.File
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -79,6 +80,36 @@ class NoteRepository(
      * Разбор пришёл. Пункты и расписание возвратов пересобираются целиком: повторный
      * разбор той же записи не должен оставлять хвост от прошлого.
      */
+    /**
+     * Второй заход — с рассуждениями (Р-16.1).
+     *
+     * Первый разбор идёт без них: медиана 3,4 с против 14,7 с, и на всех
+     * тринадцати фикстурах результат сходится — **кроме одного**: без
+     * рассуждений модель не делит запись на две темы
+     * (`docs/eval-reasoning.md`). Значит второй заход нужен ровно ради деления,
+     * и применяем мы его только когда деление действительно нашлось.
+     *
+     * Пункты при этом пересобираются целиком: половины делят не строки, а
+     * смысл, и пришить вторую заметку к уже разложенным пунктам нельзя. Поэтому
+     * же заход отменяется, если человек успел что-то тронуть руками за эти
+     * секунды: его действие важнее нашей аккуратности.
+     *
+     * @return true, если запись поделили
+     */
+    suspend fun applyDeepParse(noteId: String, result: ParseResult): Boolean {
+        if (result.second == null) return false
+        val note = db.notes().byId(noteId) ?: return false
+        if (note.siblingId != null) return false
+        val items = db.items().forNote(noteId)
+        if (items.any { ItemState.of(it.state) != ItemState.PLANNED || it.edited }) {
+            analytics.log(Analytics.DEEP_PARSE_SKIPPED, mapOf("note" to noteId))
+            return false
+        }
+        applyParse(noteId, result)
+        analytics.log(Analytics.DEEP_PARSE_SPLIT, mapOf("note" to noteId))
+        return true
+    }
+
     suspend fun applyParse(noteId: String, result: ParseResult): List<ItemEntity> {
         val note = db.notes().byId(noteId) ?: return emptyList()
 
@@ -107,8 +138,15 @@ class NoteRepository(
             // Он не перебивает ни ручную дату, ни собственный срок пункта —
             // общее правило уступает частному, иначе человек, назвавший время
             // одному делу, потерял бы его из-за фразы про остальные.
+            // Общий срок уступает только собственной дате пункта и правке
+            // рукой. Окно он перебивает: «в понедельник» человек сказал вслух,
+            // а «днём» модель предположила — и предположение, победив, увело
+            // бы все три пункта на сегодня. Так и вышло, когда первый разбор
+            // перестал думать: без рассуждений модель проставляет окна
+            // охотнее, и правило «общий срок только поверх пустого» тихо
+            // перестало срабатывать (Р-16.1).
             val shared = result.noteDueAt.takeIf {
-                kept == null && parsed.dueKind == DueKind.NONE
+                kept == null && parsed.dueKind != DueKind.EXACT
             }
             ItemEntity(
                 id = newId(),
@@ -129,6 +167,7 @@ class NoteRepository(
                 // Пометка переезжает вместе с датой: иначе следующий переразбор
                 // сочтёт пункт нетронутым и сотрёт то, что мы только что спасли.
                 edited = kept != null,
+                repeatRule = parsed.repeat,
             )
         }
         db.items().insertAll(items)
@@ -373,6 +412,18 @@ class NoteRepository(
         attempt: Int = 1,
     ) {
         val dueKind = DueKind.of(item.dueKind)
+
+        // Повтор проверяем до политики возвратов: у него нет срока, а политика
+        // без срока не планирует ничего — и «напоминай каждый понедельник»
+        // молча не напоминало бы никогда.
+        // Повтор считает время сам: у него нет «срока», есть следующий раз.
+        // Час берём из окна, если оно названо, иначе утро — «напоминай каждый
+        // понедельник» без времени звучит как «в начале дня», а не «в полночь».
+        Repeat.of(item.repeatRule)?.let { rule ->
+            planRepeat(item, rule, now, windows)
+            return
+        }
+
         if (!ReturnPolicy.schedules(ItemType.of(item.type), dueKind)) return
 
         val at = when (dueKind) {
@@ -404,6 +455,35 @@ class NoteRepository(
         )
         db.returns().insert(entity)
         scheduler.schedule(entity.id, safeAt)
+    }
+
+    /**
+     * Следующее срабатывание повтора (Р-16.2).
+     *
+     * Считается от [after], а не от момента записи: повтор живёт дальше своего
+     * первого раза, и «каждый понедельник» после сработавшего понедельника
+     * означает следующий, а не тот же самый.
+     */
+    private suspend fun planRepeat(
+        item: ItemEntity,
+        rule: Repeat,
+        after: Instant,
+        windows: Scheduler.Windows,
+    ) {
+        val time = Window.of(item.window)?.let(windows::timeOf) ?: windows.timeOf(Window.MORNING)
+        val next = rule
+            .next(LocalDateTime.ofInstant(after, zone), time)
+            .atZone(zone).toInstant()
+        check(next.isAfter(after)) { "повтор назначен в прошлое: $next" }
+
+        val entity = ReturnEntity(
+            id = newId(),
+            itemId = item.id,
+            scheduledAt = next.toEpochMilli(),
+            attempt = 1,
+        )
+        db.returns().insert(entity)
+        scheduler.schedule(entity.id, next)
     }
 
     /**
@@ -777,6 +857,32 @@ class NoteRepository(
         analytics.log("people_apart", mapOf("a" to a, "b" to b))
     }
 
+    /**
+     * Прогнать словарь по уже распознанным транскриптам.
+     *
+     * Вызывается при заведении правила: человек поправил слово, глядя на
+     * конкретную запись, и ожидает увидеть исправление там же. Аудио при этом
+     * не трогается — оно и есть настоящая запись; меняется только машинная
+     * расшифровка, которую человек и правит.
+     *
+     * @return скольких заметок это коснулось
+     */
+    suspend fun applyRuleToTranscripts(): Int {
+        val rules = db.replacements().all()
+        if (rules.isEmpty()) return 0
+        var touched = 0
+        db.notes().all().forEach { note ->
+            val heard = note.transcript ?: return@forEach
+            if (heard.isBlank()) return@forEach
+            val applied = Replacements.apply(heard, rules)
+            if (applied.text == heard) return@forEach
+            db.notes().update(note.copy(transcript = applied.text))
+            applied.hits.forEach { (id, times) -> db.replacements().addHits(id, times) }
+            touched++
+        }
+        return touched
+    }
+
     private suspend fun dropSchedule(noteId: String) {
         db.items().forNote(noteId).forEach { item ->
             db.returns().forItem(item.id)
@@ -823,6 +929,11 @@ class NoteRepository(
                 else -> item.dueAt
             },
             edited = true,
+            // Названная руками дата отменяет повтор. Иначе получилось бы тихое
+            // противоречие: человек поставил двадцать пятое, экран показывает
+            // «каждый понедельник», приходит понедельник — и объяснить это
+            // нечем. Одно расписание на пункт, и последнее слово за человеком.
+            repeatRule = if (clearSchedule || exactAt != null) null else item.repeatRule,
         )
         db.items().update(updated)
 
@@ -962,6 +1073,10 @@ class NoteRepository(
      */
     suspend fun scheduleSecondAttempt(returnId: String) {
         val fired = db.returns().byId(returnId) ?: return
+        // Повторяющийся пункт второго захода не получает и не «протухает»:
+        // следующий раз ему уже назначен, а двойное напоминание об одном и том
+        // же понедельнике — это долбёж, от которого повтор и должен избавить.
+        if (db.items().byId(fired.itemId)?.repeatRule != null) return
         if (fired.attempt >= 2) {
             db.items().setState(fired.itemId, ItemState.EXPIRED.wire)
             analytics.log(
@@ -982,10 +1097,44 @@ class NoteRepository(
         scheduler.schedule(entity.id, at)
     }
 
+    /**
+     * Снять повтор. Пункт остаётся жив и в плане — снимается только бесконечность.
+     *
+     * Назначенный возврат гасим здесь же: правило из базы ушло, а аларм на
+     * следующий понедельник остался бы и сработал — молча и необъяснимо.
+     */
+    suspend fun stopRepeat(itemId: String) {
+        val item = db.items().byId(itemId) ?: return
+        if (item.repeatRule == null) return
+        db.items().update(item.copy(repeatRule = null))
+        db.returns().forItem(itemId)
+            .filter { it.firedAt == null }
+            .forEach { scheduler.cancel(it.id) }
+        db.returns().dropPending(itemId)
+        analytics.log("repeat_off", mapOf("item" to itemId))
+    }
+
     suspend fun markFired(returnId: String) {
         val entity = db.returns().byId(returnId) ?: return
         db.returns().update(entity.copy(firedAt = Instant.now().toEpochMilli()))
         db.items().setState(entity.itemId, ItemState.RETURNED.wire)
+
+        // Повторяющийся пункт сразу получает следующий раз — здесь, а не после
+        // ответа: человек может не ответить вовсе, и повтор, который живёт
+        // только до первого молчания, бесполезен именно в тех случаях, ради
+        // которых его и завели.
+        db.items().byId(entity.itemId)?.let { item ->
+            Repeat.of(item.repeatRule)?.let { rule ->
+                // Отсчёт от **назначенного** момента, а не от фактического:
+                // аларм может прозвонить с опозданием — телефон спал, процесс
+                // был убит, — и «через неделю после звонка» медленно уводило бы
+                // напоминание с понедельника на вторник и дальше. Позже
+                // назначенного берём текущий момент, иначе после долгого сна
+                // получится возврат в прошлое.
+                val from = maxOf(Instant.ofEpochMilli(entity.scheduledAt), Instant.now())
+                planRepeat(item, rule, from, settings.windowsNow())
+            }
+        }
         analytics.log(
             Analytics.RETURN_FIRED,
             mapOf(

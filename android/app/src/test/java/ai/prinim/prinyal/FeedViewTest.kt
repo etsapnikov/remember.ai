@@ -59,8 +59,10 @@ class FeedViewTest {
 
     @Test
     fun `запись без живого печатается одной строкой`() {
+        // Под своим фильтром: в «всё» закрытая запись теперь не показывается
+        // вовсе, но там, где её ждут, она обязана быть одной строкой.
         val closed = entry("n1", item("i1", ItemState.DONE), item("i2", ItemState.DONE))
-        val row = FeedView.sections(listOf(closed), FeedView.Filter.ALL, now, zone)
+        val row = FeedView.sections(listOf(closed), FeedView.Filter.DONE, now, zone)
             .single().rows.single()
 
         assertTrue("закрытая запись развёрнута", row.allClosed)
@@ -77,6 +79,34 @@ class FeedViewTest {
         assertTrue(row.allClosed)
         assertEquals(0, row.restDone)
         assertEquals(1, row.restGone)
+    }
+
+    @Test
+    fun `закрытая запись не занимает место в ленте`() {
+        // «Всё сделано» строкой без текста — ни дела, ни новости. Смотреть
+        // закрытое человек приходит фильтром.
+        val live = entry("живая", item("i1"))
+        val closed = entry("закрытая", item("i2", ItemState.DONE))
+        val ids = FeedView.sections(listOf(live, closed), FeedView.Filter.ALL, now, zone)
+            .flatMap { it.rows }.map { it.entry.note.id }
+        assertEquals(listOf("живая"), ids)
+
+        // А под своим фильтром — на месте.
+        assertEquals(
+            listOf("закрытая"),
+            FeedView.sections(listOf(live, closed), FeedView.Filter.DONE, now, zone)
+                .flatMap { it.rows }.map { it.entry.note.id },
+        )
+    }
+
+    @Test
+    fun `запись без пунктов остаётся видна`() {
+        // Там ещё может быть речь, которую не разобрали: спрятать её значит
+        // потерять сказанное.
+        val silent = NoteWithItems(note("немая"), emptyList())
+        val ids = FeedView.sections(listOf(silent), FeedView.Filter.ALL, now, zone)
+            .flatMap { it.rows }.map { it.entry.note.id }
+        assertEquals(listOf("немая"), ids)
     }
 
     @Test

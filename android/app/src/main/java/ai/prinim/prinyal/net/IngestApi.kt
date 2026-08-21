@@ -28,6 +28,8 @@ data class ParsedItem(
     val rawSpan: String?,
     /** id существующего пункта, который модель уточняет (Р-14.3). */
     val ref: String? = null,
+    /** Правило повтора как строка: `daily`, `weekly:mon`, `monthly:14` (Р-16.2). */
+    val repeat: String? = null,
 )
 
 data class ParseResult(

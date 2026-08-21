@@ -1,0 +1,17 @@
+{
+  "id": "repeat-monthly",
+  "kind": "повтор каждый месяц",
+  "at": "2026-08-17T09:30",
+  "transcript": "напоминай каждый месяц пятнадцатого числа передавать показания счётчиков",
+  "expect": {
+    "items_min": 1,
+    "items_max": 1,
+    "types_any": [
+      "do"
+    ],
+    "repeat_any": [
+      "monthly:15"
+    ],
+    "split": false
+  }
+}

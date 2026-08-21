@@ -195,22 +195,34 @@ class OnDeviceParsingTest {
     }
 
     @Test
-    fun `запрос уходит с рассуждениями и бюджетом под них`() {
+    fun `первый заход идёт без рассуждений, второй — с ними`() {
         server.enqueue(reply("""[{"type":"do","text":"тест","due_kind":"none","confidence":"high"}]"""))
         client().parse(transcript, now, zone)
 
         val recorded = server.takeRequest(5, java.util.concurrent.TimeUnit.SECONDS)
             ?: error("запрос до DeepSeek не ушёл")
         val body = JSONObject(recorded.body.readUtf8())
-        // Рассуждения не выключаем (Р-13.6): они чинят типы, окна и искажённые
-        // распознаванием имена. Бюджет обязан вмещать их вместе с ответом —
-        // при 2048 рассуждения съедали его целиком и content приходил пустым.
-        assertTrue("рассуждения выключать не нужно", !body.has("thinking"))
+        // Р-16.1. Ключ проверяем буквально: `reasoning: {max_tokens: 0}` и
+        // `enable_thinking: false` API молча игнорирует, и замер, который на них
+        // опирался, дал ровно обратный вывод (`docs/eval-reasoning.md`).
+        assertEquals(
+            "первый заход обязан идти без рассуждений",
+            "disabled",
+            body.getJSONObject("thinking").getString("type"),
+        )
         assertTrue("бюджета не хватит на рассуждения", body.getInt("max_tokens") >= 8192)
         assertEquals("json_object", body.getJSONObject("response_format").getString("type"))
         assertEquals(false, body.getBoolean("stream"))
         // Слово «json» в промпте — требование провайдера.
         assertTrue(Prompt.SYSTEM.contains("json"))
+
+        // Второй заход — тот, ради которого мы вообще держим рассуждения.
+        server.enqueue(reply("""[{"type":"do","text":"тест","due_kind":"none","confidence":"high"}]"""))
+        client().parse(transcript, now, zone, thinking = true)
+        val deep = JSONObject(
+            server.takeRequest(5, java.util.concurrent.TimeUnit.SECONDS)!!.body.readUtf8()
+        )
+        assertTrue("во втором заходе рассуждения не выключаются", !deep.has("thinking"))
     }
 
     @Test
@@ -270,6 +282,6 @@ class OnDeviceParsingTest {
     @Test
     fun `промпт на устройстве той же версии, что на сервере`() {
         // Разные версии означали бы, что два пути разбора дают разные пункты.
-        assertEquals("8", Prompt.VERSION)
+        assertEquals("9", Prompt.VERSION)
     }
 }

@@ -114,6 +114,8 @@ class UploadWorker(
                     createdAtSeconds = note.createdAt / 1000,
                     tzOffsetMinutes = tzOffsetMinutes(note.createdAt),
                 )
+                // Второй заход с рассуждениями — только для длинной речи и
+                // только ради деления на две заметки (см. ниже, applyParse).
                 else -> app.llm.parse(
                     transcript = transcript,
                     // Живые разделы уходят в промпт, чтобы модель выбирала из
@@ -164,6 +166,16 @@ class UploadWorker(
                             applicationContext, note.id, items, outcome.result.degraded,
                         )
                     }
+
+                    // Второй заход — уже после квитанции, человек её видит
+                    // через три секунды и не ждёт нас. Нужен он ровно для
+                    // деления записи надвое: см. applyDeepParse.
+                    val heard = outcome.result.transcript.orEmpty()
+                    if (!appended && outcome.result.second == null &&
+                        heard.length >= DEEP_PARSE_FROM
+                    ) {
+                        deepParse(app, note.id, heard)
+                    }
                 }
 
                 is IngestOutcome.Fatal -> {
@@ -185,6 +197,46 @@ class UploadWorker(
         }
 
         return if (retryNeeded) Result.retry() else Result.success()
+    }
+
+    /**
+     * Длина речи, с которой имеет смысл второй заход.
+     *
+     * Короткую запись делить не на что: в корпусе поделённая — 228 знаков, а
+     * все нетронутые деления короче полутора сотен. Порог отсекает больше
+     * половины записей и стоит нам ничего.
+     */
+    private val DEEP_PARSE_FROM = 150
+
+    /**
+     * Разбор с рассуждениями фоном. Ошибки съедаются молча: первый разбор уже
+     * в базе, и ронять из-за второго нечего.
+     */
+    private suspend fun deepParse(
+        app: PrinyalApp,
+        noteId: String,
+        transcript: String,
+    ) {
+        val note = app.db.notes().byId(noteId) ?: return
+        val outcome = runCatching {
+            app.llm.parse(
+                transcript = transcript,
+                thinking = true,
+                topics = app.db.topics().live().map { it.name },
+                glossary = Replacements.glossary(app.db.replacements().all()),
+                people = app.db.people().known().map { "${it.name} — ${it.fact}" },
+                candidates = LinkCandidates.of(note, app.db.notes().all())
+                    .map { it.id to LinkCandidates.opening(it.transcript) },
+                existing = emptyList(),
+                now = java.time.LocalDateTime.ofInstant(
+                    java.time.Instant.ofEpochMilli(note.createdAt),
+                    java.time.ZoneId.systemDefault(),
+                ),
+                zone = java.time.ZoneId.systemDefault(),
+            )
+        }.getOrNull()
+        val result = (outcome as? IngestOutcome.Ok)?.result ?: return
+        app.repository.applyDeepParse(noteId, result)
     }
 
     /**

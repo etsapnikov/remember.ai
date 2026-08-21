@@ -57,6 +57,7 @@ fun ItemDetail(
     returns: List<ReturnEntity>,
     rawSpan: String?,
     onEdit: () -> Unit,
+    onStopRepeat: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -119,19 +120,43 @@ fun ItemDetail(
                 }
 
                 // Единственный выход в изменение — явный и подписанный словом.
-                Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
+                //
+                // Ряд растянут по ширине и не переносится: с появлением
+                // «Не повторять» три слова перестали помещаться, и «Закрыть»
+                // молча сложилось в столбик из букв — ровно как в фильтре
+                // ленты после подъёма кегля (1.0.3). Перенос в ряду слов-кнопок
+                // всегда ошибка, поэтому запрещаем его, а не подбираем отступы.
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
                     if (!closed) {
                         Text(
                             text = stringResource(R.string.item_edit),
                             style = Prinyal.type.label,
                             color = Prinyal.colors.accentSelf,
+                            softWrap = false,
                             modifier = Modifier.tap(onClick = onEdit),
+                        )
+                    }
+                    // Отмена повтора живёт здесь, а не в правке: это не
+                    // «поправить формулировку», а «хватит». Слово появляется
+                    // только у повторяющегося пункта — у остальных отменять
+                    // нечего.
+                    if (!closed && item.repeatRule != null) {
+                        Text(
+                            text = stringResource(R.string.item_repeat_off),
+                            style = Prinyal.type.label,
+                            color = Prinyal.colors.inkMuted,
+                            softWrap = false,
+                            modifier = Modifier.tap(onClick = onStopRepeat),
                         )
                     }
                     Text(
                         text = stringResource(R.string.item_close),
                         style = Prinyal.type.label,
                         color = Prinyal.colors.inkMuted,
+                        softWrap = false,
                         modifier = Modifier.tap(onClick = onDismiss),
                     )
                 }
