@@ -231,6 +231,14 @@ data class ItemEntity(
      * колонка «день недели», пустая у месячных, врала бы про схему.
      */
     @ColumnInfo(name = "repeat_rule") val repeatRule: String? = null,
+    /**
+     * Когда повтор сделали в последний раз и когда он вернётся.
+     *
+     * Лежат на пункте, а не собираются из таблицы возвратов, потому что их
+     * читает каждая строка ленты: джойн на строку — это джойн на прокрутку.
+     */
+    @ColumnInfo(name = "repeat_done_at") val repeatDoneAt: Long? = null,
+    @ColumnInfo(name = "repeat_next_at") val repeatNextAt: Long? = null,
 )
 
 @Entity(

@@ -3,6 +3,7 @@ package ai.prinim.prinyal.domain
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.data.Confidence
 import ai.prinim.prinyal.data.DueKind
+import ai.prinim.prinyal.data.ItemState
 import ai.prinim.prinyal.data.ItemEntity
 import ai.prinim.prinyal.data.ItemType
 import ai.prinim.prinyal.data.Window
@@ -24,11 +25,28 @@ object Phrases {
 
     /** План возврата: «верну в 19:30» / «напомню завтра утром» / «просто сохраню». */
 
-    fun plan(context: Context, item: ItemEntity, zone: ZoneId = ZoneId.systemDefault()): String {
+    fun plan(
+        context: Context,
+        item: ItemEntity,
+        zone: ZoneId = ZoneId.systemDefault(),
+        /** Заголовок «ПОВТОРЯЮТСЯ» уже сказал «в плане» — не повторяемся. */
+        bare: Boolean = false,
+    ): String {
         // Повтор перебивает срок: у повторяющегося пункта «вернусь 25 авг»
         // сообщает про один раз из многих и потому врёт про суть.
-        Repeat.of(item.repeatRule)?.let {
-            return context.getString(R.string.plan_repeat, it.human())
+        Repeat.of(item.repeatRule)?.let { rule ->
+            val done = item.repeatDoneAt
+            val next = item.repeatNextAt
+            // Сделанный повтор говорит про раз, а не про порядок: он закрылся
+            // до следующего числа, и это ровно то, что человеку надо знать.
+            if (done != null && next != null && ItemState.of(item.state) == ItemState.RETURNED) {
+                return context.getString(
+                    R.string.plan_repeat_done,
+                    Dates.whenWas(done, zone = zone),
+                    Dates.day(next, zone),
+                )
+            }
+            return if (bare) rule.human() else context.getString(R.string.plan_repeat, rule.human())
         }
         return when (DueKind.of(item.dueKind)) {
             DueKind.EXACT -> {

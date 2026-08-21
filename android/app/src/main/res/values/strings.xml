@@ -40,8 +40,28 @@
     <string name="plan_none">просто сохраню</string>
     <!-- Повтор (Р-16.2). Глагол тот же, что у обычного возврата: для человека
          это то же напоминание, просто не один раз. -->
-    <string name="plan_repeat">напомню %1$s</string>
+    <!-- Повтор (Р-16.2, макеты 10a-10c). Слова «напомню» у повтора нет нигде:
+         он не обещает один раз, он описывает порядок. Под заголовком
+         «ПОВТОРЯЮТСЯ» отпадает и «в плане» — фильтр уже сказал. -->
+    <string name="plan_repeat">в плане · %1$s</string>
+    <!-- Сделанный повтор не закрылся, а вернётся: «сделал в понедельник ·
+         вернусь 25 авг». Именно «сделал», а не «сделано» — у повтора важно,
+         что это был человек и это был раз. -->
+    <string name="plan_repeat_done">сделал %1$s · вернусь %2$s</string>
+    <string name="repeat_group">ПОВТОРЯЮТСЯ</string>
     <string name="item_repeat_off">Не повторять</string>
+    <!-- Цена действия сказана до нажатия, а не в снекбаре после. -->
+    <string name="item_repeat_off_hint">останется одним делом, %1$s</string>
+    <string name="item_repeat_off_done">Больше не повторяю</string>
+    <string name="repeat_history_done">сделал</string>
+    <string name="repeat_history_missed">не ответил</string>
+    <string name="repeat_history_snoozed">отложил</string>
+    <!-- Закрытые записи ушли из «всего» (макеты 10e). Человек не обязан
+         догадываться про фильтр: одна строка внизу говорит и сколько закрыто,
+         и где они лежат. «Закрыто», а не «спрятано»: продукт не оправдывается,
+         но и не делает вид, что записей не было. -->
+    <string name="feed_closed_hidden">%1$s · показать</string>
+    <string name="repeat_history_total">всего %1$d %2$s с %3$s</string>
     <string name="plan_low_confidence">не уверен, что понял — проверь</string>
 
     <!-- Причина возврата: у каждого действия машины видна причина. -->
@@ -114,6 +134,18 @@
         <item quantity="many">%1$d в плане</item>
         <item quantity="other">%1$d в плане</item>
     </plurals>
+    <plurals name="repeat_count">
+        <item quantity="one">%1$d повторяется</item>
+        <item quantity="few">%1$d повторяются</item>
+        <item quantity="many">%1$d повторяются</item>
+        <item quantity="other">%1$d повторяются</item>
+    </plurals>
+    <plurals name="feed_closed_count">
+        <item quantity="one">%1$d запись закрыта</item>
+        <item quantity="few">%1$d записи закрыто</item>
+        <item quantity="many">%1$d записей закрыто</item>
+        <item quantity="other">%1$d записей закрыто</item>
+    </plurals>
     <plurals name="feed_summary_notes">
         <item quantity="one">%1$d запись</item>
         <item quantity="few">%1$d записи</item>
@@ -171,6 +203,15 @@
          «Дописать» и «Поправить», и третье длинное слово ломало строку
          в столбик из букв. -->
     <string name="note_reparse_short">Заново</string>
+    <!-- Подтверждение переразбора строкой, а не диалогом (макеты 10d).
+         Второе предложение — то, чего человек не знает и не может проверить:
+         закрытое переживёт, а поправленное руками сотрётся. Ради него
+         подтверждение и нужно, поэтому спрашиваем всегда. -->
+    <string name="note_reparse_ask">Соберу пункты заново. Закрытые останутся, правки руками — нет.</string>
+    <string name="note_reparse_ask_clean">Соберу пункты заново. Закрытые останутся.</string>
+    <string name="note_reparse_go">разбирай</string>
+    <string name="note_reparse_cancel">отмена</string>
+    <string name="note_reparsing">разбираю заново…</string>
     <string name="item_bury">Похоронить пункт</string>
     <string name="item_buried_undo">Похоронил · вернуть</string>
 

@@ -56,8 +56,28 @@ object FeedView {
 
     /** Заголовок дня или срока возврата. */
     data class Section(val kind: Kind, val date: LocalDate?, val rows: List<Row>) {
-        enum class Kind { TODAY, DAY, TOMORROW, THIS_WEEK, LATER }
+        enum class Kind { TODAY, DAY, TOMORROW, THIS_WEEK, LATER, REPEATING }
     }
+
+    /**
+     * Сколько записей ушло из «всего», потому что в них всё закрыто.
+     *
+     * Считаются записи, а не пункты: пропала из глаз именно запись. Цифра
+     * берётся **тем же счётом**, что и выдача фильтра «сделано», — не похожим,
+     * а буквально тем: строка обещает, куда человек попадёт после тапа, и
+     * своё число она обязана взять оттуда же. Первая версия считала сама и
+     * обещала 56 записей там, где фильтр показывал 26: он держит закрытое за
+     * неделю, а собственный счёт про это не знал.
+     *
+     * Запись, где всё **похоронено**, сюда не попадает: она лежит в
+     * «похороненном», и звать её «закрытой» в строке, ведущей в «сделано»,
+     * значило бы соврать дважды.
+     */
+    fun closedCount(
+        notes: List<NoteWithItems>,
+        now: Instant = Instant.now(),
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): Int = sections(notes, Filter.DONE, now, zone).sumOf { it.rows.size }
 
     fun matches(item: ItemEntity, filter: Filter, now: Instant): Boolean {
         val state = ItemState.of(item.state)
@@ -100,7 +120,28 @@ object FeedView {
             // показывать её пустой шапкой значит отвечать «вот записи» на вопрос
             // «где похороненное».
             if (filter != Filter.ALL && matched.isEmpty()) return@mapNotNull null
+            // В «в плане» повторы уезжают под свой заголовок: вечный пункт,
+            // лежащий рядом с долгом на два дня, делает вид, что они одного
+            // рода (макеты 10a). Запись при этом может дать две строки — свои
+            // обычные пункты и свои повторяющиеся.
+            if (filter == Filter.PLANNED) {
+                matched.filter { it.repeatRule == null }
+                    .takeIf { it.isNotEmpty() }
+                    ?.let { return@mapNotNull row(entry, it, filter) }
+                return@mapNotNull null
+            }
             row(entry, matched, filter)
+        }
+
+        val repeating = if (filter == Filter.PLANNED) {
+            notes.mapNotNull { entry ->
+                entry.items
+                    .filter { it.repeatRule != null && matches(it, filter, now) }
+                    .takeIf { it.isNotEmpty() }
+                    ?.let { row(entry, it, filter) }
+            }
+        } else {
+            emptyList()
         }
 
         // Закрытое ограничено неделей: человек пришёл смотреть, что сделано, а
@@ -112,7 +153,13 @@ object FeedView {
             rows
         }
 
-        return if (filter == Filter.RETURNING) byReturn(limited, today, zone) else byDay(limited, today, zone)
+        val sections =
+            if (filter == Filter.RETURNING) byReturn(limited, today, zone)
+            else byDay(limited, today, zone)
+
+        // Повторы стоят последними: сначала то, что кончается.
+        return if (repeating.isEmpty()) sections
+        else sections + Section(Section.Kind.REPEATING, null, repeating)
     }
 
     private fun row(entry: NoteWithItems, matched: List<ItemEntity>, filter: Filter): Row {

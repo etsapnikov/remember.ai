@@ -46,6 +46,62 @@ class FeedViewTest {
         NoteWithItems(note(id, hoursAgo), items.toList())
 
     @Test
+    fun `повторы в «в плане» уезжают под свой заголовок и стоят последними`() {
+        // Макеты 10a: вечный пункт рядом с долгом на два дня делает вид, что
+        // они одного рода. Он и не долг, и в общий счёт лезть не должен.
+        val sections = FeedView.sections(
+            listOf(
+                entry("n1", item("a")),
+                entry(
+                    "n2",
+                    item("b"),
+                    item("c").copy(repeatRule = "weekly:mon"),
+                ),
+            ),
+            FeedView.Filter.PLANNED,
+            now,
+        )
+
+        val repeating = sections.last()
+        assertEquals(FeedView.Section.Kind.REPEATING, repeating.kind)
+        assertEquals(listOf("c"), repeating.rows.single().shown.map { it.id })
+        // Запись с обоими видами пунктов печатается дважды — и в дне остаются
+        // только её обычные дела.
+        val plain = sections.dropLast(1).flatMap { it.rows }
+        assertEquals(listOf("a", "b"), plain.flatMap { it.shown }.map { it.id })
+    }
+
+    @Test
+    fun `повтор не попадает в «сделано», даже когда его сделали`() {
+        // Сделанный повтор живёт в «вернусь»: он закрылся до следующего раза.
+        val done = item("a", state = ItemState.RETURNED).copy(
+            repeatRule = "weekly:mon",
+            repeatDoneAt = now.toEpochMilli(),
+            repeatNextAt = now.plusSeconds(3 * 24 * 3600).toEpochMilli(),
+        )
+        val sections = FeedView.sections(listOf(entry("n1", done)), FeedView.Filter.DONE, now)
+        assertTrue("повтор оказался в «сделано»", sections.isEmpty())
+    }
+
+    @Test
+    fun `закрытые записи считаются, чтобы лента сказала, куда они делись`() {
+        val notes = listOf(
+            entry("n1", item("a")),
+            entry("n2", item("b", state = ItemState.DONE)),
+            // Похороненная лежит в «похороненном», а строка ведёт в «сделано».
+            entry("n3", item("c", state = ItemState.EXPIRED)),
+            // Запись без пунктов не закрыта — там ещё может быть речь.
+            entry("n4"),
+        )
+        assertEquals(1, FeedView.closedCount(notes, now))
+        // Счёт обязан совпадать с тем, что человек увидит после тапа.
+        assertEquals(
+            FeedView.sections(notes, FeedView.Filter.DONE, now).sumOf { it.rows.size },
+            FeedView.closedCount(notes, now),
+        )
+    }
+
+    @Test
     fun `в ленте печатается не больше трёх пунктов, остальное — остатком`() {
         // Запись из шести дел не имеет права занять экран целиком: лента
         // перестаёт быть лентой.

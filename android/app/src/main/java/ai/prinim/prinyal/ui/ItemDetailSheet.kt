@@ -17,6 +17,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -119,6 +120,37 @@ fun ItemDetail(
                     }
                 }
 
+                // Отмена повтора — не в ряду с «Поправить»: это другой род
+                // действия. Приписка стоит **до** нажатия, а не в снекбаре
+                // после: «Не повторять» ничего не удаляет, и цена действия
+                // должна быть сказана заранее (макеты 10c).
+                if (!closed && item.repeatRule != null) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(Prinyal.colors.hairline)
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
+                        Text(
+                            text = stringResource(R.string.item_repeat_off),
+                            style = Prinyal.type.label,
+                            color = Prinyal.colors.inkMuted,
+                            softWrap = false,
+                            modifier = Modifier.tap(onClick = onStopRepeat),
+                        )
+                        item.repeatNextAt?.let { next ->
+                            MetaText(
+                                stringResource(
+                                    R.string.item_repeat_off_hint,
+                                    Dates.whenWill(next),
+                                ),
+                                color = Prinyal.colors.inkFaint,
+                            )
+                        }
+                    }
+                }
+
                 // Единственный выход в изменение — явный и подписанный словом.
                 //
                 // Ряд растянут по ширине и не переносится: с появлением
@@ -137,19 +169,6 @@ fun ItemDetail(
                             color = Prinyal.colors.accentSelf,
                             softWrap = false,
                             modifier = Modifier.tap(onClick = onEdit),
-                        )
-                    }
-                    // Отмена повтора живёт здесь, а не в правке: это не
-                    // «поправить формулировку», а «хватит». Слово появляется
-                    // только у повторяющегося пункта — у остальных отменять
-                    // нечего.
-                    if (!closed && item.repeatRule != null) {
-                        Text(
-                            text = stringResource(R.string.item_repeat_off),
-                            style = Prinyal.type.label,
-                            color = Prinyal.colors.inkMuted,
-                            softWrap = false,
-                            modifier = Modifier.tap(onClick = onStopRepeat),
                         )
                     }
                     Text(
@@ -176,6 +195,11 @@ private fun history(
     returns: List<ReturnEntity>,
     state: ItemState,
 ): List<String> {
+    // История повтора устроена иначе, и это единственное его отличие в
+    // раскрытии: она длинная. Три последних раза и итог строкой — ни полосок,
+    // ни графика, ни «серии из шести» (макеты 10b).
+    if (item.repeatRule != null) return repeatHistory(returns)
+
     val lines = mutableListOf<String>()
 
     val fired = returns.count { it.firedAt != null }
@@ -196,6 +220,29 @@ private fun history(
     }
     return lines
 }
+
+/** Сколько раз повтор срабатывал и чем каждый раз кончился. */
+private fun repeatHistory(returns: List<ReturnEntity>): List<String> {
+    val happened = returns.filter { it.firedAt != null }.sortedByDescending { it.firedAt }
+    if (happened.isEmpty()) return emptyList()
+
+    val lines = happened.take(REPEAT_HISTORY).map { entity ->
+        val what = when (entity.action) {
+            "done" -> "сделал"
+            "later" -> "отложил"
+            // Раз, на который человек не ответил, — часть правды о повторе:
+            // именно из таких складывается вопрос «напоминать дальше?».
+            null -> "не ответил"
+            else -> "не ответил"
+        }
+        "${Dates.day(entity.firedAt!!)} · $what"
+    }
+    val since = happened.minOf { it.firedAt!! }
+    return lines + "всего ${happened.size} ${times(happened.size)} с ${Dates.day(since)}"
+}
+
+/** Сколько раз печатается списком; остальное сворачивается в итог. */
+private const val REPEAT_HISTORY = 3
 
 private fun times(count: Int): String = when {
     count % 10 == 1 && count % 100 != 11 -> "раз"

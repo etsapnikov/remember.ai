@@ -579,9 +579,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         UploadWorker.enqueue(getApplication(), noteId)
     }
 
-    /** «Хватит напоминать» (Р-16.2): правило снимается, назначенный раз отменяется. */
+    /**
+     * «Не повторять» (макеты 10c): вечное дело становится обычным, назначенным
+     * на тот же день. Ничего не удаляется, поэтому и снекбар обещает не
+     * «вернуть удалённое», а вернуть порядок.
+     */
     fun stopRepeat(itemId: String) = viewModelScope.launch {
-        app.repository.stopRepeat(itemId)
+        val rule = app.db.items().byId(itemId)?.repeatRule ?: return@launch
+        app.repository.stopRepeat(itemId) ?: return@launch
+        _undo.value = UndoEvent(UndoMessage.RepeatStopped) {
+            app.repository.resumeRepeat(itemId, rule)
+        }
     }
 
     // --- удаление с undo (спека R1.1 §2.2) ---
@@ -595,6 +603,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         data object ItemBuried : UndoMessage
         data object EditDropped : UndoMessage
         data object RuleRemoved : UndoMessage
+        /** «Больше не повторяю» — пункт остался жив, откат возвращает правило. */
+        data object RepeatStopped : UndoMessage
     }
 
     private val _undo = MutableStateFlow<UndoEvent?>(null)

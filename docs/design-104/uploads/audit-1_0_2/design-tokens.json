@@ -1,0 +1,273 @@
+{
+  "meta": {
+    "name": "Принял / prinim.ai",
+    "version": "1.0",
+    "date": "2026-08-03",
+    "basis": "PRD MVP «Одна петля» v1.0, ТЗ UI v2.1, ТЗ айдентики v1.0"
+  },
+  "color": {
+    "light": {
+      "paper": "#FBF6F0",
+      "surface": "#FFFFFF",
+      "wellSurface": "#EFE6DC",
+      "ink": "#241C17",
+      "inkMuted": "#6E5F55",
+      "inkFaint": "#8C7A6E",
+      "rule": "#E2D3C6",
+      "hairline": "#F0E6DB",
+      "accentSelf": "#B4552F",
+      "accentSelfSoft": "#FBF3EC",
+      "record": "#C8362A",
+      "recordPressed": "#AE2A20",
+      "recordWell": "#8E2318",
+      "done": "#3F6B4F",
+      "destructiveBg": "#F6E0D9",
+      "destructiveFg": "#B03A24",
+      "statusOk": "#3F6B4F",
+      "statusWarn": "#A8542B"
+    },
+    "dark": {
+      "paper": "#1A1512",
+      "surface": "#221C18",
+      "wellSurface": "#2C241E",
+      "ink": "#F3EBE3",
+      "inkMuted": "#A9998C",
+      "inkFaint": "#8C7A6E",
+      "rule": "#372D26",
+      "hairline": "#1E1917",
+      "accentSelf": "#D98F6B",
+      "accentSelfSoft": "#2A1F18",
+      "record": "#D8412F",
+      "recordPressed": "#B32C20",
+      "recordWell": "#7A1C12",
+      "done": "#7FB08F",
+      "destructiveBg": "#3C1E18",
+      "destructiveFg": "#E8836B",
+      "statusOk": "#8FB79A",
+      "statusWarn": "#E08757"
+    }
+  },
+  "capture": {
+    "silenceThreshold": 0.08,
+    "silenceGraceMs": 400,
+    "silenceLockMs": 200,
+    "silenceWait": {
+      "use": "окно тишины растёт по наговоренному: короткая просьба закрывается быстро, длинная мысль не обрывается на паузе — R1.3 Р-13.2",
+      "shortSpeechMs": 10000,
+      "midSpeechMs": 20000,
+      "longSpeechMs": 45000,
+      "shortWaitMs": 2500,
+      "midWaitMs": 4000,
+      "longWaitMs": 6000,
+      "hysteresis": 1.3
+    },
+    "patience": {
+      "short": 0.6,
+      "normal": 1.0,
+      "long": 1.5
+    }
+  },
+  "gesture": {
+    "swipeStart": 8,
+    "swipeCommitVertical": { "distance": 96, "velocity": 600 },
+    "swipeCommitRow": { "distance": 40, "velocity": 400 },
+    "rowActionWidth": 88
+  },
+  "semantics": {
+    "record": "только клавиша записи, её пульс и таймер записи",
+    "accentSelf": "всё, что продукт сделал сам: планы, возвраты, квитанция, причина",
+    "done": "только состояние done у айтема",
+    "forbidden": "красный вне жеста записи; зелёный вне done; синий нигде"
+  },
+  "type": {
+    "display": {
+      "font": "Spectral",
+      "weight": 400,
+      "size": 34,
+      "line": 1.12,
+      "letterSpacing": -0.02,
+      "use": "квитанция «Запомнил.»; 38 не влезало на 320 dp — R1.2 §14"
+    },
+    "voice": {
+      "font": "Spectral",
+      "weight": 400,
+      "style": "italic",
+      "size": 18,
+      "line": 1.45,
+      "use": "план возврата, реплики продукта"
+    },
+    "itemTitle": {
+      "font": "Golos Text",
+      "weight": 600,
+      "size": 21,
+      "line": 1.3,
+      "use": "текст айтема"
+    },
+    "body": {
+      "font": "Golos Text",
+      "weight": 400,
+      "size": 17,
+      "line": 1.5
+    },
+    "label": {
+      "font": "Golos Text",
+      "weight": 600,
+      "size": 16,
+      "line": 1.3,
+      "use": "кнопки"
+    },
+    "meta": {
+      "font": "JetBrains Mono",
+      "weight": 400,
+      "size": 13,
+      "letterSpacing": 0.02,
+      "use": "время, статусы, служебное"
+    },
+    "timer": {
+      "font": "JetBrains Mono",
+      "weight": 400,
+      "size": 22,
+      "line": 1.2,
+      "letterSpacing": 0.04,
+      "use": "таймер записи; жизнь показывает кольцо, таймеру хватает 22 — R1.2 §13"
+    },
+    "verdict": {
+      "font": "Golos Text",
+      "weight": 700,
+      "size": 30,
+      "line": 1.13,
+      "use": "вердикт недели («Петля жива»); в спеке дизайнера — Roboto, семейство взято из системы"
+    },
+    "metric": {
+      "font": "Golos Text",
+      "weight": 700,
+      "size": 26,
+      "line": 1.15,
+      "use": "значение kill-метрики"
+    },
+    "minSize": 16
+  },
+  "space": {
+    "base": 4,
+    "scale": [
+      4,
+      8,
+      12,
+      16,
+      20,
+      26,
+      32,
+      44
+    ],
+    "screenPadding": 26,
+    "itemGap": 18
+  },
+  "radius": {
+    "sheet": 2,
+    "control": 12,
+    "pill": 999,
+    "icon": 20
+  },
+  "key": {
+    "housing": 112,
+    "cap": 84,
+    "capPressed": 78,
+    "capDrop": 4,
+    "dot": 26,
+    "idle": {
+      "housing": "#1E1917",
+      "housingEdge": "#2E2724",
+      "cap": "#2A211E",
+      "capShadow": 3,
+      "dot": "#D8402F",
+      "timer": "#4A403A"
+    },
+    "recording": {
+      "housing": "#2A1512",
+      "housingEdge": "#52201A",
+      "cap": "#D8402F",
+      "capShadow": 4,
+      "stopMark": "#2A1512",
+      "stopRadius": 5,
+      "timer": "#8C8078"
+    },
+    "ring": {
+      "side": 120,
+      "sideGain": 44,
+      "corner": 36,
+      "cornerGain": 10,
+      "width": 2,
+      "widthGain": 2.5,
+      "exponent": 1.25,
+      "color": "#E8836B",
+      "alpha": 0.35,
+      "alphaGain": 0.65,
+      "idleColor": "#4A403A",
+      "silenceSide": 126
+    },
+    "states": [
+      "rest",
+      "pressed",
+      "released"
+    ]
+  },
+  "motion": {
+    "pulse": {
+      "dur": 2200,
+      "ease": "cubic-bezier(.4,0,.2,1)",
+      "maxScale": 1.3,
+      "opacity": [
+        0.5,
+        0
+      ]
+    },
+    "receipt": {
+      "dur": 600,
+      "ease": "cubic-bezier(.2,.8,.2,1)"
+    },
+    "noteAway": {
+      "dur": 2600,
+      "ease": "cubic-bezier(.4,0,1,1)",
+      "translateY": -26
+    },
+    "burial": {
+      "dur": 900,
+      "ease": "cubic-bezier(.3,0,.6,1)"
+    },
+    "followSettle": {
+      "dur": 320,
+      "ease": "cubic-bezier(.2,.8,.2,1)",
+      "minDur": 180
+    },
+    "followCancel": {
+      "dur": 200,
+      "ease": "cubic-bezier(.4,0,.6,1)"
+    },
+    "keyPress": {
+      "dur": 90,
+      "ease": "cubic-bezier(.4,0,1,1)"
+    },
+    "keyRelease": {
+      "dur": 160,
+      "ease": "cubic-bezier(.2,.8,.2,1)"
+    },
+    "stateShift": {
+      "dur": 220,
+      "ease": "cubic-bezier(.4,0,.2,1)",
+      "ringDelay": 60
+    },
+    "ampAttack": {
+      "dur": 100,
+      "ease": "linear"
+    },
+    "ampRelease": {
+      "tau": 220,
+      "ease": "ease-out"
+    }
+  },
+  "haptics": {
+    "receipt": "двойной короткий: 18ms — пауза 70ms — 34ms",
+    "cancel": "один 40ms",
+    "returnAction": "один 12ms"
+  }
+}

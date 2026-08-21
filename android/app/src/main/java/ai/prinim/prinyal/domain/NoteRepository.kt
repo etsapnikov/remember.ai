@@ -484,6 +484,9 @@ class NoteRepository(
         )
         db.returns().insert(entity)
         scheduler.schedule(entity.id, next)
+        // Следующий раз живёт и на пункте: строка ленты обязана печататься без
+        // похода в таблицу возвратов.
+        db.items().update(db.items().byId(item.id)?.copy(repeatNextAt = next.toEpochMilli()) ?: return)
     }
 
     /**
@@ -963,10 +966,72 @@ class NoteRepository(
         )
     }
 
-    suspend fun markDone(itemId: String) {
+    /**
+     * «Сделано».
+     *
+     * У повторяющегося пункта это значит не то же, что у обычного: он закрылся
+     * **до следующего раза**, а не насовсем. Поэтому повтор уходит не в
+     * `done`, а в `returned` с новой датой — состояние в продукте уже есть и
+     * означает буквально это (макеты 1.0.4, блок 10b). Зелёное «сделано» и
+     * слово «закрыто» остаются означать «насовсем», и повтор в сводке
+     * «5 сделано» не появляется никогда.
+     *
+     * @return момент следующего раза, если пункт повторяется
+     */
+    suspend fun markDone(itemId: String): Instant? {
+        val item = db.items().byId(itemId)
+        val rule = Repeat.of(item?.repeatRule)
+        if (item != null && rule != null) {
+            db.items().setState(itemId, ItemState.RETURNED.wire)
+            // Прежний назначенный раз снимаем: человек ответил раньше звонка,
+            // и звонить всё равно было бы враньём про «сделал».
+            db.returns().forItem(itemId).filter { it.firedAt == null }
+                .forEach { scheduler.cancel(it.id) }
+            db.returns().dropPending(itemId)
+
+            // Раз записывается в те же возвраты: история повтора («18 авг
+            // сделал · 11 авг не ответил») — это и есть список его
+            // срабатываний, и заводить под неё вторую таблицу значило бы
+            // держать два счёта одного и того же.
+            val now = Instant.now()
+            val fired = db.returns().forItem(itemId)
+                .filter { it.firedAt != null && it.action == null }
+                .maxByOrNull { it.firedAt!! }
+            if (fired != null) {
+                db.returns().update(fired.copy(action = ACTION_DONE))
+            } else {
+                // Закрыли раньше звонка — раз всё равно был, и в истории он
+                // обязан остаться, иначе «всего 9 раз» соврёт.
+                db.returns().insert(
+                    ReturnEntity(
+                        id = newId(),
+                        itemId = itemId,
+                        scheduledAt = now.toEpochMilli(),
+                        firedAt = now.toEpochMilli(),
+                        action = ACTION_DONE,
+                    )
+                )
+            }
+            db.items().update(
+                db.items().byId(itemId)!!.copy(repeatDoneAt = now.toEpochMilli())
+            )
+            planRepeat(item, rule, now, settings.windowsNow())
+            analytics.log(
+                Analytics.RETURN_ACTION,
+                mapOf("item" to itemId, "action" to "done", "repeat" to item.repeatRule),
+            )
+            return db.returns().forItem(itemId)
+                .filter { it.firedAt == null }
+                .minByOrNull { it.scheduledAt }
+                ?.let { Instant.ofEpochMilli(it.scheduledAt) }
+        }
         setStateAndStop(itemId, ItemState.DONE)
         analytics.log(Analytics.RETURN_ACTION, mapOf("item" to itemId, "action" to "done"))
+        return null
     }
+
+    /** Метка сделанного раза в истории повтора. */
+    private val ACTION_DONE = "done"
 
     suspend fun buryItem(itemId: String) {
         setStateAndStop(itemId, ItemState.EXPIRED)
@@ -1098,20 +1163,62 @@ class NoteRepository(
     }
 
     /**
-     * Снять повтор. Пункт остаётся жив и в плане — снимается только бесконечность.
+     * «Не повторять».
      *
-     * Назначенный возврат гасим здесь же: правило из базы ушло, а аларм на
-     * следующий понедельник остался бы и сработал — молча и необъяснимо.
+     * Не удаляет пункт и не отменяет ближайший раз: превращает вечное дело в
+     * обычное, назначенное на тот день, который и так был следующим (макеты
+     * 10c). Поэтому назначенный возврат остаётся жить — снимать и ставить
+     * заново значило бы сдвинуть время из-за смены окна.
+     *
+     * @return момент, на который пункт остался, или null, если повтора не было
      */
-    suspend fun stopRepeat(itemId: String) {
-        val item = db.items().byId(itemId) ?: return
-        if (item.repeatRule == null) return
-        db.items().update(item.copy(repeatRule = null))
-        db.returns().forItem(itemId)
+    suspend fun stopRepeat(itemId: String): Instant? {
+        val item = db.items().byId(itemId) ?: return null
+        if (item.repeatRule == null) return null
+
+        val kept = db.returns().forItem(itemId)
             .filter { it.firedAt == null }
-            .forEach { scheduler.cancel(it.id) }
-        db.returns().dropPending(itemId)
+            .minByOrNull { it.scheduledAt }
+            ?.let { Instant.ofEpochMilli(it.scheduledAt) }
+            ?: item.repeatNextAt?.let(Instant::ofEpochMilli)
+
+        db.items().update(
+            item.copy(
+                repeatRule = null,
+                repeatDoneAt = null,
+                repeatNextAt = null,
+                // Пункт становится обычным делом с названной датой. Без этого
+                // он остался бы «просто сохраню» — и назначенный возврат
+                // выглядел бы взявшимся ниоткуда.
+                dueKind = if (kept != null) DueKind.EXACT.wire else item.dueKind,
+                dueAt = kept?.toEpochMilli() ?: item.dueAt,
+                window = if (kept != null) null else item.window,
+                state = ItemState.PLANNED.wire,
+            )
+        )
         analytics.log("repeat_off", mapOf("item" to itemId))
+        return kept
+    }
+
+    /** Откат из снекбара: правило возвращается, ближайший раз остаётся тем же. */
+    suspend fun resumeRepeat(itemId: String, rule: String) {
+        val item = db.items().byId(itemId) ?: return
+        val next = db.returns().forItem(itemId)
+            .filter { it.firedAt == null }
+            .minByOrNull { it.scheduledAt }
+            ?.scheduledAt
+        db.items().update(
+            item.copy(
+                repeatRule = rule,
+                repeatNextAt = next,
+                dueKind = DueKind.NONE.wire,
+                dueAt = null,
+            )
+        )
+        if (next == null) {
+            Repeat.of(rule)?.let { planRepeat(item, it, Instant.now(), settings.windowsNow()) }
+        }
+        analytics.log("repeat_off_undo", mapOf("item" to itemId))
     }
 
     suspend fun markFired(returnId: String) {
@@ -1125,6 +1232,9 @@ class NoteRepository(
         // которых его и завели.
         db.items().byId(entity.itemId)?.let { item ->
             Repeat.of(item.repeatRule)?.let { rule ->
+                // Новый раз — новая возможность его сделать: метку прошлого
+                // снимаем, иначе «сделано» осталось бы спрятанным навсегда.
+                db.items().update(item.copy(repeatDoneAt = null))
                 // Отсчёт от **назначенного** момента, а не от фактического:
                 // аларм может прозвонить с опозданием — телефон спал, процесс
                 // был убит, — и «через неделю после звонка» медленно уводило бы

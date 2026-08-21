@@ -196,6 +196,8 @@ private fun undoText(message: AppViewModel.UndoMessage): String = when (message)
         stringResource(R.string.transcript_edit_dropped)
     is AppViewModel.UndoMessage.RuleRemoved ->
         stringResource(R.string.dict_removed)
+    is AppViewModel.UndoMessage.RepeatStopped ->
+        stringResource(R.string.item_repeat_off_done)
 }
 
 @Composable

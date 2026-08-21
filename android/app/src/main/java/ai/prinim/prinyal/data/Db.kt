@@ -20,7 +20,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         QuestionEntity::class,
         PersonNote::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 abstract class PrinyalDb : RoomDatabase() {
@@ -252,10 +252,18 @@ abstract class PrinyalDb : RoomDatabase() {
             }
         }
 
+        /** v12 → v13: сделанный повтор — это «вернусь», и он несёт две даты. */
+        private val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE items ADD COLUMN repeat_done_at INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE items ADD COLUMN repeat_next_at INTEGER DEFAULT NULL")
+            }
+        }
+
         private fun build(context: Context): PrinyalDb =
             Room.databaseBuilder(context, PrinyalDb::class.java, "prinyal.db")
                 // Destructive-падения нет намеренно: dogfood-корпус терять нельзя.
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
                 .build()
 
         /** Только для тестов. */

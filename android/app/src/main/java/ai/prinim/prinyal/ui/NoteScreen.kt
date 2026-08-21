@@ -102,6 +102,9 @@ fun NoteScreen(
     var heardWord by remember { mutableStateOf<String?>(null) }
     // Правка транскрипта (спека R1.2 §15). null — покой, иначе черновик.
     var draft by remember(noteId) { mutableStateOf<TextFieldValue?>(null) }
+    // Спрашиваем перед переразбором всегда, а не только при закрытых пунктах:
+    // правило, которое срабатывает иногда, никто не выучивает (макеты 10d).
+    var askReparse by remember(noteId) { mutableStateOf(false) }
     // Разворот сырца. У идеи закрыт по умолчанию, у остальных записей открыт:
     // там транскрипт и есть содержимое.
     // Замысел — это запись, у которой есть «Собрано».
@@ -332,6 +335,10 @@ fun NoteScreen(
                     // пополам. Длинная фраза в SpaceBetween-ряду — это всегда
                     // так: ряд не переносит, он сжимает.
                     val busy = status == NoteStatus.RECORDED || status == NoteStatus.QUEUED
+                    // Правки руками в записи — то, что переразбор сотрёт.
+                    // Врать в обе стороны нельзя, но и грузить нечем: нет
+                    // правок — фраза короче.
+                    val handEdited = items.any { it.edited || it.previousText != null }
                     Column(
                         Modifier.fillMaxWidth().padding(top = Space.s),
                         verticalArrangement = Arrangement.spacedBy(Space.xs),
@@ -347,30 +354,52 @@ fun NoteScreen(
                             stringResource(R.string.note_transcript),
                             color = Prinyal.colors.inkFaint,
                         )
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(Space.ml),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            // Вход — строкой под заголовком. Тап по самому
-                            // тексту остаётся выделению и копированию:
-                            // транскрипт читают чаще, чем правят.
-                            run {
-                                // Пока идёт разбор, дописывать нельзя:
-                                // переразбор пошёл бы по половине текста
-                                // (Р-15.1).
-                                if (!busy) {
-                                    // «Дописать» первым: добавляют чаще, чем
-                                    // чинят (Д-3).
-                                    MetaText(
-                                        text = stringResource(R.string.note_append),
-                                        color = Prinyal.colors.accentSelf,
-                                        maxLines = 1,
-                                        modifier = Modifier.tap {
-                                            openAppend(context, noteId)
-                                        },
-                                    )
-                                }
+                        // Ряд не равный (макеты 10d): «Дописать» и «Поправить»
+                        // добавляют и набраны акцентом, «Разобрать заново»
+                        // стирает и стоит отдельной строкой ниже — по весу
+                        // рядом с «Удалить», но не в одной строке с ним, чтобы
+                        // два разрушительных слова не читались как пара.
+                        if (askReparse) {
+                            // Подтверждение заменяет ряд на месте: диалога,
+                            // затемнения и центрированной плашки в продукте
+                            // нет ни одного.
+                            MetaText(
+                                stringResource(
+                                    if (handEdited) R.string.note_reparse_ask
+                                    else R.string.note_reparse_ask_clean
+                                ),
+                                color = Prinyal.colors.ink,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
+                                MetaText(
+                                    text = stringResource(R.string.note_reparse_go),
+                                    color = Prinyal.colors.accentSelf,
+                                    maxLines = 1,
+                                    modifier = Modifier.tap {
+                                        askReparse = false
+                                        vm.reparse(noteId)
+                                    },
+                                )
+                                MetaText(
+                                    text = stringResource(R.string.note_reparse_cancel),
+                                    color = Prinyal.colors.inkMuted,
+                                    maxLines = 1,
+                                    modifier = Modifier.tap { askReparse = false },
+                                )
+                            }
+                        } else if (!busy) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(Space.ml),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                // «Дописать» первым: добавляют чаще, чем чинят (Д-3).
+                                MetaText(
+                                    text = stringResource(R.string.note_append),
+                                    color = Prinyal.colors.accentSelf,
+                                    maxLines = 1,
+                                    modifier = Modifier.tap { openAppend(context, noteId) },
+                                )
                                 MetaText(
                                     text = stringResource(R.string.transcript_edit),
                                     color = Prinyal.colors.accentSelf,
@@ -384,21 +413,18 @@ fun NoteScreen(
                                         )
                                     },
                                 )
-                                // Переразбор руками. Раньше он жил только на
-                                // экране ошибки и внутри правки транскрипта —
-                                // то есть был доступен, когда разбор **не**
-                                // удался, и недоступен, когда удался плохо. А
-                                // просят его именно во втором случае.
-                                if (!busy) {
-                                    MetaText(
-                                        text = stringResource(R.string.note_reparse_short),
-                                        color = Prinyal.colors.inkMuted,
-                                        maxLines = 1,
-                                        modifier = Modifier.tap { vm.reparse(noteId) },
-                                    )
-                                }
                             }
+                            // Переразбор — своей строкой и приглушённый: он
+                            // стирает разложенные пункты, а по виду был
+                            // неотличим от правки.
+                            MetaText(
+                                text = stringResource(R.string.note_reparse_short),
+                                color = Prinyal.colors.inkMuted,
+                                maxLines = 1,
+                                modifier = Modifier.tap { askReparse = true },
+                            )
                         }
+
                         // Кнопка не исчезает молча — продукт прямо говорит,
                         // почему сейчас нельзя (Р-15.1).
                         if (busy) {
@@ -590,12 +616,17 @@ private fun ItemCard(
                 horizontalArrangement = Arrangement.spacedBy(Space.ml),
                 modifier = Modifier.padding(top = Space.xs),
             ) {
-                Text(
-                    text = stringResource(R.string.action_done),
-                    style = Prinyal.type.label,
-                    color = Prinyal.colors.done,
-                    modifier = Modifier.tap(onClick = onDone),
-                )
+                // Повтор, сделанный в этот раз, «сделано» больше не
+                // предлагает: раз уже засчитан, и второе нажатие удвоило бы
+                // историю («всего 9 раз») ничего не изменив. Вернётся он сам.
+                if (item.repeatRule == null || item.repeatDoneAt == null) {
+                    Text(
+                        text = stringResource(R.string.action_done),
+                        style = Prinyal.type.label,
+                        color = Prinyal.colors.done,
+                        modifier = Modifier.tap(onClick = onDone),
+                    )
+                }
                 Text(
                     text = stringResource(R.string.action_dismiss),
                     style = Prinyal.type.label,

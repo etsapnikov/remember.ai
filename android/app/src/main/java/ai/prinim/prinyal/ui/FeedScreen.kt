@@ -125,6 +125,7 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
         FilterRow(filter, onPick = { vm.setFeedFilter(it) })
 
         val sections = remember(notes, filter) { FeedView.sections(notes, filter) }
+        val closed = remember(notes) { FeedView.closedCount(notes) }
 
         if (sections.isEmpty()) {
             FilteredEmpty(filter)
@@ -136,9 +137,17 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
         if (filter != FeedView.Filter.ALL) {
             val rows = sections.sumOf { it.rows.size }
             val items = sections.sumOf { section -> section.rows.sumOf { it.matched } }
+            // Счётчик говорит про повторы прямо: «7 пунктов · 2 повторяются».
+            // Без этой цифры вечные пункты молча раздували счёт долгов.
+            val repeats = sections
+                .filter { it.kind == FeedView.Section.Kind.REPEATING }
+                .sumOf { section -> section.rows.sumOf { it.matched } }
             MetaText(
-                text = pluralStringResource(R.plurals.feed_summary_notes, rows, rows) + " · " +
-                    pluralStringResource(R.plurals.feed_summary_items, items, items),
+                text = buildList {
+                    add(pluralStringResource(R.plurals.feed_summary_notes, rows, rows))
+                    add(pluralStringResource(R.plurals.feed_summary_items, items, items))
+                    if (repeats > 0) add(pluralStringResource(R.plurals.repeat_count, repeats, repeats))
+                }.joinToString(" · "),
                 color = Prinyal.colors.inkFaint,
                 modifier = Modifier.padding(horizontal = Space.screen, vertical = Space.xs),
             )
@@ -187,9 +196,14 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
                     DayHeader(section)
                 }
                 section.rows.forEach { row ->
-                    item(key = row.entry.note.id) {
+                    // Ключ с разделом: запись с повтором и обычными пунктами
+                    // печатается дважды — своими пунктами в дне и своим
+                    // повтором под «ПОВТОРЯЮТСЯ», — и общий ключ уронил бы
+                    // список дублем.
+                    val key = "${section.kind}-${row.entry.note.id}"
+                    item(key = key) {
                         SwipeRevealRow(
-                            key = row.entry.note.id,
+                            key = key,
                             openKey = openKey,
                             onOpen = { openKey = it },
                             actionLabel = deleteLabel(row.entry.items.count { it.isAlive() }),
@@ -202,9 +216,39 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
                                 row = row,
                                 compact = revealed > 0.05f,
                                 topicName = row.entry.note.topicId?.let { topicNames[it] },
+                                section = section,
                                 onClick = { if (openKey == null) onOpenNote(row.entry.note.id) },
                             )
                         }
+                    }
+                }
+            }
+
+            // Закрытые записи ушли из «всего» — но не в никуда, и строка внизу
+            // говорит куда. Стоит один раз, за хайрлайном, после последнего
+            // дня: под каждым днём она превратилась бы в шум.
+            //
+            // Тап переключает фильтр, а не разворачивает на месте: разворот
+            // вернул бы в «всё» ровно ту кашу, которую версия убирает.
+            if (filter == FeedView.Filter.ALL && closed > 0) {
+                item(key = "closed-hidden") {
+                    Column(Modifier.fillMaxWidth().padding(top = Space.ml)) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(Prinyal.colors.hairline)
+                        )
+                        MetaText(
+                            text = stringResource(
+                                R.string.feed_closed_hidden,
+                                pluralStringResource(R.plurals.feed_closed_count, closed, closed),
+                            ),
+                            color = Prinyal.colors.inkFaint,
+                            modifier = Modifier
+                                .padding(horizontal = Space.screen)
+                                .tap { vm.setFeedFilter(FeedView.Filter.DONE) },
+                        )
                     }
                 }
             }
@@ -307,6 +351,8 @@ private fun DayHeader(section: FeedView.Section) {
         FeedView.Section.Kind.TOMORROW -> stringResource(R.string.day_tomorrow)
         FeedView.Section.Kind.THIS_WEEK -> stringResource(R.string.day_this_week)
         FeedView.Section.Kind.LATER -> stringResource(R.string.day_later)
+        // Тот же элемент, что «ЗАВТРА» и «ПОЗЖЕ», — новых не заводим.
+        FeedView.Section.Kind.REPEATING -> stringResource(R.string.repeat_group)
     }
     MetaText(
         text = text,
@@ -365,6 +411,8 @@ private fun NoteRow(
     row: FeedView.Row,
     compact: Boolean,
     topicName: String?,
+    /** Где строка показана: под «ПОВТОРЯЮТСЯ» слова меняются. */
+    section: FeedView.Section? = null,
     onClick: () -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -377,16 +425,25 @@ private fun NoteRow(
     // снимке от 19 августа одиннадцать раз подряд, — и текст пунктов разбивался
     // служебным на каждом шагу. Под пунктом статус остаётся только там, где он
     // отличается от общего.
-    val plans = row.shown.map { Phrases.plan(context, it) }
+    // Под заголовком «ПОВТОРЯЮТСЯ» слова «в плане» не нужно — фильтр уже сказал.
+    val bare = section?.kind == FeedView.Section.Kind.REPEATING
+    val plans = row.shown.map { Phrases.plan(context, it, bare = bare) }
     // Общий статус — тот, что у большинства, а не единственный на всех. Если
     // требовать полного совпадения, то одна дата среди трёх «просто сохраню»
     // возвращает нас к статусу под каждым пунктом — то есть к тому, из-за чего
     // всё и затевалось.
-    val commonPlan = plans.groupingBy { it }.eachCount()
-        .filterValues { it > 1 }
-        .maxByOrNull { it.value }
-        ?.key
-        ?: plans.singleOrNull()
+    val commonPlan = plans
+        // График повтора никогда не поднимается в общую строку записи: она
+        // остаётся политикой обычных пунктов (макеты 10a). Повтор всегда несёт
+        // свою строку под собой, даже если он в записи один.
+        .filterIndexed { index, _ -> row.shown[index].repeatRule == null }
+        .let { plain ->
+            plain.groupingBy { it }.eachCount()
+                .filterValues { it > 1 }
+                .maxByOrNull { it.value }
+                ?.key
+                ?: plain.singleOrNull()
+        }
 
     Column(
         Modifier
@@ -440,7 +497,10 @@ private fun NoteRow(
                         ItemLine(
                             item = item,
                             // Свой статус — только когда он отличается от общего.
-                            showPlan = commonPlan == null || plans[index] != commonPlan,
+                            // У повтора — всегда: общей строки у него не бывает.
+                            showPlan = item.repeatRule != null ||
+                                commonPlan == null || plans[index] != commonPlan,
+                            plan = plans[index],
                         )
                     }
                 }
@@ -508,6 +568,8 @@ private fun rest(row: FeedView.Row): String? {
 private fun ItemLine(
     item: ItemEntity,
     showPlan: Boolean = true,
+    /** Готовая строка плана: у повтора она зависит от места показа. */
+    plan: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -525,7 +587,7 @@ private fun ItemLine(
             // Адресат — только у «сказать»: у остальных типов он не звучал.
             if (ItemType.of(item.type) == ItemType.TELL) item.who?.let(::add)
             if (closed) add(stateLabel(state))
-            if (!closed && showPlan) add(Phrases.plan(context, item))
+            if (!closed && showPlan) add(plan ?: Phrases.plan(context, item))
         }
         if (segments.isEmpty()) return@Column
         MetaText(

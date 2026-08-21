@@ -144,21 +144,82 @@ class NoteRepositoryTest {
     }
 
     @Test
-    fun `хватит напоминать снимает и правило, и назначенный раз`() = runTest {
+    fun `хватит напоминать оставляет одно дело на ближайший раз`() = runTest {
+        // Макеты 10c: «Не повторять» ничего не удаляет. Вечное дело становится
+        // обычным, назначенным на тот день, который и так был следующим, —
+        // поэтому назначенный возврат обязан пережить отмену.
         val id = note()
         val items = repo.applyParse(
             id,
-            parsed(item(text = "выложить отчёт", window = null, dueKind = DueKind.NONE)
-                .copy(repeat = "daily")),
+            parsed(item(text = "выносить мусор", window = null, dueKind = DueKind.NONE)
+                .copy(repeat = "weekly:mon")),
         )
         val itemId = items.single().id
-        val planned = db.returns().all().single().id
+        val planned = db.returns().all().single()
+
+        val kept = repo.stopRepeat(itemId)
+
+        assertEquals(Instant.ofEpochMilli(planned.scheduledAt), kept)
+        val after = db.items().byId(itemId)!!
+        assertNull("правило осталось", after.repeatRule)
+        assertEquals("пункт не стал обычным делом с датой", DueKind.EXACT.wire, after.dueKind)
+        assertEquals(planned.scheduledAt, after.dueAt)
+        assertTrue("ближайший раз потерян", scheduler.scheduled.containsKey(planned.id))
+        assertTrue("возврат снят из базы", db.returns().all().any { it.id == planned.id })
+    }
+
+    @Test
+    fun `вернуть из снекбара возвращает повтор на то же место`() = runTest {
+        // Снекбар обещает откат, а не «почти откат»: правило то же, ближайший
+        // раз тот же, дата-подделка из отмены снята.
+        val id = note()
+        val items = repo.applyParse(
+            id,
+            parsed(item(text = "выносить мусор", window = null, dueKind = DueKind.NONE)
+                .copy(repeat = "weekly:mon")),
+        )
+        val itemId = items.single().id
+        val planned = db.returns().all().single().scheduledAt
 
         repo.stopRepeat(itemId)
+        repo.resumeRepeat(itemId, "weekly:mon")
 
-        assertNull(db.items().byId(itemId)!!.repeatRule)
-        assertTrue("аларм остался жив", scheduler.cancelled.contains(planned))
-        assertTrue("возврат остался в базе", db.returns().all().none { it.firedAt == null })
+        val after = db.items().byId(itemId)!!
+        assertEquals("weekly:mon", after.repeatRule)
+        assertEquals(planned, after.repeatNextAt)
+        assertEquals("осталась дата от отмены", DueKind.NONE.wire, after.dueKind)
+        assertNull(after.dueAt)
+        assertEquals("возвратов расплодилось", 1, db.returns().all().size)
+    }
+
+    @Test
+    fun `сделанный повтор не закрывается, а возвращается`() = runTest {
+        // Макеты 10b: зелёное «сделано» означает «насовсем», и повтор им
+        // помечать нельзя — он закрылся только до следующего раза.
+        val id = note()
+        val items = repo.applyParse(
+            id,
+            parsed(item(text = "выносить мусор", window = null, dueKind = DueKind.NONE)
+                .copy(repeat = "weekly:mon")),
+        )
+        val itemId = items.single().id
+        val first = db.returns().all().single()
+
+        repo.markDone(itemId)
+
+        val after = db.items().byId(itemId)!!
+        assertEquals("повтор попал в «сделано»", ItemState.RETURNED.wire, after.state)
+        assertNotNull("не записан сделанный раз", after.repeatDoneAt)
+        assertNotNull("не назначен следующий раз", after.repeatNextAt)
+        // Раз остался в истории: без него «всего 9 раз» соврёт.
+        assertTrue(
+            "сделанный раз не попал в историю",
+            db.returns().all().any { it.action == "done" },
+        )
+        assertTrue(
+            "следующий раз не назначен",
+            db.returns().all().any { it.id != first.id && it.firedAt == null },
+        )
     }
 
     @Test
