@@ -22,6 +22,24 @@ class MainActivity : ComponentActivity() {
         super.attachBaseContext(ai.prinim.prinyal.ui.theme.LocaleForce.wrap(newBase))
     }
 
+    /**
+     * Куда просят открыть — извне, а не по нажатию на экране.
+     *
+     * Отдельным состоянием, потому что интент приходит **дважды**: первый раз в
+     * `onCreate`, дальше — в `onNewIntent`, если приложение уже открыто. Второй
+     * случай не обрабатывался вовсе: `launchMode=singleTop` отдаёт интент сюда,
+     * а экраны читали его только при создании. Человек жал уведомление
+     * возврата при открытом приложении — и оставался там, где стоял, будто
+     * нажатия не было.
+     */
+    private val incoming = mutableStateOf<android.content.Intent?>(null)
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        incoming.value = intent
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val openNoteId = intent.getStringExtra(EXTRA_NOTE_ID)
@@ -54,6 +72,25 @@ class MainActivity : ComponentActivity() {
                 androidx.compose.runtime.LaunchedEffect(keepAsking, openNoteId) {
                     if (keepAsking && openNoteId != null) vm.resumeInterview(openNoteId)
                 }
+                // Пришли извне при уже открытом приложении — ведём туда же,
+                // куда повёл бы холодный запуск.
+                val next by incoming
+                androidx.compose.runtime.LaunchedEffect(next) {
+                    val fresh = next ?: return@LaunchedEffect
+                    incoming.value = null
+                    fresh.getStringExtra(EXTRA_NOTE_ID)?.let { id ->
+                        route = Route.Note(id)
+                        if (fresh.getBooleanExtra(EXTRA_KEEP_ASKING, false)) {
+                            vm.resumeInterview(id)
+                        }
+                        return@LaunchedEffect
+                    }
+                    fresh.getStringExtra(EXTRA_PACK_TOPIC)?.let { topic ->
+                        vm.openPackPickByTopic(topic)
+                        route = Route.PackPick(topic)
+                    }
+                }
+
                 AppScaffold(route = route, onRoute = { route = it })
             }
         }

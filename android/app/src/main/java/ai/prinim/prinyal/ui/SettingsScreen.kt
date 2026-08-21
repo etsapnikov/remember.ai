@@ -4,6 +4,7 @@ import ai.prinim.prinyal.BuildConfig
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.capture.SilenceWindow
 import ai.prinim.prinyal.data.Window
+import ai.prinim.prinyal.domain.Dates
 import ai.prinim.prinyal.domain.TokenSpend
 import ai.prinim.prinyal.domain.WeeklySummary
 import ai.prinim.prinyal.returns.ReturnScheduler
@@ -494,6 +495,59 @@ private fun <T> Segments(
  * посчитанный факт, доллары — оценка по вбитому в код прайсу. Цифра, которая
  * молча устареет вместе с прайсом, хуже отсутствующей.
  */
+/**
+ * Падения (Р-17.1).
+ *
+ * Стоит первым в разделе разработчика: если что-то упало, это важнее всех
+ * остальных цифр. Пока падений нет — строка одна, и она об этом говорит, а не
+ * молчит: молчание неотличимо от «блок сломался».
+ */
+@Composable
+private fun CrashBlock(vm: AppViewModel) {
+    val crashes by vm.crashes.collectAsState()
+    val context = LocalContext.current
+    LaunchedEffect(Unit) { vm.loadCrashes() }
+
+    Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
+        MetaText(stringResource(R.string.set_dev_crashes))
+        if (crashes.isEmpty()) {
+            MetaText(stringResource(R.string.set_dev_crashes_empty), color = Prinyal.colors.inkFaint)
+            return@Column
+        }
+        crashes.forEach { record ->
+            MetaText(
+                text = (record.at?.let { Dates.dayTime(it.toEpochMilli()) } ?: "—") +
+                    " · " + record.what.substringAfterLast('.').take(60),
+                color = Prinyal.colors.statusWarn,
+            )
+            // Где именно — первая наша строка трейса: чужие кадры не помогают.
+            record.where.takeIf { it.isNotBlank() }?.let {
+                MetaText(it.take(80), color = Prinyal.colors.inkFaint)
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
+            Text(
+                text = stringResource(R.string.set_dev_crashes_share),
+                style = Prinyal.type.label,
+                color = Prinyal.colors.accentSelf,
+                modifier = Modifier.tap {
+                    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(android.content.Intent.EXTRA_TEXT, vm.crashReport())
+                    }
+                    context.startActivity(android.content.Intent.createChooser(send, null))
+                },
+            )
+            Text(
+                text = stringResource(R.string.set_dev_crashes_clear),
+                style = Prinyal.type.label,
+                color = Prinyal.colors.inkMuted,
+                modifier = Modifier.tap { vm.clearCrashes() },
+            )
+        }
+    }
+}
+
 @Composable
 private fun TokenSpendBlock(vm: AppViewModel) {
     val spend by vm.spend.collectAsState()
@@ -703,6 +757,7 @@ private fun DeveloperSection(vm: AppViewModel, threshold: Int) {
                 )
             }
 
+            CrashBlock(vm)
             TokenSpendBlock(vm)
             KillMetrics(vm)
             VersionState(vm)

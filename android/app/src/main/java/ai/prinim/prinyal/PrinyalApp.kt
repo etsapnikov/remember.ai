@@ -4,6 +4,7 @@ import ai.prinim.prinyal.asr.GigaAmOnDevice
 import ai.prinim.prinyal.asr.ModelStore
 import ai.prinim.prinyal.llm.DeepSeekClient
 import ai.prinim.prinyal.data.Analytics
+import ai.prinim.prinyal.data.CrashLog
 import ai.prinim.prinyal.data.PrinyalDb
 import ai.prinim.prinyal.data.Settings
 import ai.prinim.prinyal.domain.NoteRepository
@@ -78,8 +79,13 @@ class PrinyalApp : Application() {
         )
     }
 
+    /** Журнал падений (Р-17.1): без записи разговор о крашах — обмен догадками. */
+    val crashes: CrashLog by lazy { CrashLog(this) }
+
     override fun onCreate() {
         super.onCreate()
+        // Первым делом: падение при старте — тоже падение, и оно самое частое.
+        crashes.install()
         Notifications.ensureChannels(this)
         // Страховка возвратов (Р-8): прошивка душит алармы, воркер догоняет.
         ai.prinim.prinyal.returns.ReturnCatchUpWorker.ensureScheduled(this)

@@ -988,23 +988,32 @@ private fun Interview(
             verticalArrangement = Arrangement.spacedBy(Space.sm),
         ) {
             Text(question, style = Prinyal.type.body, color = Prinyal.colors.ink)
+            // Ответ — своей строкой, выходы — под ним.
+            //
+            // Три слова в ряд не помещаются: «Хватит» складывалось в столбик
+            // из букв — третий раз за версию один и тот же перенос. Здесь он
+            // ещё и по смыслу лишний: ответить это одно действие, а закончить
+            // и бросить — два разных выхода из него.
+            MetaText(
+                text = stringResource(R.string.interview_answer),
+                color = Prinyal.colors.accentSelf,
+                maxLines = 1,
+                modifier = Modifier.tap(onClick = onAnswer),
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
-                MetaText(
-                    text = stringResource(R.string.interview_answer),
-                    color = Prinyal.colors.accentSelf,
-                    modifier = Modifier.tap(onClick = onAnswer),
-                )
                 // «Закончить» подводит итог: перечитывает разговор и
                 // дописывает к «Собрано» блок «Что докрутили». «Хватит» просто
                 // закрывает — им выходят, когда крутить оказалось нечего.
                 MetaText(
                     text = stringResource(R.string.interview_finish),
                     color = Prinyal.colors.accentSelf,
+                    maxLines = 1,
                     modifier = Modifier.tap(onClick = onFinish),
                 )
                 MetaText(
                     text = stringResource(R.string.interview_enough),
                     color = Prinyal.colors.inkMuted,
+                    maxLines = 1,
                     modifier = Modifier.tap(onClick = onClose),
                 )
             }

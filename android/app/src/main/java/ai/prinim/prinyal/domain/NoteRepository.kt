@@ -658,6 +658,19 @@ class NoteRepository(
      * «Закончить» заменяет **свой же** блок, а не громоздит второй — разговор
      * продолжается, и итог у него один.
      */
+    /**
+     * Был ли хоть один ответ после первого вопроса (Р-17.2).
+     *
+     * Живёт здесь, а не во вьюмодели, чтобы держаться тестом. Правило дорогое:
+     * без него «Закончить» просил модель написать, что добавили ответы, при
+     * нуле ответов — и она отвечала на собственный вопрос сама. Выдумка
+     * попадала в заметку как слова человека, а отличить её там уже нечем.
+     */
+    suspend fun answeredAfterAsking(noteId: String): Boolean {
+        val firstAsk = db.questions().forNote(noteId).minOfOrNull { it.askedAt } ?: return false
+        return db.segments().forNote(noteId).any { it.createdAt > firstAsk }
+    }
+
     suspend fun appendToBody(noteId: String, block: String): Boolean {
         val note = db.notes().byId(noteId) ?: return false
         val text = block.trim()

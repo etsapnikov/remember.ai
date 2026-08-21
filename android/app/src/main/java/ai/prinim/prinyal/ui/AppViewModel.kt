@@ -913,13 +913,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val note = app.db.notes().byId(noteId) ?: return@withContext false
             val text = app.repository.joinedTranscript(noteId).ifBlank { note.transcript.orEmpty() }
             if (text.isBlank()) return@withContext false
-            val asked = app.db.questions().forNote(noteId).map { it.text }
-            val block = app.llm.polish(text, note.bodyMd.orEmpty(), asked) ?: return@withContext false
+            val questions = app.db.questions().forNote(noteId)
+
+            // Без единого ответа докручивать нечего — и просить модель об этом
+            // нельзя. Проверено живьём: на вопрос «пересоздаст суммаризацию или
+            // запустит распознавание заново?» она сама же и ответила, и ответ
+            // ушёл в заметку как слова человека. Правило «только сказанное»
+            // держится кодом, а не просьбой в промпте: промпт — это пожелание,
+            // а здесь цена ошибки — выдумка в собственных записях.
+            if (!app.repository.answeredAfterAsking(noteId)) return@withContext false
+
+            val block = app.llm.polish(text, note.bodyMd.orEmpty(), questions.map { it.text })
+                ?: return@withContext false
             app.repository.appendToBody(noteId, block)
             true
         }
         _polishing.value = false
-        if (!done) _message.value = getApplication<Application>().getString(R.string.interview_polish_failed)
+        if (!done) {
+            _message.value =
+                getApplication<Application>().getString(R.string.interview_polish_nothing)
+        }
     }
 
     /** Расход на модель (Р-16.4): за неделю и за всё время. */
@@ -930,6 +943,24 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val events = app.analytics.readAll()
         val week = java.time.Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS)
         _spend.value = TokenSpend.of(events, week) to TokenSpend.of(events)
+    }
+
+    /** Последние падения (Р-17.1). */
+    private val _crashes = MutableStateFlow<List<ai.prinim.prinyal.data.CrashLog.Record>>(emptyList())
+    val crashes: StateFlow<List<ai.prinim.prinyal.data.CrashLog.Record>> = _crashes
+
+    fun loadCrashes() = viewModelScope.launch {
+        _crashes.value = withContext(Dispatchers.IO) { app.crashes.records() }
+    }
+
+    /** Отдать трейсы наружу — единственный способ показать их мне. */
+    fun crashReport(): String = app.crashes.records(limit = 3).joinToString("\n\n") { record ->
+        "=== ${record.at} · ${record.thread}\n${record.trace}"
+    }
+
+    fun clearCrashes() = viewModelScope.launch {
+        withContext(Dispatchers.IO) { app.crashes.clear() }
+        _crashes.value = emptyList()
     }
 
     fun showMessage(text: String?) {

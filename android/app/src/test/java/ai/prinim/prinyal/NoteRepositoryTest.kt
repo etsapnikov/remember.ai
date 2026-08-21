@@ -193,6 +193,42 @@ class NoteRepositoryTest {
     }
 
     @Test
+    fun `без ответов итог разговора не собирается`() = runTest {
+        // Р-17.2. Проверено живьём и попало в заметку: на свой же вопрос
+        // модель ответила сама, и ответ лёг в «Собрано» как слова человека.
+        // Правило держим кодом — промпт тут только пожелание.
+        val id = note()
+        repo.applyParse(id, parsed(item()).copy(bodyMd = "## Замысел"))
+
+        // Вопросов не задавали — докручивать нечего.
+        assertTrue(!repo.answeredAfterAsking(id))
+
+        val asked = System.currentTimeMillis()
+        db.questions().insert(
+            ai.prinim.prinyal.data.QuestionEntity(
+                id = "q1", noteId = id, text = "а как?", askedAt = asked,
+            )
+        )
+        // Спросили, но человек молчит.
+        assertTrue("вопрос без ответа сочли ответом", !repo.answeredAfterAsking(id))
+
+        // Сегмент **до** вопроса — это «Дописать», а не ответ на него.
+        db.segments().insert(
+            ai.prinim.prinyal.data.SegmentEntity(
+                id = "s0", noteId = id, seq = 0, audioPath = "", createdAt = asked - 1_000,
+            )
+        )
+        assertTrue("прежнюю дописку сочли ответом", !repo.answeredAfterAsking(id))
+
+        db.segments().insert(
+            ai.prinim.prinyal.data.SegmentEntity(
+                id = "s1", noteId = id, seq = 1, audioPath = "", createdAt = asked + 1_000,
+            )
+        )
+        assertTrue("ответ не засчитан", repo.answeredAfterAsking(id))
+    }
+
+    @Test
     fun `итог разговора дописывается к «Собрано», а не затирает его`() = runTest {
         // Р-16.3. Изначальный замысел человек наговорил один раз и имеет право
         // видеть его нетронутым; что доросло в разговоре — видно отдельно.

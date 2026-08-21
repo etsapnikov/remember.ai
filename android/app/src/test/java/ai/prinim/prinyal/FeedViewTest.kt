@@ -49,17 +49,25 @@ class FeedViewTest {
     fun `повторы в «в плане» уезжают под свой заголовок и стоят последними`() {
         // Макеты 10a: вечный пункт рядом с долгом на два дня делает вид, что
         // они одного рода. Он и не долг, и в общий счёт лезть не должен.
-        val sections = FeedView.sections(
-            listOf(
-                entry("n1", item("a")),
-                entry(
-                    "n2",
-                    item("b"),
-                    item("c").copy(repeatRule = "weekly:mon"),
-                ),
+        val notes = listOf(
+            entry("n1", item("a")),
+            entry(
+                "n2",
+                item("b"),
+                item("c").copy(repeatRule = "weekly:mon"),
             ),
-            FeedView.Filter.PLANNED,
-            now,
+        )
+        val sections = FeedView.sections(notes, FeedView.Filter.PLANNED, now, groupRepeats = true)
+
+        // Без флага запись остаётся одной строкой. Это не мелочь: раздел и
+        // экран выбора записей ключуют список по id заметки, и вторая такая же
+        // строка роняет экран.
+        val plainOnly = FeedView.sections(notes, FeedView.Filter.PLANNED, now)
+        val ids = plainOnly.flatMap { it.rows }.map { it.entry.note.id }
+        assertEquals("запись раздвоилась без флага", ids.size, ids.toSet().size)
+        assertTrue(
+            "повтор пропал из выдачи без флага",
+            plainOnly.flatMap { it.rows }.flatMap { it.shown }.any { it.id == "c" },
         )
 
         val repeating = sections.last()

@@ -124,7 +124,11 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
         // Строка фильтра (Д-25) — вторая строка шапки и только на «Записях».
         FilterRow(filter, onPick = { vm.setFeedFilter(it) })
 
-        val sections = remember(notes, filter) { FeedView.sections(notes, filter) }
+        // Лента — единственный экран, который умеет показать запись дважды:
+        // её обычные пункты в дне, её повторы под «ПОВТОРЯЮТСЯ».
+        val sections = remember(notes, filter) {
+            FeedView.sections(notes, filter, groupRepeats = true)
+        }
         val closed = remember(notes) { FeedView.closedCount(notes) }
 
         if (sections.isEmpty()) {

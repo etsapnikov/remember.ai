@@ -210,6 +210,9 @@
          разговор, а подводит ему итог — пересобирает «Собрано». -->
     <string name="interview_finish">Закончить</string>
     <string name="interview_polishing">Перечитываю разговор…</string>
+    <!-- Закончили, не ответив: докручивать нечего, и придумывать за человека
+         продукт не станет. -->
+    <string name="interview_polish_nothing">Пока нечего докручивать — ответов не было.</string>
     <string name="interview_polish_failed">Не смог перечитать разговор. Попробую ещё раз позже.</string>
     <string name="interview_thinking">Думаю, о чём спросить…</string>
     <string name="interview_answer">Ответить голосом</string>
@@ -378,6 +381,12 @@
     <string name="set_dev_kill">Kill-критерии недели</string>
     <!-- Деньги на модель (Р-16.4). Слово «примерно» обязательно: токены
          посчитаны, а цена вбита в код и живёт до следующего прайса. -->
+    <!-- Падения (Р-17.1). «Падений не было» вместо молчания: пустой блок
+         неотличим от сломанного. -->
+    <string name="set_dev_crashes">Падения</string>
+    <string name="set_dev_crashes_empty">Падений не было</string>
+    <string name="set_dev_crashes_share">Отправить</string>
+    <string name="set_dev_crashes_clear">Очистить</string>
     <string name="set_dev_spend">Расход на модель</string>
     <string name="set_dev_spend_empty">Запросов к модели ещё не было</string>
     <string name="set_dev_spend_week">за неделю примерно %1$s · %2$s · %3$s</string>

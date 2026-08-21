@@ -95,11 +95,23 @@ object FeedView {
     /**
      * @return записи, прошедшие фильтр, разложенные по секциям
      */
+    /**
+     * @param groupRepeats выносить ли повторы под свой заголовок (макеты 10a).
+     *
+     * По умолчанию **нет**, и это защита, а не настройка. Группировка делит
+     * запись надвое: её обычные пункты остаются в дне, повторяющиеся уезжают
+     * вниз — то есть одна и та же запись возвращается **двумя** строками.
+     * Лента к этому готова (ключ строки с разделом), а раздел и экран выбора
+     * записей — нет: там ключ списка это id заметки, и второй такой же роняет
+     * экран с «Key was already used». Так и вышло: правка ленты уронила два
+     * чужих экрана, о которых она ничего не знала.
+     */
     fun sections(
         notes: List<NoteWithItems>,
         filter: Filter,
         now: Instant = Instant.now(),
         zone: ZoneId = ZoneId.systemDefault(),
+        groupRepeats: Boolean = false,
     ): List<Section> {
         val today = now.atZone(zone).toLocalDate()
 
@@ -124,7 +136,7 @@ object FeedView {
             // лежащий рядом с долгом на два дня, делает вид, что они одного
             // рода (макеты 10a). Запись при этом может дать две строки — свои
             // обычные пункты и свои повторяющиеся.
-            if (filter == Filter.PLANNED) {
+            if (filter == Filter.PLANNED && groupRepeats) {
                 matched.filter { it.repeatRule == null }
                     .takeIf { it.isNotEmpty() }
                     ?.let { return@mapNotNull row(entry, it, filter) }
@@ -133,7 +145,7 @@ object FeedView {
             row(entry, matched, filter)
         }
 
-        val repeating = if (filter == Filter.PLANNED) {
+        val repeating = if (filter == Filter.PLANNED && groupRepeats) {
             notes.mapNotNull { entry ->
                 entry.items
                     .filter { it.repeatRule != null && matches(it, filter, now) }
