@@ -78,14 +78,10 @@ fun TopicScreen(
     // висела на месте при скролле — ровно то, что владелец и описал.
     Column(Modifier.fillMaxSize()) {
         // Фильтр тот же, что в ленте: раздел — это та же лента, только уже.
-        if (topicId != AppViewModel.DECISIONS) {
-            TopicFilterRow(filter, onPick = { vm.setTopicFilter(it) })
-        }
+        TopicFilterRow(filter, onPick = { vm.setTopicFilter(it) })
 
         // Контекст-пак (Р-15.13): всё, что известно по разделу, одним файлом.
-        if (topicId != AppViewModel.DECISIONS) {
-            PackButton(topicId, title, onPickPack)
-        }
+        PackButton(topicId, title, onPickPack)
 
         if (notes.isEmpty()) {
             Box(Modifier.fillMaxSize(), Alignment.Center) {

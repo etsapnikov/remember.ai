@@ -172,6 +172,8 @@ data class NoteEntity(
      * обратно» работает с любой из них, а не только с первой.
      */
     @ColumnInfo(name = "sibling_id") val siblingId: String? = null,
+    /** Стадия разговора об идее (Р-19.1). */
+    @ColumnInfo(name = "interview") val interview: String = InterviewState.NONE.wire,
 )
 
 /**
@@ -458,6 +460,27 @@ data class LinkEntity(
 )
 
 /** Чем одна заметка приходится другой. */
+/**
+ * Где сейчас разговор об идее (Р-19.1).
+ *
+ * Состояние живёт на заметке, а не в памяти экрана: между вопросом и ответом
+ * приложение успевает умереть — экран записи убирает задачу целиком.
+ */
+enum class InterviewState(val wire: String) {
+    /** Разговора нет: кнопка «Покрутить идею». */
+    NONE("none"),
+
+    /** Вопрос задан и ждёт ответа. */
+    ASKED("asked"),
+
+    /** Ответ дописан в тело: кнопка «Ещё вопрос». */
+    ANSWERED("answered");
+
+    companion object {
+        fun of(wire: String?): InterviewState = entries.firstOrNull { it.wire == wire } ?: NONE
+    }
+}
+
 enum class LinkReason(val wire: String) {
     /** Продолжает начатое — самый частый случай. */
     CONTINUES("continues"),

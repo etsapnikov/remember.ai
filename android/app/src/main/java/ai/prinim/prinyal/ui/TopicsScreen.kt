@@ -46,11 +46,10 @@ fun TopicsScreen(
 ) {
     val topics by vm.topics.collectAsState()
     val loose by vm.looseNotes.collectAsState()
-    val decisions by vm.decisionCount.collectAsState()
     val people by vm.people.collectAsState()
     androidx.compose.runtime.LaunchedEffect(Unit) { vm.ensurePeopleBackfilled() }
 
-    if (topics.isEmpty() && loose == 0 && decisions == 0 && people.isEmpty()) {
+    if (topics.isEmpty() && loose == 0 && people.isEmpty()) {
         Box(Modifier.fillMaxSize(), Alignment.Center) {
             Column(
                 Modifier.padding(horizontal = Space.screen),
@@ -105,19 +104,14 @@ fun TopicsScreen(
         // «Решения» — не раздел, а выборка (Р-15.10): решение о релизе остаётся
         // в «Работе», а здесь видна их хронология. Появляется, только когда
         // решения есть: пустая строка обещала бы содержимое, которого нет.
-        if (decisions > 0) {
-            item {
-                val name = stringResource(R.string.topics_decisions)
-                TopicRow(
-                    name = name,
-                    notes = decisions,
-                    liveItems = 0,
-                    countsLive = false,
-                    onClick = { onOpen(AppViewModel.DECISIONS, name) },
-                )
-                HorizontalDivider(thickness = 1.dp, color = Prinyal.colors.hairline)
-            }
-        }
+        // Строки «Решения» здесь больше нет (Р-19.2).
+        //
+        // Выборка собиралась по `note_kind = decision` — то есть по догадке
+        // модели о том, что запись «про решение». Раздел из догадки о жанре
+        // наполнялся то пусто, то мимо, а решение, произнесённое внутри
+        // обычной записи, туда не попадало вовсе. Владелец назвал механику
+        // избыточной, и это верно: решения живут там же, где сказаны, и
+        // находятся поиском по своим словам.
 
         items(topics, key = { it.id }) { topic ->
             TopicRow(

@@ -1,44 +1,44 @@
 {
  "id": "decision-release",
- "prompt_version": "9",
- "recorded_at": "2026-08-21T14:47:08",
- "took_s": 3.2,
+ "prompt_version": "10",
+ "recorded_at": "2026-08-24T17:03:35",
+ "took_s": 2.5,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2632,
-  "completion_tokens": 141,
-  "total_tokens": 2773,
+  "prompt_tokens": 2747,
+  "completion_tokens": 148,
+  "total_tokens": 2895,
   "prompt_tokens_details": {
-   "cached_tokens": 2560
+   "cached_tokens": 2688
   },
-  "prompt_cache_hit_tokens": 2560,
-  "prompt_cache_miss_tokens": 72
+  "prompt_cache_hit_tokens": 2688,
+  "prompt_cache_miss_tokens": 59
  },
  "response": {
-  "id": "c5f9241e-a29e-4365-a5ca-c628d3ebb7ff",
+  "id": "bd98b6e4-f9b8-4729-bbf8-01944ad7aa80",
   "object": "chat.completion",
-  "created": 1787312827,
+  "created": 1787580215,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"decision\",\n  \"topic\": \"Работа\",\n  \"entities\": [\"Дима\"],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"decision\",\n      \"text\": \"переносим релиз на октябрь\",\n      \"who\": \"Дима\",\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2026-10-01T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"решили переносить релиз на октябрь\"\n    }\n  ]\n}"
+     "content": "{\n  \"note_kind\": \"decision\",\n  \"topic\": \"Работа\",\n  \"entities\": [\"Дима\"],\n  \"person_facts\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"decision\",\n      \"text\": \"переносим релиз на октябрь\",\n      \"who\": \"Дима\",\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2026-10-01T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"решили переносить релиз на октябрь\"\n    }\n  ]\n}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2632,
-   "completion_tokens": 141,
-   "total_tokens": 2773,
+   "prompt_tokens": 2747,
+   "completion_tokens": 148,
+   "total_tokens": 2895,
    "prompt_tokens_details": {
-    "cached_tokens": 2560
+    "cached_tokens": 2688
    },
-   "prompt_cache_hit_tokens": 2560,
-   "prompt_cache_miss_tokens": 72
+   "prompt_cache_hit_tokens": 2688,
+   "prompt_cache_miss_tokens": 59
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

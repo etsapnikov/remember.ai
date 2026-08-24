@@ -1,44 +1,44 @@
 {
  "id": "link-none",
- "prompt_version": "9",
- "recorded_at": "2026-08-21T14:47:24",
- "took_s": 2.6,
+ "prompt_version": "10",
+ "recorded_at": "2026-08-24T17:03:50",
+ "took_s": 2.5,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2713,
-  "completion_tokens": 140,
-  "total_tokens": 2853,
+  "prompt_tokens": 2828,
+  "completion_tokens": 156,
+  "total_tokens": 2984,
   "prompt_tokens_details": {
-   "cached_tokens": 2560
+   "cached_tokens": 2688
   },
-  "prompt_cache_hit_tokens": 2560,
-  "prompt_cache_miss_tokens": 153
+  "prompt_cache_hit_tokens": 2688,
+  "prompt_cache_miss_tokens": 140
  },
  "response": {
-  "id": "0d3f89ba-9459-49a3-8d59-d4e568e2b646",
+  "id": "31276344-43a2-41b5-95c1-c1934dcbef62",
   "object": "chat.completion",
-  "created": 1787312843,
+  "created": 1787580230,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Здоровье\",\n  \"entities\": [\"Соня\"],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"записать Соню к стоматологу\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"tomorrow_morning\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"записать соню к стоматологу\"\n    }\n  ]\n}"
+     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Здоровье\",\n  \"entities\": [\"Соня\"],\n  \"person_facts\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"записать Соню к стоматологу\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"tomorrow_morning\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"записать соню к стоматологу\"\n    }\n  ],\n  \"note_exact_local\": null\n}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2713,
-   "completion_tokens": 140,
-   "total_tokens": 2853,
+   "prompt_tokens": 2828,
+   "completion_tokens": 156,
+   "total_tokens": 2984,
    "prompt_tokens_details": {
-    "cached_tokens": 2560
+    "cached_tokens": 2688
    },
-   "prompt_cache_hit_tokens": 2560,
-   "prompt_cache_miss_tokens": 153
+   "prompt_cache_hit_tokens": 2688,
+   "prompt_cache_miss_tokens": 140
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

@@ -125,9 +125,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val message: StateFlow<String?> = _message
 
     companion object {
-        /** Псевдо-раздел решений: собирается запросом, топиком не является. */
-        const val DECISIONS = "@decisions"
-
         /** Сколько ждём разбора ответа, прежде чем спросить снова. */
         private const val PARSE_WAIT_TRIES = 40
         private const val PARSE_WAIT_STEP_MS = 500L
@@ -354,20 +351,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun linked(id: String) = app.db.links().forNote(id)
 
     /**
-     * Заметки раздела; `topicId == null` — «Без раздела», [DECISIONS] — решения.
+     * Заметки раздела; `topicId == null` — «Без раздела».
      *
      * Сентинел, а не топик: раздел решений собирается запросом (Р-15.10).
      * Настоящие id — uuid, поэтому «@» в имени столкновение исключает.
      */
     fun notesOf(topicId: String?) = when (topicId) {
         null -> app.db.notes().withoutTopic()
-        DECISIONS -> app.db.notes().decisions()
         else -> app.db.notes().byTopic(topicId)
     }
 
     /** Сколько решений накопилось — от этого зависит, есть ли строка в списке. */
-    val decisionCount = app.db.notes().decisionCount()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     suspend fun liveTopics(): List<TopicEntity> = app.db.topics().live()
 
@@ -873,6 +867,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     askedAt = System.currentTimeMillis(),
                 )
             )
+            if (fresh != null) {
+                app.db.notes().setInterview(noteId, ai.prinim.prinyal.data.InterviewState.ASKED.wire)
+            }
             fresh
         }
         _question.value = question
@@ -880,71 +877,35 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Вернулись с ответом — спрашиваем дальше.
+     * Вернулись с ответом (Р-19.1).
      *
-     * Ждём, пока ответ разберётся: вопрос строится по всему тексту заметки, и
-     * заданный по старому тексту он повторил бы сам себя слово в слово. Ждём
-     * не вечно — если разбор не пришёл (сеть), режим просто остаётся открытым
-     * без вопроса, и человек нажмёт сам.
+     * Вопроса больше не задаём сами: круг начинает человек кнопкой «Ещё
+     * вопрос». Автовопрос спрашивал, не дождавшись, пока ответ ляжет в тело, —
+     * и повторял сам себя, потому что видел прежний текст.
      */
     fun resumeInterview(noteId: String) = viewModelScope.launch {
-        _question.value = ""
-        val ready = withContext(Dispatchers.IO) {
-            repeat(PARSE_WAIT_TRIES) {
-                val status = app.db.notes().byId(noteId)?.status
-                if (status == ai.prinim.prinyal.data.NoteStatus.PARSED.wire) return@withContext true
-                kotlinx.coroutines.delay(PARSE_WAIT_STEP_MS)
-            }
-            false
-        }
-        if (!ready) {
-            _question.value = null
-            return@launch
-        }
-        askAboutIdea(noteId)
+        _question.value = null
     }
 
     /** Выход из режима — в любой момент и без последствий. */
-    fun closeInterview() {
+    fun closeInterview(noteId: String? = null) = viewModelScope.launch {
         _question.value = null
+        noteId?.let {
+            app.db.notes().setInterview(it, ai.prinim.prinyal.data.InterviewState.NONE.wire)
+        }
     }
 
     /**
-     * «Закончить»: пересобрать «Собрано» с учётом разговора (Р-16.3).
+     * «Закончить» (Р-19.1): конец петли.
      *
-     * Пинг-понг менял текст заметки — ответы приходили сегментами и уходили в
-     * общий разбор, — но «Собрано» оставалось прежним: человек видел старый
-     * пересказ под свежим разговором. Здесь модель перечитывает всё вместе и
-     * пишет **отдельный** блок «Что докрутили»: изначальный замысел остаётся
-     * на месте, и видно, что доросло в разговоре, а что было с самого начала.
+     * Пересобирать нечего: каждый круг уже дописан в тело по ходу разговора.
+     * Раньше здесь стоял отдельный проход по всему тексту — он и породил тот
+     * случай, когда модель ответила на собственный вопрос за человека.
      */
     fun finishInterview(noteId: String) = viewModelScope.launch {
         _question.value = null
-        _polishing.value = true
-        val done = withContext(Dispatchers.IO) {
-            val note = app.db.notes().byId(noteId) ?: return@withContext false
-            val text = app.repository.joinedTranscript(noteId).ifBlank { note.transcript.orEmpty() }
-            if (text.isBlank()) return@withContext false
-            val questions = app.db.questions().forNote(noteId)
-
-            // Без единого ответа докручивать нечего — и просить модель об этом
-            // нельзя. Проверено живьём: на вопрос «пересоздаст суммаризацию или
-            // запустит распознавание заново?» она сама же и ответила, и ответ
-            // ушёл в заметку как слова человека. Правило «только сказанное»
-            // держится кодом, а не просьбой в промпте: промпт — это пожелание,
-            // а здесь цена ошибки — выдумка в собственных записях.
-            if (!app.repository.answeredAfterAsking(noteId)) return@withContext false
-
-            val block = app.llm.polish(text, note.bodyMd.orEmpty(), questions.map { it.text })
-                ?: return@withContext false
-            app.repository.appendToBody(noteId, block)
-            true
-        }
-        _polishing.value = false
-        if (!done) {
-            _message.value =
-                getApplication<Application>().getString(R.string.interview_polish_nothing)
-        }
+        app.db.notes().setInterview(noteId, ai.prinim.prinyal.data.InterviewState.NONE.wire)
+        app.analytics.log("interview_finish", mapOf("note" to noteId))
     }
 
     /** Расход на модель (Р-16.4): за неделю и за всё время. */

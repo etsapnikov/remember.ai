@@ -1,44 +1,44 @@
 {
  "id": "date-past-rolls-forward",
- "prompt_version": "9",
- "recorded_at": "2026-08-21T14:47:05",
- "took_s": 2.6,
+ "prompt_version": "10",
+ "recorded_at": "2026-08-24T17:03:33",
+ "took_s": 2.4,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2625,
-  "completion_tokens": 125,
-  "total_tokens": 2750,
+  "prompt_tokens": 2740,
+  "completion_tokens": 122,
+  "total_tokens": 2862,
   "prompt_tokens_details": {
-   "cached_tokens": 2560
+   "cached_tokens": 2688
   },
-  "prompt_cache_hit_tokens": 2560,
-  "prompt_cache_miss_tokens": 65
+  "prompt_cache_hit_tokens": 2688,
+  "prompt_cache_miss_tokens": 52
  },
  "response": {
-  "id": "600ecb78-dc72-4cf1-8ee4-d3b4c61be218",
+  "id": "122d1891-e2f6-4590-a987-26828298b496",
   "object": "chat.completion",
-  "created": 1787312824,
+  "created": 1787580213,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\"note_kind\": \"tasks\", \"topic\": null, \"entities\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"do\", \"text\": \"напомни про страховку\", \"who\": null, \"due_kind\": \"exact\", \"window\": null, \"exact_local\": \"2027-08-10T09:00\", \"confidence\": \"high\", \"raw_span\": \"напомни десятого августа про страховку\"}], \"note_exact_local\": null, \"links\": []}"
+     "content": "{\"note_kind\": \"tasks\", \"topic\": \"Документы\", \"entities\": [], \"person_facts\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"do\", \"text\": \"напомни про страховку\", \"who\": null, \"due_kind\": \"exact\", \"window\": null, \"exact_local\": \"2027-08-10T09:00\", \"confidence\": \"high\", \"raw_span\": \"напомни десятого августа про страховку\"}]}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2625,
-   "completion_tokens": 125,
-   "total_tokens": 2750,
+   "prompt_tokens": 2740,
+   "completion_tokens": 122,
+   "total_tokens": 2862,
    "prompt_tokens_details": {
-    "cached_tokens": 2560
+    "cached_tokens": 2688
    },
-   "prompt_cache_hit_tokens": 2560,
-   "prompt_cache_miss_tokens": 65
+   "prompt_cache_hit_tokens": 2688,
+   "prompt_cache_miss_tokens": 52
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

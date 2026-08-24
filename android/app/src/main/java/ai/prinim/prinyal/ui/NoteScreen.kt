@@ -262,6 +262,7 @@ fun NoteScreen(
                 item {
                     Interview(
                         question = question,
+                        stage = ai.prinim.prinyal.data.InterviewState.of(note.interview),
                         polishing = polishing,
                         onAsk = { vm.askAboutIdea(noteId) },
                         // Отвечают тем же жестом, каким записывают: ответ
@@ -270,7 +271,7 @@ fun NoteScreen(
                         // возвращает человека сюда же, а не на рабочий стол.
                         onAnswer = { openAppend(context, noteId, asking = true) },
                         onFinish = { vm.finishInterview(noteId) },
-                        onClose = { vm.closeInterview() },
+                        onClose = { vm.closeInterview(noteId) },
                     )
                 }
             }
@@ -964,6 +965,7 @@ private fun openAppend(
 @Composable
 private fun Interview(
     question: String?,
+    stage: ai.prinim.prinyal.data.InterviewState,
     polishing: Boolean,
     onAsk: () -> Unit,
     onAnswer: () -> Unit,
@@ -977,6 +979,24 @@ private fun Interview(
             text = stringResource(R.string.interview_polishing),
             color = Prinyal.colors.inkFaint,
         )
+
+        // Круг дописан — следующий начинает человек, а не продукт (Р-19.1).
+        // Автовопрос спрашивал, не дождавшись, пока ответ ляжет в тело.
+        question == null && stage == ai.prinim.prinyal.data.InterviewState.ANSWERED ->
+            Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
+                MetaText(
+                    text = stringResource(R.string.interview_more),
+                    color = Prinyal.colors.accentSelf,
+                    maxLines = 1,
+                    modifier = Modifier.tap(onClick = onAsk),
+                )
+                MetaText(
+                    text = stringResource(R.string.interview_finish),
+                    color = Prinyal.colors.inkMuted,
+                    maxLines = 1,
+                    modifier = Modifier.tap(onClick = onFinish),
+                )
+            }
 
         question == null -> MetaText(
             text = stringResource(R.string.interview_start),
@@ -1010,15 +1030,9 @@ private fun Interview(
                 modifier = Modifier.tap(onClick = onAnswer),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
-                // «Закончить» подводит итог: перечитывает разговор и
-                // дописывает к «Собрано» блок «Что докрутили». «Хватит» просто
-                // закрывает — им выходят, когда крутить оказалось нечего.
-                MetaText(
-                    text = stringResource(R.string.interview_finish),
-                    color = Prinyal.colors.accentSelf,
-                    maxLines = 1,
-                    modifier = Modifier.tap(onClick = onFinish),
-                )
+                // У заданного вопроса выход один — «Хватит»: «Закончить»
+                // подводит итог разговору, а разговора ещё не было. Оно
+                // появляется после первого ответа.
                 MetaText(
                     text = stringResource(R.string.interview_enough),
                     color = Prinyal.colors.inkMuted,

@@ -1,44 +1,44 @@
 {
  "id": "link-continues",
- "prompt_version": "9",
- "recorded_at": "2026-08-21T14:47:22",
- "took_s": 3.0,
+ "prompt_version": "10",
+ "recorded_at": "2026-08-24T17:03:48",
+ "took_s": 2.7,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2727,
-  "completion_tokens": 212,
-  "total_tokens": 2939,
+  "prompt_tokens": 2842,
+  "completion_tokens": 211,
+  "total_tokens": 3053,
   "prompt_tokens_details": {
-   "cached_tokens": 2560
+   "cached_tokens": 2688
   },
-  "prompt_cache_hit_tokens": 2560,
-  "prompt_cache_miss_tokens": 167
+  "prompt_cache_hit_tokens": 2688,
+  "prompt_cache_miss_tokens": 154
  },
  "response": {
-  "id": "ca2e10c3-37bc-49a4-9de8-1050d798aa80",
+  "id": "20bdfef1-d874-4cb1-9bd5-d2682e744e23",
   "object": "chat.completion",
-  "created": 1787312840,
+  "created": 1787580227,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"idea\",\n  \"topic\": \"Продукт\",\n  \"entities\": [],\n  \"body_md\": \"## По маркдауну\\n\\nПодумал ещё раз: надо, чтобы списки покупок тоже верстались, а не только идеи.\",\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"thought\",\n      \"text\": \"чтобы списки покупок тоже верстались\",\n      \"who\": null,\n      \"due_kind\": \"none\",\n      \"window\": null,\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"надо чтобы списки покупок тоже верстались а не только идеи\"\n    }\n  ],\n  \"links\": [\n    {\n      \"ref\": \"n-md\",\n      \"reason\": \"continues\",\n      \"confidence\": \"high\"\n    }\n  ],\n  \"note_exact_local\": null\n}"
+     "content": "{\n  \"note_kind\": \"idea\",\n  \"topic\": null,\n  \"entities\": [],\n  \"person_facts\": [],\n  \"body_md\": \"## Маркдаун\\n\\nПодумал ещё раз: надо, чтобы списки покупок тоже верстались, а не только идеи.\",\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"thought\",\n      \"text\": \"списки покупок тоже должны верстаться в маркдауне\",\n      \"who\": null,\n      \"due_kind\": \"none\",\n      \"window\": null,\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"надо чтобы списки покупок тоже верстались а не только идеи\"\n    }\n  ],\n  \"links\": [\n    {\n      \"ref\": \"n-md\",\n      \"reason\": \"continues\",\n      \"confidence\": \"high\"\n    }\n  ]\n}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2727,
-   "completion_tokens": 212,
-   "total_tokens": 2939,
+   "prompt_tokens": 2842,
+   "completion_tokens": 211,
+   "total_tokens": 3053,
    "prompt_tokens_details": {
-    "cached_tokens": 2560
+    "cached_tokens": 2688
    },
-   "prompt_cache_hit_tokens": 2560,
-   "prompt_cache_miss_tokens": 167
+   "prompt_cache_hit_tokens": 2688,
+   "prompt_cache_miss_tokens": 154
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

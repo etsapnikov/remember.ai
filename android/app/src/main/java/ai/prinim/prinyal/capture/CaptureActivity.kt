@@ -310,7 +310,15 @@ class CaptureActivity : ComponentActivity() {
             // и разбор увидит оба куска речи как один текст.
             if (appendTo != null) {
                 app.repository.appendSegment(appendTo, result.file, result.startedAt)
-                UploadWorker.enqueue(this@CaptureActivity, appendTo)
+                // Ответ на вопрос об идее не идёт в общий разбор: он дописывается
+                // в тело заметки и не трогает ни пунктов, ни возвратов (Р-19.1).
+                // Раньше здесь была одна ветка на оба случая — из-за неё разговор
+                // об идее перетряхивал дела записи, и петля ломалась.
+                if (intent.getBooleanExtra(EXTRA_ASKING, false)) {
+                    InterviewWorker.enqueue(this@CaptureActivity, appendTo)
+                } else {
+                    UploadWorker.enqueue(this@CaptureActivity, appendTo)
+                }
                 return@launch
             }
             app.repository.createNote(
@@ -342,10 +350,10 @@ class CaptureActivity : ComponentActivity() {
                     ).apply {
                         putExtra(ai.prinim.prinyal.ui.MainActivity.EXTRA_NOTE_ID, appendTo)
                         // Продолжаем разговор: экран заметки сам снова спросит.
-                        putExtra(
-                            ai.prinim.prinyal.ui.MainActivity.EXTRA_KEEP_ASKING,
-                            intent.getBooleanExtra(EXTRA_ASKING, false),
-                        )
+                        // Флаг больше не значит «спроси сразу»: следующий круг
+                        // человек начинает сам кнопкой «Ещё вопрос» (Р-19.1).
+                        // Автовопрос спрашивал, не дождавшись, пока ответ ляжет
+                        // в тело, и повторял сам себя.
                         addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                 )

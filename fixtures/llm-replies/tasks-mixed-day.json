@@ -1,44 +1,44 @@
 {
  "id": "tasks-mixed-day",
- "prompt_version": "9",
- "recorded_at": "2026-08-21T14:49:12",
- "took_s": 3.4,
+ "prompt_version": "10",
+ "recorded_at": "2026-08-24T17:05:23",
+ "took_s": 3.7,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2637,
-  "completion_tokens": 296,
-  "total_tokens": 2933,
+  "prompt_tokens": 2752,
+  "completion_tokens": 303,
+  "total_tokens": 3055,
   "prompt_tokens_details": {
-   "cached_tokens": 2560
+   "cached_tokens": 2688
   },
-  "prompt_cache_hit_tokens": 2560,
-  "prompt_cache_miss_tokens": 77
+  "prompt_cache_hit_tokens": 2688,
+  "prompt_cache_miss_tokens": 64
  },
  "response": {
-  "id": "8896178c-6336-4b8b-bdd3-53ce007f1c46",
+  "id": "1b1aaf5f-450e-415d-a5b7-4c536171c21f",
   "object": "chat.completion",
-  "created": 1787312950,
+  "created": 1787580322,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Здоровье\",\n  \"entities\": [\"Соня\", \"муж\"],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"buy\",\n      \"text\": \"купить капли в нос Соне\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"купить капли в нос соне\"\n    },\n    {\n      \"type\": \"do\",\n      \"text\": \"записать Соню к лору\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"morning\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"записать её к лору\"\n    },\n    {\n      \"type\": \"tell\",\n      \"text\": \"сказать мужу, что суббота занята\",\n      \"who\": \"муж\",\n      \"due_kind\": \"window\",\n      \"window\": \"evening\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"мужу сказать что суббота занята\"\n    }\n  ]\n}"
+     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Здоровье\",\n  \"entities\": [\"Соня\", \"муж\"],\n  \"person_facts\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"buy\",\n      \"text\": \"купить капли в нос Соне\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"купить капли в нос соне\"\n    },\n    {\n      \"type\": \"do\",\n      \"text\": \"записать Соню к лору\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"morning\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"записать её к лору\"\n    },\n    {\n      \"type\": \"tell\",\n      \"text\": \"сказать мужу, что суббота занята\",\n      \"who\": \"муж\",\n      \"due_kind\": \"window\",\n      \"window\": \"evening\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"мужу сказать что суббота занята\"\n    }\n  ]\n}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2637,
-   "completion_tokens": 296,
-   "total_tokens": 2933,
+   "prompt_tokens": 2752,
+   "completion_tokens": 303,
+   "total_tokens": 3055,
    "prompt_tokens_details": {
-    "cached_tokens": 2560
+    "cached_tokens": 2688
    },
-   "prompt_cache_hit_tokens": 2560,
-   "prompt_cache_miss_tokens": 77
+   "prompt_cache_hit_tokens": 2688,
+   "prompt_cache_miss_tokens": 64
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

@@ -63,7 +63,7 @@ import androidx.compose.ui.res.stringResource
  * сильнее, чем собранная мотивирует.
  */
 @Composable
-fun WeeklyScreen(vm: AppViewModel) {
+fun WeeklyScreen(vm: AppViewModel, onOpenDays: () -> Unit = {}) {
     val report by vm.weekly.collectAsState()
     val facts by vm.weeklyFacts.collectAsState()
     val structure by vm.structure.collectAsState()
@@ -90,7 +90,7 @@ fun WeeklyScreen(vm: AppViewModel) {
         // первый такой случай, разводятся меткой и предметом, не цветом (12e).
         val recap by vm.weekRecap.collectAsState()
         val weekDays by vm.weekDays.collectAsState()
-        recap?.let { WeekRecapBlock(it.text, weekDays) }
+        recap?.let { WeekRecapBlock(it.text, weekDays, onOpenDays) }
 
         // Экран недели — блок продукта, а не текст на фоне: он рассказывает от
         // своего лица, и это должно быть видно так же, как у «Собрано»
@@ -292,7 +292,11 @@ private fun StructureOffer(vm: AppViewModel, offer: StructureRepair.Offer) {
  * дни, теми же строками, что в «Днях», кеглем на ступень ниже.
  */
 @Composable
-private fun WeekRecapBlock(text: String, days: List<ai.prinim.prinyal.data.DayEntity>) {
+private fun WeekRecapBlock(
+    text: String,
+    days: List<ai.prinim.prinyal.data.DayEntity>,
+    onOpenDays: () -> Unit,
+) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -307,7 +311,12 @@ private fun WeekRecapBlock(text: String, days: List<ai.prinim.prinyal.data.DayEn
         if (told.isNotEmpty()) {
             HorizontalDivider(thickness = 1.dp, color = Prinyal.colors.hairline)
             told.forEach { day ->
-                Row(horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+                // Тап по источнику ведёт в «Дни»: строка обещает, что за ней
+                // стоит день, и обещание должно куда-то вести.
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Space.m),
+                    modifier = Modifier.tap(onClick = onOpenDays),
+                ) {
                     MetaText(
                         text = Dates.day(java.time.LocalDate.parse(day.date)),
                         color = Prinyal.colors.inkFaint,

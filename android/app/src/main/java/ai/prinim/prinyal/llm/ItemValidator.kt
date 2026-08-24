@@ -79,6 +79,30 @@ object ItemValidator {
             .distinctBy { it.lowercase() }
     }
 
+    /**
+     * Факты о людях из записи (Р-19.3): «Вера — сестра, у неё ключи от дачи».
+     *
+     * Каждый факт проверяется по расшифровке теми же словами: пересказ своими
+     * словами про человека — это уже характеристика, а не то, чем человек
+     * поделился. Врать про людей дороже, чем про дела.
+     */
+    fun personFactsOf(root: org.json.JSONObject, transcript: String): Map<String, String> {
+        val array = root.optJSONArray("person_facts") ?: return emptyMap()
+        val out = LinkedHashMap<String, String>()
+        for (i in 0 until array.length()) {
+            val item = array.optJSONObject(i) ?: continue
+            val name = item.optString("name").trim()
+            val fact = item.optString("fact").trim().take(MAX_FACT)
+            if (name.isEmpty() || fact.isEmpty()) continue
+            if (!ai.prinim.prinyal.domain.DayLine.wordsFromCorpus(fact, transcript)) continue
+            out.putIfAbsent(name, fact)
+        }
+        return out
+    }
+
+    /** Длиннее — это уже досье, а не «что известно». */
+    private const val MAX_FACT = 160
+
     fun validate(
         raw: List<JSONObject>,
         transcript: String,

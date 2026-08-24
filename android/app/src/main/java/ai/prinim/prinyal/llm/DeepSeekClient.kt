@@ -155,6 +155,7 @@ class DeepSeekClient(
                             noteKind = kind,
                             topic = ItemValidator.topicOf(root),
                             entities = ItemValidator.entitiesOf(root),
+                    personFacts = ItemValidator.personFactsOf(root, transcript),
                             bodyMd = Markdown.sanitize(ItemValidator.stringOrNull(root, "body_md"))
                                 .ifBlank { null },
                             degraded = null,
@@ -283,11 +284,15 @@ class DeepSeekClient(
     data class DayResult(val line: String?, val task: String?)
 
     /** Итог недели (Р-18.3). Null — не собрался; итог не переписывается, ждём. */
-    fun weekRecap(days: List<Pair<String, String>>): String? {
+    fun weekRecap(days: List<Pair<String, String>>, people: List<String> = emptyList()): String? {
         if (apiKey.isBlank()) return null
         val user = buildString {
             append("Ответы за неделю:\n")
             days.forEach { (date, text) -> append(date).append(": ").append(text).append('\n') }
+            if (people.isNotEmpty()) {
+                append("\nКого он упоминает:\n")
+                people.forEach { append("  ").append(it).append('\n') }
+            }
         }
         val payload = JSONObject().apply {
             put("model", model)
@@ -308,6 +313,43 @@ class DeepSeekClient(
             ?.optJSONObject("message")?.optString("content")
             .orEmpty().trim().trim('"', '«', '»')
             .takeIf { it.isNotBlank() }
+    }
+
+    /**
+     * Ответ пинг-понга, приведённый в порядок (Р-19.1).
+     *
+     * Null — не смогли или ответ пуст; тогда в тело идёт расшифровка как есть.
+     */
+    fun interviewAnswer(idea: String, question: String, answer: String): String? {
+        if (apiKey.isBlank()) return null
+        val user = buildString {
+            append("Идея:\n").append(idea).append("\n\n")
+            append("Вопрос:\n").append(question).append("\n\n")
+            append("Ответ:\n").append(answer)
+        }
+        val payload = JSONObject().apply {
+            put("model", model)
+            put("messages", JSONArray().apply {
+                put(JSONObject().put("role", "system").put("content", Prompt.INTERVIEW_ANSWER))
+                put(JSONObject().put("role", "user").put("content", user))
+            })
+            put("temperature", 0.3)
+            put("max_tokens", MAX_TOKENS)
+            put("stream", false)
+            put("thinking", JSONObject().put("type", "disabled"))
+        }
+        val response = runCatching { post(payload) }.getOrNull() ?: return null
+        account("interview_answer", response)
+        if (response.code != 200) return null
+        val text = response.body
+            ?.optJSONArray("choices")?.optJSONObject(0)
+            ?.optJSONObject("message")?.optString("content")
+            .orEmpty().trim().trim('"', '«', '»')
+        // Та же проверка, что у строки дня: гладкий пересказ, в котором
+        // появились чужие слова, опаснее корявого своего.
+        return text.takeIf {
+            it.isNotBlank() && ai.prinim.prinyal.domain.DayLine.wordsFromCorpus(it, answer)
+        }
     }
 
     /**

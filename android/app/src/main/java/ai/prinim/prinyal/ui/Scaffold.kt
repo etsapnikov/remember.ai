@@ -100,7 +100,7 @@ fun AppScaffold(route: Route, onRoute: (Route) -> Unit) {
                         onOpenNote = { onRoute(Route.Note(it)) },
                     )
                     is Route.Settings -> SettingsScreen(vm)
-                    is Route.Weekly -> WeeklyScreen(vm)
+                    is Route.Weekly -> WeeklyScreen(vm, onOpenDays = { onRoute(Route.Days) })
                     is Route.Topics -> TopicsScreen(
                         vm,
                         onOpen = { id, name -> onRoute(Route.Topic(id, name)) },

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-PROMPT_VERSION = "9"
+PROMPT_VERSION = "10"
 
 _WEEKDAYS_RU = [
     "понедельник",
@@ -69,6 +69,8 @@ SYSTEM_PROMPT = """\
    останется без раздела, и человек отнесёт её сам. Пустой раздел
    продукту дешевле, чем неверный.
 10. Перечисли людей, упомянутых в записи, — `entities`: имена как они
+
+    Если про человека прозвучало что-то о нём самом — кто он, откуда, чем занят, что у него есть, — добавь это в `person_facts` словами человека: `[{"name": "Вера", "fact": "сестра, живёт в Пушкино, у неё ключи от дачи"}]`. Факт — только про человека, а не про дело с ним. Ничего не прозвучало — пустой список.
     прозвучали, в именительном падеже. Никого не выдумывай.
 
 
@@ -133,7 +135,7 @@ SYSTEM_PROMPT = """\
 (принятое решение).
 
 Схема ответа (верни ровно такой json, без markdown-обёртки):
-{"note_kind": "tasks", "topic": "Здоровье", "entities": ["Соня"], "body_md": null, "second": null, "items": [{"type": "do", "text": "позвонить в поликлинику насчёт Сони", "who": null, "due_kind": "window", "window": "day", "exact_local": null, "confidence": "high", "raw_span": "соню к лору записать"}]}
+{"note_kind": "tasks", "topic": "Здоровье", "entities": ["Соня"], "person_facts": [], "body_md": null, "second": null, "items": [{"type": "do", "text": "позвонить в поликлинику насчёт Сони", "who": null, "due_kind": "window", "window": "day", "exact_local": null, "confidence": "high", "raw_span": "соню к лору записать"}]}
 "who": null, "due_kind": "window", "window": "day", "exact_local": null, \
 "confidence": "high", "raw_span": "соню к лору записать"}]}
 

@@ -1,44 +1,44 @@
 {
  "id": "question-drops",
- "prompt_version": "9",
- "recorded_at": "2026-08-21T14:47:34",
+ "prompt_version": "10",
+ "recorded_at": "2026-08-24T17:03:59",
  "took_s": 2.4,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2641,
-  "completion_tokens": 54,
-  "total_tokens": 2695,
+  "prompt_tokens": 2756,
+  "completion_tokens": 126,
+  "total_tokens": 2882,
   "prompt_tokens_details": {
-   "cached_tokens": 2560
+   "cached_tokens": 2688
   },
-  "prompt_cache_hit_tokens": 2560,
-  "prompt_cache_miss_tokens": 81
+  "prompt_cache_hit_tokens": 2688,
+  "prompt_cache_miss_tokens": 68
  },
  "response": {
-  "id": "76d1b395-1737-47d2-b086-b1fbe374ce70",
+  "id": "37bfc4e3-5bfe-400b-8613-3796679ae671",
   "object": "chat.completion",
-  "created": 1787312853,
+  "created": 1787580239,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"question\",\n  \"topic\": \"Здоровье\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [],\n  \"note_exact_local\": null\n}"
+     "content": "{\"note_kind\": \"question\", \"topic\": \"Здоровье\", \"entities\": [], \"person_facts\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"fact\", \"text\": \"детские капли в нос можно капать не дольше пяти дней\", \"who\": null, \"due_kind\": \"none\", \"window\": null, \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"детские капли в нос можно капать не дольше пяти дней\"}]}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2641,
-   "completion_tokens": 54,
-   "total_tokens": 2695,
+   "prompt_tokens": 2756,
+   "completion_tokens": 126,
+   "total_tokens": 2882,
    "prompt_tokens_details": {
-    "cached_tokens": 2560
+    "cached_tokens": 2688
    },
-   "prompt_cache_hit_tokens": 2560,
-   "prompt_cache_miss_tokens": 81
+   "prompt_cache_hit_tokens": 2688,
+   "prompt_cache_miss_tokens": 68
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

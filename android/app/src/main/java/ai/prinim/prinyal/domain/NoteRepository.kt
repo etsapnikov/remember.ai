@@ -5,6 +5,7 @@ import ai.prinim.prinyal.data.CaptureSource
 import ai.prinim.prinyal.data.WeekRecapEntity
 import ai.prinim.prinyal.data.DayEntity
 import ai.prinim.prinyal.data.DueKind
+import ai.prinim.prinyal.data.InterviewState
 import ai.prinim.prinyal.data.ItemEntity
 import ai.prinim.prinyal.data.ItemState
 import ai.prinim.prinyal.data.ItemType
@@ -15,6 +16,7 @@ import ai.prinim.prinyal.data.TopicKind
 import ai.prinim.prinyal.data.TopicSource
 import ai.prinim.prinyal.data.PersonEntity
 import ai.prinim.prinyal.data.PersonNote
+import ai.prinim.prinyal.data.PersonStatus
 import ai.prinim.prinyal.data.SegmentEntity
 import ai.prinim.prinyal.data.NoteStatus
 import ai.prinim.prinyal.data.PrinyalDb
@@ -183,7 +185,7 @@ class NoteRepository(
         items.forEach { item -> planReturn(item, recordedAt, windows, now) }
 
         val topicId = resolveTopic(note, result.topic)
-        rememberPeople(noteId, result.entities)
+        rememberPeople(noteId, result.entities, result.personFacts)
 
         db.notes().update(
             note.copy(
@@ -660,6 +662,36 @@ class NoteRepository(
 
     /** Транскрипт заметки целиком: сегменты по порядку, разделённые меткой. */
     /**
+     * Круг пинг-понга дописан в тело заметки (Р-19.1).
+     *
+     * Дописывается **в тело**, а не в пункты: разговор об идее её растит, а не
+     * порождает поручений. Вопрос печатается вместе с ответом — без него абзац
+     * через неделю читается как обрывок мысли, и непонятно, почему он тут.
+     *
+     * Пунктов, возвратов и раздела эта запись не касается вовсе.
+     */
+    suspend fun appendInterviewRound(noteId: String, question: String, answer: String) {
+        val note = db.notes().byId(noteId) ?: return
+        val text = answer.trim()
+        if (text.isEmpty()) return
+
+        val base = note.bodyMd.orEmpty().trimEnd()
+        val body = buildString {
+            if (base.isNotEmpty()) append(base).append("\n\n")
+            if (POLISH_HEADING !in base) append(POLISH_HEADING).append("\n\n")
+            if (question.isNotBlank()) append("*").append(question.trim()).append("*").append("\n\n")
+            append(text)
+        }
+        db.notes().update(note.copy(bodyMd = body))
+        db.notes().setInterview(noteId, InterviewState.ANSWERED.wire)
+    }
+
+    /** Ответа не случилось (промолчал) — возвращаемся к заданному вопросу. */
+    suspend fun markInterviewIdle(noteId: String) {
+        db.notes().setInterview(noteId, InterviewState.ASKED.wire)
+    }
+
+    /**
      * Приписать к «Собрано» блок «Что докрутили» (Р-16.3).
      *
      * Именно приписать: прежний пересказ остаётся слово в слово. Повторный
@@ -810,7 +842,11 @@ class NoteRepository(
      * ещё и показать. Искать имена по тексту задним числом нельзя — «верну»
      * притворяется Верой.
      */
-    private suspend fun rememberPeople(noteId: String, names: List<String>) {
+    private suspend fun rememberPeople(
+        noteId: String,
+        names: List<String>,
+        facts: Map<String, String> = emptyMap(),
+    ) {
         names.forEach { name ->
             val clean = name.trim()
             if (clean.isEmpty()) return@forEach
@@ -832,6 +868,19 @@ class NoteRepository(
                 existing.mergedInto ?: existing.id
             }
             db.people().link(PersonNote(personId = id, noteId = noteId))
+
+            // Что прозвучало о человеке — в карточку (Р-19.3). Первый факт
+            // побеждает: доспрос и прежние записи уже дали ответ, и переписывать
+            // его новой репликой значит терять то, что человек сказал раньше.
+            facts[clean]?.let { fact ->
+                val person = db.people().byNorm(PersonIdentity.norm(clean))
+                if (person != null && person.fact.isNullOrBlank()) {
+                    db.people().update(
+                        person.copy(fact = fact, status = PersonStatus.KNOWN.wire)
+                    )
+                    analytics.log("person_fact", mapOf("person" to person.id, "note" to noteId))
+                }
+            }
         }
     }
 
@@ -1216,7 +1265,12 @@ class NoteRepository(
             .filter { !it.transcript.isNullOrBlank() }
         if (days.size < WEEK_RECAP_MIN_DAYS) return null
 
-        val text = llm()?.weekRecap(days.map { it.date to it.transcript.orEmpty() }) ?: return null
+        // Люди — в контекст сводки (Р-19.3): «Игорь» в ответе про смету и
+        // «Игорь — подрядчик по даче» из карточки — один человек, и сводка,
+        // которая этого не знает, пишет про двух разных.
+        val people = db.people().known().map { "${it.name} — ${it.fact}" }
+        val text = llm()?.weekRecap(days.map { it.date to it.transcript.orEmpty() }, people)
+            ?: return null
         db.weekRecaps().insert(
             WeekRecapEntity(
                 weekStart = monday.toString(),

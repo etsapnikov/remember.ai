@@ -1,44 +1,44 @@
 {
  "id": "repeat-weekly",
- "prompt_version": "9",
- "recorded_at": "2026-08-21T14:47:39",
- "took_s": 2.8,
+ "prompt_version": "10",
+ "recorded_at": "2026-08-24T17:04:04",
+ "took_s": 2.3,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2635,
-  "completion_tokens": 151,
-  "total_tokens": 2786,
+  "prompt_tokens": 2750,
+  "completion_tokens": 118,
+  "total_tokens": 2868,
   "prompt_tokens_details": {
-   "cached_tokens": 2560
+   "cached_tokens": 2688
   },
-  "prompt_cache_hit_tokens": 2560,
-  "prompt_cache_miss_tokens": 75
+  "prompt_cache_hit_tokens": 2688,
+  "prompt_cache_miss_tokens": 62
  },
  "response": {
-  "id": "ad0da16f-656e-4607-bcf0-29065ddc0b47",
+  "id": "84f4c25e-8fa3-4531-9f8f-9fcde3037664",
   "object": "chat.completion",
-  "created": 1787312858,
+  "created": 1787580244,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Работа\",\n  \"entities\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"выкладывать отчёт по неделе\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"morning\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"каждый понедельник утром выкладывать отчёт по неделе\",\n      \"repeat\": \"weekly:mon\"\n    }\n  ],\n  \"note_exact_local\": null\n}"
+     "content": "{\"note_kind\": \"tasks\", \"topic\": \"Работа\", \"entities\": [], \"person_facts\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"do\", \"text\": \"выкладывать отчёт по неделе\", \"who\": null, \"due_kind\": \"window\", \"window\": \"morning\", \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"выкладывать отчёт по неделе\", \"repeat\": \"weekly:mon\"}]}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2635,
-   "completion_tokens": 151,
-   "total_tokens": 2786,
+   "prompt_tokens": 2750,
+   "completion_tokens": 118,
+   "total_tokens": 2868,
    "prompt_tokens_details": {
-    "cached_tokens": 2560
+    "cached_tokens": 2688
    },
-   "prompt_cache_hit_tokens": 2560,
-   "prompt_cache_miss_tokens": 75
+   "prompt_cache_hit_tokens": 2688,
+   "prompt_cache_miss_tokens": 62
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

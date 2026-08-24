@@ -41,6 +41,8 @@ data class ParseResult(
     val topic: String? = null,
     /** Люди, упомянутые в записи, — сырьё для доспроса (Р-14.7). */
     val entities: List<String> = emptyList(),
+    /** Что прозвучало о самих людях (Р-19.3): имя → факт словами человека. */
+    val personFacts: Map<String, String> = emptyMap(),
     /** Тело заметки в markdown — только у идей (Р-14.5). */
     val bodyMd: String? = null,
     /**

@@ -1,44 +1,44 @@
 {
  "id": "idea-course",
- "prompt_version": "9",
- "recorded_at": "2026-08-21T14:47:15",
- "took_s": 4.1,
+ "prompt_version": "10",
+ "recorded_at": "2026-08-24T17:03:41",
+ "took_s": 3.5,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2704,
-  "completion_tokens": 487,
-  "total_tokens": 3191,
+  "prompt_tokens": 2819,
+  "completion_tokens": 368,
+  "total_tokens": 3187,
   "prompt_tokens_details": {
-   "cached_tokens": 2560
+   "cached_tokens": 2688
   },
-  "prompt_cache_hit_tokens": 2560,
-  "prompt_cache_miss_tokens": 144
+  "prompt_cache_hit_tokens": 2688,
+  "prompt_cache_miss_tokens": 131
  },
  "response": {
-  "id": "959e702b-2f94-4e58-a5f8-272b26594bb4",
+  "id": "856d2552-3528-4339-afb0-6af3f78a2e9f",
   "object": "chat.completion",
-  "created": 1787312832,
+  "created": 1787580220,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"idea\",\n  \"topic\": null,\n  \"entities\": [],\n  \"body_md\": \"## Идея курса для родителей-одиночек\\n\\n- Четыре встречи по будням вечером онлайн.\\n- Не терапия и не лекции, а разбор конкретных ситуаций, которые приносят сами.\\n- Надо проверить, пойдут ли по будням, а не в выходные, и потянут ли платно с первой встречи.\\n- Ещё непонятно, сколько человек в группе и нужен ли второй ведущий.\",\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"thought\",\n      \"text\": \"проверить, пойдут ли по будням, а не в выходные\",\n      \"who\": null,\n      \"due_kind\": \"none\",\n      \"window\": null,\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"надо проверить пойдут ли по будням а не в выходные\"\n    },\n    {\n      \"type\": \"thought\",\n      \"text\": \"проверить, потянут ли платно с первой встречи\",\n      \"who\": null,\n      \"due_kind\": \"none\",\n      \"window\": null,\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"потянут ли платно с первой встречи\"\n    },\n    {\n      \"type\": \"thought\",\n      \"text\": \"понять, сколько человек в группе\",\n      \"who\": null,\n      \"due_kind\": \"none\",\n      \"window\": null,\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"сколько человек в группе\"\n    },\n    {\n      \"type\": \"thought\",\n      \"text\": \"понять, нужен ли второй ведущий\",\n      \"who\": null,\n      \"due_kind\": \"none\",\n      \"window\": null,\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"нужен ли второй ведущий\"\n    }\n  ]\n}"
+     "content": "{\n  \"note_kind\": \"idea\",\n  \"topic\": null,\n  \"entities\": [],\n  \"person_facts\": [],\n  \"body_md\": \"## Идея курса для родителей-одиночек\\n\\n- Четыре встречи по будням вечером онлайн.\\n- Не терапия и не лекции, а разбор конкретных ситуаций, которые приносят сами.\\n- Надо проверить: пойдут ли по будням, а не в выходные, и потянут ли платно с первой встречи.\\n- Ещё непонятно: сколько человек в группе и нужен ли второй ведущий.\",\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"thought\",\n      \"text\": \"проверить, пойдут ли по будням и потянут ли платно с первой встречи\",\n      \"who\": null,\n      \"due_kind\": \"none\",\n      \"window\": null,\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"надо проверить пойдут ли по будням а не в выходные и потянут ли платно с первой встречи\"\n    },\n    {\n      \"type\": \"thought\",\n      \"text\": \"понять, сколько человек в группе и нужен ли второй ведущий\",\n      \"who\": null,\n      \"due_kind\": \"none\",\n      \"window\": null,\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"ещё непонятно сколько человек в группе и нужен ли второй ведущий\"\n    }\n  ]\n}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2704,
-   "completion_tokens": 487,
-   "total_tokens": 3191,
+   "prompt_tokens": 2819,
+   "completion_tokens": 368,
+   "total_tokens": 3187,
    "prompt_tokens_details": {
-    "cached_tokens": 2560
+    "cached_tokens": 2688
    },
-   "prompt_cache_hit_tokens": 2560,
-   "prompt_cache_miss_tokens": 144
+   "prompt_cache_hit_tokens": 2688,
+   "prompt_cache_miss_tokens": 131
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

@@ -193,6 +193,38 @@ class NoteRepositoryTest {
     }
 
     @Test
+    fun `круг пинг-понга растит тело и не трогает пункты`() = runTest {
+        // Р-19.1. Главная поломка была здесь: ответ уходил общим разбором, и
+        // разговор об идее перетряхивал дела записи — рождались новые пункты,
+        // пересобирались старые, запись могла поделиться надвое.
+        val id = note()
+        val items = repo.applyParse(id, parsed(item(), item(text = "второе"))
+            .copy(bodyMd = "## Идея\n\nЧто задумано."))
+        val before = db.items().forNote(id).map { it.id to it.text }
+
+        repo.appendInterviewRound(id, "А если убрать вводные?", "останутся сами заметки")
+
+        val body = db.notes().byId(id)!!.bodyMd!!
+        assertTrue("замысел потерян:\n$body", "Что задумано." in body)
+        assertTrue("вопрос не записан", "А если убрать вводные?" in body)
+        assertTrue("ответ не записан", "останутся сами заметки" in body)
+        assertEquals("пункты тронуты", before, db.items().forNote(id).map { it.id to it.text })
+        assertEquals(
+            "стадия не сменилась на «Ещё вопрос»",
+            ai.prinim.prinyal.data.InterviewState.ANSWERED.wire,
+            db.notes().byId(id)!!.interview,
+        )
+
+        // Второй круг встаёт следующим абзацем под тем же заголовком.
+        repo.appendInterviewRound(id, "А заголовки?", "заголовки оставляем")
+        val second = db.notes().byId(id)!!.bodyMd!!
+        assertEquals("заголовков стало больше одного", 1, second.split("## Что докрутили").size - 1)
+        assertTrue("первый круг потерян", "останутся сами заметки" in second)
+        assertTrue("второй круг не записан", "заголовки оставляем" in second)
+        assertEquals(items.size, db.items().forNote(id).size)
+    }
+
+    @Test
     fun `без ответов итог разговора не собирается`() = runTest {
         // Р-17.2. Проверено живьём и попало в заметку: на свой же вопрос
         // модель ответила сама, и ответ лёг в «Собрано» как слова человека.

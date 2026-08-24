@@ -77,4 +77,27 @@ class LinkCandidatesTest {
         assertTrue(opening.length <= LinkCandidates.OPENING + 1)
         assertEquals("короткая запись", LinkCandidates.opening("короткая запись"))
     }
+
+    @Test
+    fun `запись без транскрипта кандидатов не находит — и это был баг прода`() {
+        // Воркер читал заметку из базы **до** распознавания и отдавал сюда её,
+        // с пустым транскриптом и пустым разделом. BM25 искал похожих на пустую
+        // строку, отбор по разделу не срабатывал, кандидатов не выходило
+        // никогда — 121 разбор и ноль связей у владельца.
+        //
+        // Тест закрепляет причину: на пустом тексте и без раздела список пуст.
+        // Значит звать этот отбор можно только с уже распознанной записью.
+        val corpus = listOf(
+            note("n1", "по маркдауну надо чтобы списки покупок верстались"),
+            note("n2", "надо бы маркдаун поддержать когда заметка длинная"),
+        )
+        val blank = NoteEntity(id = "n3", createdAt = 3, audioPath = "", transcript = null)
+
+        assertTrue(LinkCandidates.of(blank, corpus + blank).isEmpty())
+        // С текстом — находит.
+        assertTrue(
+            LinkCandidates.of(blank.copy(transcript = "про маркдаун ещё раз"), corpus + blank)
+                .isNotEmpty()
+        )
+    }
 }

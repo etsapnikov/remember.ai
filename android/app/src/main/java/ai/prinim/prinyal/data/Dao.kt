@@ -53,11 +53,6 @@ interface NoteDao {
      * второго списка значило бы платить структурой за навигацию.
      */
     @Transaction
-    @Query(
-        "SELECT * FROM notes WHERE deleted_at IS NULL AND note_kind = 'decision' " +
-            "ORDER BY created_at DESC"
-    )
-    fun decisions(): Flow<List<NoteWithItems>>
 
     @Query("SELECT COUNT(*) FROM notes WHERE deleted_at IS NULL AND note_kind = 'decision'")
     fun decisionCount(): Flow<Int>
@@ -105,6 +100,9 @@ interface NoteDao {
 
     @Query("SELECT * FROM notes WHERE deleted_at IS NULL ORDER BY created_at ASC")
     suspend fun all(): List<NoteEntity>
+
+    @Query("UPDATE notes SET interview = :state WHERE id = :id")
+    suspend fun setInterview(id: String, state: String)
 
     // --- мягкое удаление (спека R1.1 §2.2) ---
 
