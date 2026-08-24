@@ -3,6 +3,7 @@ package ai.prinim.prinyal.ui
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
+import ai.prinim.prinyal.ui.theme.Touch
 import ai.prinim.prinyal.ui.theme.tap
 import ai.prinim.prinyal.ui.theme.Space
 import androidx.activity.compose.BackHandler
@@ -27,9 +28,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 
@@ -70,11 +74,25 @@ fun AppScaffold(route: Route, onRoute: (Route) -> Unit) {
             .statusBarsPadding(),
     ) {
         Column(Modifier.fillMaxSize()) {
-            TopBar(route = route, onRoute = onRoute)
+            val searchQuery by vm.searchQuery.collectAsState()
+            // «Назад» при открытом поиске закрывает поиск, а не приложение.
+            BackHandler(enabled = route is Route.Feed && searchQuery != null) {
+                vm.closeSearch()
+            }
+            if (route is Route.Feed && searchQuery != null) {
+                SearchBar(
+                    query = searchQuery.orEmpty(),
+                    onQuery = { vm.setSearchQuery(it) },
+                    onCancel = { vm.closeSearch() },
+                )
+            } else {
+                TopBar(route = route, onRoute = onRoute, onSearch = { vm.openSearch() })
+            }
 
             Box(Modifier.fillMaxSize()) {
                 when (route) {
                     is Route.Feed -> FeedScreen(vm, onOpenNote = { onRoute(Route.Note(it)) })
+                    is Route.Days -> DaysScreen(vm)
                     is Route.Note -> NoteScreen(
                         vm,
                         noteId = route.id,
@@ -198,10 +216,12 @@ private fun undoText(message: AppViewModel.UndoMessage): String = when (message)
         stringResource(R.string.dict_removed)
     is AppViewModel.UndoMessage.RepeatStopped ->
         stringResource(R.string.item_repeat_off_done)
+    is AppViewModel.UndoMessage.ItemRevived ->
+        stringResource(R.string.item_revived_undo).substringBefore(" · ")
 }
 
 @Composable
-private fun TopBar(route: Route, onRoute: (Route) -> Unit) {
+private fun TopBar(route: Route, onRoute: (Route) -> Unit, onSearch: () -> Unit) {
     // Три слова в шапке живут только на трёх корневых поверхностях.
     //
     // Пока шапка была одна на всё, вложенный экран носил чужую навигацию:
@@ -259,18 +279,26 @@ private fun TopBar(route: Route, onRoute: (Route) -> Unit) {
     val surfaces = listOf(
         Route.Feed to stringResource(R.string.feed_title),
         Route.Topics to stringResource(R.string.topics_title),
+        // «Дни» перед «Неделей»: неделя складывается из дней, и итог читается
+        // слева направо (макет 12a).
+        Route.Days to stringResource(R.string.days_title),
         Route.Weekly to stringResource(R.string.weekly_title),
     )
 
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = Space.screen, vertical = Space.m),
+            // Зона нажатия слова несёт свои 6 dp с каждого борта — поле экрана
+            // ужимается на них, иначе слова стоят не по левому краю контента.
+            .padding(horizontal = Space.screen - Touch.PAD_DP.dp, vertical = Space.m),
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(Space.m),
+            // Зазор дают сами зоны нажатия (6+6=12 — ровно макетный): свой шаг
+            // сверху выталкивал «Неделю» за край. Четыре слова — предел, и он
+            // достигнут: пятая поверхность потребует отказа от одной из четырёх.
+            horizontalArrangement = Arrangement.spacedBy(0.dp),
             verticalAlignment = Alignment.Bottom,
             modifier = Modifier.weight(1f),
         ) {
@@ -278,18 +306,91 @@ private fun TopBar(route: Route, onRoute: (Route) -> Unit) {
                 val current = target == route
                 Text(
                     text = label,
-                    style = if (current) Prinyal.type.itemTitle else Prinyal.type.body,
+                    // Ревизия 12a: кеглей в шапочном стеке два, а не три —
+                    // активное 23 и всё остальное 15, как у строки фильтра.
+                    // Четвёртое слово влезает следствием, а не целью. Потолок
+                    // сказан дизайнером прямо: четыре слова — предел.
+                    style = if (current) Prinyal.type.itemTitle.copy(fontSize = 21.sp)
+                    else Prinyal.type.body.copy(fontSize = 15.sp),
                     color = if (current) Prinyal.colors.ink else Prinyal.colors.inkFaint,
+                    maxLines = 1,
+                    softWrap = false,
                     modifier = Modifier.tap { onRoute(target) },
                 )
             }
         }
-        // Настройки — не поверхность, а служебное, поэтому знаком, а не словом.
-        Text(
-            text = "···",
-            style = Prinyal.type.itemTitle,
-            color = Prinyal.colors.inkFaint,
-            modifier = Modifier.tap { onRoute(Route.Settings) },
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(0.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            // Лупа — не поверхность: она у правого края вместе с «···» и
+            // стоит только на «Записях» (макет 11a).
+            // Глифы без 48-dp квадрата: два полных квадрата съедали 96 dp —
+            // на них и падала «Неделя». Высоту зоны даёт сама шапка, ширину —
+            // паддинг; в углу экрана этого хватает (правка после 12a).
+            if (route is Route.Feed) {
+                Text(
+                    text = "⌕",
+                    style = Prinyal.type.itemTitle,
+                    color = Prinyal.colors.inkFaint,
+                    modifier = Modifier
+                        .clickable(onClick = onSearch)
+                        .padding(horizontal = Space.xs),
+                )
+            }
+            // Настройки — не поверхность, а служебное, поэтому знаком, а не словом.
+            Text(
+                text = "···",
+                style = Prinyal.type.itemTitle,
+                color = Prinyal.colors.inkFaint,
+                modifier = Modifier
+                    .clickable { onRoute(Route.Settings) }
+                    .padding(horizontal = Space.xs),
+            )
+        }
+    }
+}
+
+
+/**
+ * Поле поиска на месте слов шапки (макет 11a): новой поверхности нет,
+ * «отмена» возвращает шапку. Ищем с первого символа, кнопки «искать» нет.
+ */
+@Composable
+private fun SearchBar(query: String, onQuery: (String) -> Unit, onCancel: () -> Unit) {
+    val focus = androidx.compose.runtime.remember { FocusRequester() }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Space.screen, vertical = Space.m),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Space.m),
+    ) {
+        androidx.compose.foundation.text.BasicTextField(
+            value = query,
+            onValueChange = onQuery,
+            textStyle = Prinyal.type.itemTitle.copy(color = Prinyal.colors.ink),
+            cursorBrush = androidx.compose.ui.graphics.SolidColor(Prinyal.colors.accentSelf),
+            singleLine = true,
+            modifier = Modifier
+                .weight(1f)
+                .focusRequester(focus),
+            decorationBox = { inner ->
+                if (query.isEmpty()) {
+                    Text(
+                        stringResource(R.string.search_hint),
+                        style = Prinyal.type.itemTitle,
+                        color = Prinyal.colors.inkFaint,
+                    )
+                }
+                inner()
+            },
+        )
+        MetaText(
+            text = stringResource(R.string.search_cancel),
+            color = Prinyal.colors.inkMuted,
+            modifier = Modifier.tap(onClick = onCancel),
         )
     }
+    androidx.compose.runtime.LaunchedEffect(Unit) { focus.requestFocus() }
 }

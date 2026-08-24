@@ -59,6 +59,9 @@ fun ItemDetail(
     rawSpan: String?,
     onEdit: () -> Unit,
     onStopRepeat: () -> Unit,
+    onRevive: () -> Unit = {},
+    /** Все пункты записи закрыты: возврат вернёт и запись в ленту (11d). */
+    noteAllClosed: Boolean = false,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -151,6 +154,28 @@ fun ItemDetail(
                     }
                 }
 
+                // «В план» (Р-18.4): стоит там, где у живого «Поправить», —
+                // приглушено, не акцент: акцент значит «продукт сделал сам»,
+                // а тут действие человека. Цена сказана до нажатия.
+                if (closed && item.repeatRule == null) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
+                        Text(
+                            text = stringResource(R.string.item_revive),
+                            style = Prinyal.type.label,
+                            color = Prinyal.colors.inkMuted,
+                            softWrap = false,
+                            modifier = Modifier.tap(onClick = onRevive),
+                        )
+                        MetaText(
+                            stringResource(
+                                if (noteAllClosed) R.string.item_revive_hint_note
+                                else R.string.item_revive_hint
+                            ),
+                            color = Prinyal.colors.inkFaint,
+                        )
+                    }
+                }
+
                 // Единственный выход в изменение — явный и подписанный словом.
                 //
                 // Ряд растянут по ширине и не переносится: с появлением
@@ -218,6 +243,9 @@ private fun history(
         ItemState.EXPIRED -> lines += "больше не возвращаюсь"
         else -> Unit
     }
+    // Возврат в план — событие, а не стирание (11e): «сделано» осталось выше,
+    // под ним встало «вернул в план».
+    item.revivedAt?.let { lines += "${Dates.day(it)} · вернул в план" }
     return lines
 }
 

@@ -614,6 +614,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         data object RuleRemoved : UndoMessage
         /** «Больше не повторяю» — пункт остался жив, откат возвращает правило. */
         data object RepeatStopped : UndoMessage
+
+        /** «Снова в плане» — закрытый пункт вернули (Р-18.4). */
+        data object ItemRevived : UndoMessage
     }
 
     private val _undo = MutableStateFlow<UndoEvent?>(null)
@@ -659,6 +662,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setLlmEnabled(value: Boolean) = viewModelScope.launch { app.settings.setLlmEnabled(value) }
+
+    val bedtime: StateFlow<LocalTime> = app.settings.bedtime
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LocalTime.of(21, 30))
+
+    /** Смена «перед сном» переставляет аларм сразу: старое время уже неправда. */
+    fun setBedtime(time: LocalTime) = viewModelScope.launch {
+        app.settings.setBedtime(time)
+        ai.prinim.prinyal.returns.DayAsk.schedule(getApplication(), time)
+    }
 
     fun setWindow(window: Window, time: LocalTime) =
         viewModelScope.launch { app.settings.setWindow(window, time) }
@@ -961,6 +973,57 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun clearCrashes() = viewModelScope.launch {
         withContext(Dispatchers.IO) { app.crashes.clear() }
         _crashes.value = emptyList()
+    }
+
+    // --- поиск (Р-18.5) ---
+
+    /** null — поиск закрыт; пустая строка — поле открыто, запроса ещё нет. */
+    private val _searchQuery = MutableStateFlow<String?>(null)
+    val searchQuery: StateFlow<String?> = _searchQuery
+
+    fun openSearch() {
+        _searchQuery.value = ""
+    }
+
+    /** Поле не запоминает прошлый запрос (11a) — закрытие стирает. */
+    fun closeSearch() {
+        _searchQuery.value = null
+    }
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    val searchResults: StateFlow<List<ai.prinim.prinyal.domain.NoteSearch.Result>> =
+        kotlinx.coroutines.flow.combine(feed, _searchQuery) { notes, query ->
+            if (query.isNullOrBlank()) emptyList()
+            else ai.prinim.prinyal.domain.NoteSearch.search(notes, query)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    // --- дни (Р-18.1) ---
+
+    val days: StateFlow<List<ai.prinim.prinyal.data.DayEntity>> = app.db.days().watch()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Итог текущей недели (Р-18.3) и сколько вечеров рассказано. */
+    val weekRecap: StateFlow<ai.prinim.prinyal.data.WeekRecapEntity?> =
+        app.db.weekRecaps()
+            .watch(java.time.LocalDate.now().with(java.time.DayOfWeek.MONDAY).toString())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val weekDays: StateFlow<List<ai.prinim.prinyal.data.DayEntity>> =
+        days.map { all ->
+            val monday = java.time.LocalDate.now().with(java.time.DayOfWeek.MONDAY).toString()
+            all.filter { it.date >= monday }.sortedByDescending { it.date }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    // --- «В план» (Р-18.4) ---
+
+    fun reviveItem(itemId: String) = viewModelScope.launch {
+        val was = app.repository.reviveItem(itemId) ?: return@launch
+        _undo.value = UndoEvent(UndoMessage.ItemRevived) {
+            app.repository.unreviveItem(itemId, was)
+        }
     }
 
     fun showMessage(text: String?) {

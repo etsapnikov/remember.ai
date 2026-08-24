@@ -27,6 +27,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.material3.Text
+import ai.prinim.prinyal.domain.Dates
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -80,6 +85,13 @@ fun WeeklyScreen(vm: AppViewModel) {
             .padding(horizontal = Space.screen),
         verticalArrangement = Arrangement.spacedBy(Space.ml),
     ) {
+        // Итог недели (Р-18.3) — первым: он про жизнь человека, «За неделю»
+        // ниже — про работу продукта. Два блока продукта на одном экране —
+        // первый такой случай, разводятся меткой и предметом, не цветом (12e).
+        val recap by vm.weekRecap.collectAsState()
+        val weekDays by vm.weekDays.collectAsState()
+        recap?.let { WeekRecapBlock(it.text, weekDays) }
+
         // Экран недели — блок продукта, а не текст на фоне: он рассказывает от
         // своего лица, и это должно быть видно так же, как у «Собрано»
         // (аудит Д-7, п. 6).
@@ -110,6 +122,18 @@ fun WeeklyScreen(vm: AppViewModel) {
             facts.forEach { fact ->
                 Text(
                     text = factText(fact),
+                    style = Prinyal.type.body,
+                    color = Prinyal.colors.inkMuted,
+                )
+            }
+
+            // «Рассказано вечеров: N» — наблюдение без укора (12e). Стоит,
+            // только когда вечера были, но на итог их не хватило: при готовом
+            // итоге число видно по его источникам.
+            val toldEvenings = weekDays.count { !it.transcript.isNullOrBlank() }
+            if (recap == null && toldEvenings > 0) {
+                Text(
+                    text = stringResource(R.string.week_told_evenings) + ": $toldEvenings",
                     style = Prinyal.type.body,
                     color = Prinyal.colors.inkMuted,
                 )
@@ -256,6 +280,47 @@ private fun StructureOffer(vm: AppViewModel, offer: StructureRepair.Offer) {
                 color = Prinyal.colors.inkMuted,
                 modifier = Modifier.tap { vm.refuseStructure() },
             )
+        }
+    }
+}
+
+
+/**
+ * Итог недели (Р-18.3, макет 12e): сводка словами человека и дни-источники.
+ *
+ * Сводка без источников в этом продукте не ходит: под текстом — все отвеченные
+ * дни, теми же строками, что в «Днях», кеглем на ступень ниже.
+ */
+@Composable
+private fun WeekRecapBlock(text: String, days: List<ai.prinim.prinyal.data.DayEntity>) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(Prinyal.colors.wellSurface, Radius.control)
+            .padding(Space.m),
+        verticalArrangement = Arrangement.spacedBy(Space.sm),
+    ) {
+        MetaText(stringResource(R.string.week_recap_heading), color = Prinyal.colors.accentSelf)
+        Text(text = text, style = Prinyal.type.voice, color = Prinyal.colors.ink)
+
+        val told = days.filter { !it.line.isNullOrBlank() || !it.transcript.isNullOrBlank() }
+        if (told.isNotEmpty()) {
+            HorizontalDivider(thickness = 1.dp, color = Prinyal.colors.hairline)
+            told.forEach { day ->
+                Row(horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+                    MetaText(
+                        text = Dates.day(java.time.LocalDate.parse(day.date)),
+                        color = Prinyal.colors.inkFaint,
+                        maxLines = 1,
+                        modifier = Modifier.width(64.dp),
+                    )
+                    Text(
+                        text = day.line ?: day.transcript.orEmpty(),
+                        style = Prinyal.type.body.copy(fontSize = 15.sp),
+                        color = Prinyal.colors.inkMuted,
+                    )
+                }
+            }
         }
     }
 }

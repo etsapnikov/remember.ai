@@ -291,6 +291,87 @@ class NoteRepositoryTest {
     }
 
     @Test
+    fun `в план возвращает без срока и не трогает слова`() = runTest {
+        // Р-18.4. Граница правила «закрытое неприкосновенно»: неприкосновенны
+        // слова — текст и источник не меняются; состояние — не слово.
+        val id = note()
+        val items = repo.applyParse(id, parsed(item(text = "отдать ключи")))
+        val itemId = items.single().id
+        repo.markDone(itemId)
+
+        val was = repo.reviveItem(itemId)
+
+        assertEquals(ItemState.DONE, was)
+        val after = db.items().byId(itemId)!!
+        assertEquals(ItemState.PLANNED.wire, after.state)
+        assertEquals("вернулся со сроком", DueKind.NONE.wire, after.dueKind)
+        assertNull(after.dueAt)
+        assertEquals("текст тронут", "отдать ключи", after.text)
+        assertNotNull("возврат не попал в историю", after.revivedAt)
+        // Расписание не назначено: его в этом продукте назначает только речь.
+        assertTrue(
+            "возврату назначили аларм",
+            db.returns().forItem(itemId).none { it.firedAt == null },
+        )
+    }
+
+    @Test
+    fun `в план не берёт живое и повторы`() = runTest {
+        val id = note()
+        val items = repo.applyParse(
+            id,
+            parsed(
+                item(text = "живое"),
+                item(text = "повтор", window = null, dueKind = DueKind.NONE)
+                    .copy(repeat = "weekly:mon"),
+            ),
+        )
+        assertNull("вернул живой пункт", repo.reviveItem(items[0].id))
+        repo.markDone(items[1].id)
+        // Сделанный повтор и так уходит в «вернусь» — «В план» ему не нужен.
+        assertNull("вернул повтор", repo.reviveItem(items[1].id))
+    }
+
+    @Test
+    fun `откат из снекбара закрывает обратно тем же словом`() = runTest {
+        val id = note()
+        val itemId = repo.applyParse(id, parsed(item())).single().id
+        repo.buryItem(itemId)
+
+        val was = repo.reviveItem(itemId)!!
+        repo.unreviveItem(itemId, was)
+
+        val after = db.items().byId(itemId)!!
+        assertEquals(ItemState.EXPIRED.wire, after.state)
+        assertNull("история сохранила отменённый возврат", after.revivedAt)
+    }
+
+    @Test
+    fun `итог недели требует трёх дней и не пересобирается`() = runTest {
+        // Р-18.3: сводка из двух вечеров — пересказ двух вечеров, а не неделя.
+        val monday = java.time.LocalDate.of(2026, 8, 17)
+        suspend fun day(offset: Long, text: String) {
+            db.days().insert(
+                ai.prinim.prinyal.data.DayEntity(
+                    date = monday.plusDays(offset).toString(),
+                    audioPath = "",
+                    transcript = text,
+                    createdAt = 1L,
+                )
+            )
+        }
+        day(0, "скандал с подрядчиком")
+        day(1, "ничего")
+        assertNull("итог собрался из двух дней", repo.buildWeekRecap(monday.plusDays(6)))
+
+        day(3, "досидели до сметы")
+        // llm в тестах отсутствует (провайдер по умолчанию null) — итога нет,
+        // но и записи о нём нет: соберётся, когда модель ответит.
+        assertNull(repo.buildWeekRecap(monday.plusDays(6)))
+        assertNull(db.weekRecaps().byWeek(monday.toString()))
+    }
+
+    @Test
     fun `разбор кладёт пункты и ставит возвраты`() = runTest {
         val id = note()
         val items = repo.applyParse(id, parsed(item(), item(text = "соня", window = Window.MORNING)))

@@ -134,15 +134,21 @@ class CaptureActivity : ComponentActivity() {
     /** О ком запись, если пришли из карточки человека (Д-27). */
     private var about: String? = null
 
+    /** Ответ на вечерний вопрос (Р-18.1): дата дня. Уходит в «Дни», не в ленту. */
+    private var dayDate: String? = null
+
     /** Цель дописывания и подпись для плашки контекста. */
     private fun applyAppendTarget(intent: android.content.Intent) {
         appendTo = intent.getStringExtra(EXTRA_APPEND_TO)
         about = intent.getStringExtra(EXTRA_ABOUT)
+        dayDate = intent.getStringExtra(EXTRA_DAY)
         val id = appendTo
         if (id == null) {
-            // «Рассказать про Веру» (Д-27): плашка та же, что у дописывания, —
-            // человек видит, о ком говорит, и не гадает, куда попадёт запись.
-            state.appendHint = about
+            // «Рассказать про Веру» (Д-27) и «про день» (Р-18.1): плашка та же,
+            // что у дописывания, — человек видит, о чём говорит, и не гадает,
+            // куда попадёт запись.
+            state.dayPlate = dayDate != null
+            state.appendHint = if (dayDate != null) getString(R.string.day_plate) else about
             return
         }
         lifecycleScope.launch {
@@ -284,13 +290,22 @@ class CaptureActivity : ComponentActivity() {
         state.recording = false
         state.silenceLeftMs = 0
         state.receipt = true
+        state.receiptDay = dayDate != null
         state.appendHint = null
         Haptics.receipt(this)
 
         val app = PrinyalApp.of(this)
         val appendTo = this.appendTo
+        val dayDate = this.dayDate
         lifecycleScope.launch {
             app.analytics.log(Analytics.RECEIPT_SHOWN, mapOf("note" to (appendTo ?: noteId)))
+            // Ответ на вечерний вопрос — не заметка: уходит в «Дни», в ленте не
+            // живёт, возвратов не порождает (решение владельца, Р-18.1).
+            if (dayDate != null) {
+                app.repository.saveDay(dayDate, result.file, result.durationMs, result.startedAt)
+                ai.prinim.prinyal.capture.DayWorker.enqueue(this@CaptureActivity, dayDate)
+                return@launch
+            }
             // Дописывание — не новая запись: сегмент цепляется к существующей,
             // и разбор увидит оба куска речи как один текст.
             if (appendTo != null) {
@@ -455,6 +470,9 @@ class CaptureActivity : ComponentActivity() {
          * слушает тем же жестом, каким слушает всё остальное.
          */
         const val EXTRA_ABOUT = "about"
+
+        /** Ответ на вечерний вопрос (Р-18.1): ISO-дата дня. */
+        const val EXTRA_DAY = "day"
 
         /** Ответ на вопрос «Покрутить идею»: после квитанции разговор продолжается. */
         const val EXTRA_ASKING = "asking"

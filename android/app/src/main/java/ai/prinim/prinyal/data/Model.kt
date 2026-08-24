@@ -239,6 +239,13 @@ data class ItemEntity(
      */
     @ColumnInfo(name = "repeat_done_at") val repeatDoneAt: Long? = null,
     @ColumnInfo(name = "repeat_next_at") val repeatNextAt: Long? = null,
+    /**
+     * Когда закрытый пункт вернули в план (Р-18.4, «В план»).
+     *
+     * Возврат — не стирание, а событие: «сделал» остаётся в истории, под ним
+     * встаёт «вернул в план». Дата и есть эта строка истории.
+     */
+    @ColumnInfo(name = "revived_at") val revivedAt: Long? = null,
 )
 
 @Entity(
@@ -304,6 +311,42 @@ data class SegmentEntity(
     val seq: Int,
     @ColumnInfo(name = "audio_path") val audioPath: String,
     val transcript: String? = null,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+)
+
+/**
+ * День (Р-18.1): ответ на вечерний вопрос «Что сегодня было самым главным?».
+ *
+ * Не заметка и живёт вне ленты — это память, а не дело: не разбирается на
+ * пункты, не порождает возвратов, не правится и не удаляется свайпом. Ключ —
+ * сама дата: день один, второго ответа за вечер не бывает.
+ */
+@Entity(tableName = "days")
+data class DayEntity(
+    /** ISO-дата «2026-08-21» — день, о котором рассказ, не момент записи. */
+    @PrimaryKey val date: String,
+    @ColumnInfo(name = "audio_path") val audioPath: String,
+    val transcript: String? = null,
+    /**
+     * Впечатление — строка для списка. Слова человека, сжатые моделью;
+     * не сжалось — начало ответа как есть. Null — расшифровка ещё идёт.
+     */
+    val line: String? = null,
+    @ColumnInfo(name = "duration_ms") val durationMs: Long = 0,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+)
+
+/**
+ * Итог недели (Р-18.3): сводка впечатлений, собранная в воскресенье вечером.
+ *
+ * Хранится, а не считается на лету: итог собирается один раз и не
+ * переписывается — иначе понедельничный взгляд менял бы воскресную память.
+ */
+@Entity(tableName = "week_recaps")
+data class WeekRecapEntity(
+    /** ISO-дата понедельника недели, за которую итог. */
+    @PrimaryKey @ColumnInfo(name = "week_start") val weekStart: String,
+    val text: String,
     @ColumnInfo(name = "created_at") val createdAt: Long,
 )
 

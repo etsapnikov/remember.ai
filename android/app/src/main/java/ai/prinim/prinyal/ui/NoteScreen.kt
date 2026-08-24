@@ -304,6 +304,15 @@ fun NoteScreen(
                                 vm.stopRepeat(item.id)
                                 opened = null
                             },
+                            onRevive = {
+                                vm.reviveItem(item.id)
+                                opened = null
+                            },
+                            noteAllClosed = items.none {
+                                ItemState.of(it.state) in setOf(
+                                    ItemState.PLANNED, ItemState.RETURNED, ItemState.SNOOZED,
+                                )
+                            },
                             onDismiss = { opened = null },
                         )
                     }

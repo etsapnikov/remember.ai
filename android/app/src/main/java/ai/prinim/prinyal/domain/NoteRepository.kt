@@ -2,6 +2,8 @@ package ai.prinim.prinyal.domain
 
 import ai.prinim.prinyal.data.Analytics
 import ai.prinim.prinyal.data.CaptureSource
+import ai.prinim.prinyal.data.WeekRecapEntity
+import ai.prinim.prinyal.data.DayEntity
 import ai.prinim.prinyal.data.DueKind
 import ai.prinim.prinyal.data.ItemEntity
 import ai.prinim.prinyal.data.ItemState
@@ -22,6 +24,7 @@ import ai.prinim.prinyal.data.Window
 import ai.prinim.prinyal.net.ParseResult
 import ai.prinim.prinyal.returns.ReturnScheduler
 import java.io.File
+import java.time.LocalDate
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -39,6 +42,11 @@ class NoteRepository(
     private val analytics: Analytics,
     private val scheduler: ReturnScheduler,
     private val zone: ZoneId = ZoneId.systemDefault(),
+    /**
+     * Модель — провайдером, а не полем: клиент и репозиторий строятся лениво,
+     * и жёсткая ссылка завязала бы порядок их создания узлом.
+     */
+    private val llm: () -> ai.prinim.prinyal.llm.DeepSeekClient? = { null },
 ) {
 
     // --- захват ---
@@ -1169,6 +1177,99 @@ class NoteRepository(
         analytics.log("junk_sweep", mapOf("count" to junk.size))
         return junk.map { it.id }
     }
+
+    // --- дни (Р-18) ---
+
+    /**
+     * Сохранить вечерний ответ (Р-18.1).
+     *
+     * REPLACE по дате: второго ответа за вечер не бывает, но если человек
+     * наговорил снова (открыл уведомление дважды), новый ответ — правда,
+     * а не дубль.
+     */
+    suspend fun saveDay(date: String, audio: File, durationMs: Long, createdAt: Instant) {
+        db.days().insert(
+            DayEntity(
+                date = date,
+                audioPath = audio.absolutePath,
+                durationMs = durationMs,
+                createdAt = createdAt.toEpochMilli(),
+            )
+        )
+    }
+
+    /**
+     * Итог недели (Р-18.3): собрать один раз, в воскресенье вечером.
+     *
+     * Меньше [WEEK_RECAP_MIN_DAYS] отвеченных дней — итога нет и уведомления
+     * нет: сводка из двух вечеров — это пересказ двух вечеров, а не неделя.
+     * Уже собран — не пересобирается: понедельничный взгляд не должен менять
+     * воскресную память.
+     *
+     * @return текст итога, если он собрался сейчас
+     */
+    suspend fun buildWeekRecap(today: LocalDate = LocalDate.now()): String? {
+        val monday = today.with(java.time.DayOfWeek.MONDAY)
+        if (db.weekRecaps().byWeek(monday.toString()) != null) return null
+
+        val days = db.days().between(monday.toString(), monday.plusDays(6).toString())
+            .filter { !it.transcript.isNullOrBlank() }
+        if (days.size < WEEK_RECAP_MIN_DAYS) return null
+
+        val text = llm()?.weekRecap(days.map { it.date to it.transcript.orEmpty() }) ?: return null
+        db.weekRecaps().insert(
+            WeekRecapEntity(
+                weekStart = monday.toString(),
+                text = text,
+                createdAt = Instant.now().toEpochMilli(),
+            )
+        )
+        analytics.log("week_recap", mapOf("week" to monday.toString(), "days" to days.size))
+        return text
+    }
+
+    /**
+     * «В план» (Р-18.4, макеты 11d–11e): закрытый пункт снова живой.
+     *
+     * Граница правила «закрытое неприкосновенно» проведена дизайнером:
+     * неприкосновенны **слова** — текст, источник в речи и история не меняются
+     * никогда. Состояние — не слово: закрыл сам, сам и передумал.
+     *
+     * Возвращается **без срока**: прежний срок в прошлом, а ближайшее окно
+     * продукт выдумал бы сам — расписание в этом продукте назначает только
+     * речь. Возврат — не стирание, а событие: «сделал» остаётся в истории,
+     * под ним встаёт «вернул в план».
+     *
+     * @return прежнее состояние — для отката из снекбара
+     */
+    suspend fun reviveItem(itemId: String): ItemState? {
+        val item = db.items().byId(itemId) ?: return null
+        val state = ItemState.of(item.state)
+        if (state !in setOf(ItemState.DONE, ItemState.DISMISSED, ItemState.EXPIRED)) return null
+        // Повتору «В план» не нужен: сделанный повтор и так уходит в «вернусь».
+        if (item.repeatRule != null) return null
+
+        db.items().update(
+            item.copy(
+                state = ItemState.PLANNED.wire,
+                dueKind = DueKind.NONE.wire,
+                window = null,
+                dueAt = null,
+                revivedAt = Instant.now().toEpochMilli(),
+            )
+        )
+        analytics.log("item_revived", mapOf("item" to itemId, "from" to state.wire))
+        return state
+    }
+
+    /** Откат «В план» из снекбара: пункт закрывается обратно тем же словом. */
+    suspend fun unreviveItem(itemId: String, back: ItemState) {
+        val item = db.items().byId(itemId) ?: return
+        db.items().update(item.copy(state = back.wire, revivedAt = null))
+    }
+
+    /** Меньше трёх дней — не неделя (решение дизайнера, 12e). */
+    private val WEEK_RECAP_MIN_DAYS = 3
 
     // --- возвраты ---
 

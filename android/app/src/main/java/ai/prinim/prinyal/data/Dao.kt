@@ -292,6 +292,41 @@ interface ReplacementDao {
 }
 
 @Dao
+interface DayDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(entity: DayEntity)
+
+    @Update
+    suspend fun update(entity: DayEntity)
+
+    @Query("SELECT * FROM days WHERE date = :date")
+    suspend fun byDate(date: String): DayEntity?
+
+    @Query("SELECT * FROM days ORDER BY date DESC")
+    fun watch(): Flow<List<DayEntity>>
+
+    @Query("SELECT * FROM days WHERE date >= :from AND date <= :to ORDER BY date ASC")
+    suspend fun between(from: String, to: String): List<DayEntity>
+
+    @Query("SELECT COUNT(*) FROM days WHERE date >= :from AND date <= :to")
+    suspend fun countBetween(from: String, to: String): Int
+}
+
+@Dao
+interface WeekRecapDao {
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(entity: WeekRecapEntity)
+
+    @Query("SELECT * FROM week_recaps WHERE week_start = :weekStart")
+    suspend fun byWeek(weekStart: String): WeekRecapEntity?
+
+    @Query("SELECT * FROM week_recaps WHERE week_start = :weekStart")
+    fun watch(weekStart: String): Flow<WeekRecapEntity?>
+}
+
+@Dao
 interface SegmentDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

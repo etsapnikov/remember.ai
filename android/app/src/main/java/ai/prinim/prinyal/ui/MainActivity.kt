@@ -55,6 +55,7 @@ class MainActivity : ComponentActivity() {
                 var route by remember {
                     mutableStateOf<Route>(
                         when {
+                            intent.getBooleanExtra(EXTRA_OPEN_WEEKLY, false) -> Route.Weekly
                             openNoteId != null -> Route.Note(openNoteId)
                             // Голосом собранный пак открывает выбор записей, а
                             // не готовый файл (Д-28).
@@ -85,6 +86,10 @@ class MainActivity : ComponentActivity() {
                         }
                         return@LaunchedEffect
                     }
+                    if (fresh.getBooleanExtra(EXTRA_OPEN_WEEKLY, false)) {
+                        route = Route.Weekly
+                        return@LaunchedEffect
+                    }
                     fresh.getStringExtra(EXTRA_PACK_TOPIC)?.let { topic ->
                         vm.openPackPickByTopic(topic)
                         route = Route.PackPick(topic)
@@ -101,6 +106,9 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_PACK_TOPIC = "pack_topic"
 
         const val EXTRA_NOTE_ID = "note_id"
+
+        /** «Готов итог недели» (Р-18.3): уведомление ведёт в «Неделю». */
+        const val EXTRA_OPEN_WEEKLY = "open_weekly"
 
         /**
          * Вернулись из ответа на вопрос — разговор продолжается.
@@ -119,6 +127,9 @@ sealed interface Route {
     data object Weekly : Route
     /** Список разделов — третья поверхность (Д-1). */
     data object Topics : Route
+
+    /** «Дни» (Р-18.1) — вечерние ответы, четвёртая поверхность. */
+    data object Days : Route
     /** Заметки одного раздела. `id == null` — «Без раздела». */
     data class Topic(val id: String?, val name: String) : Route
 

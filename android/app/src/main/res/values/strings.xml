@@ -20,6 +20,36 @@
 
     <!-- Квитанция. Точка — часть бренда: знак спокойной завершённости. -->
     <string name="receipt">Запомнил.</string>
+    <!-- «Дни» (Р-18). Квитанция дня — единственное место, где путь ответа
+         назван словом: запись уходит в «Дни», не в ленту. -->
+    <string name="receipt_day">Записал день.</string>
+    <string name="day_plate">про день</string>
+    <string name="day_question">Что сегодня было самым главным?</string>
+    <string name="week_recap_ready">Готов итог недели</string>
+    <string name="channel_day">Вечерний вопрос</string>
+    <string name="days_title">Дни</string>
+    <string name="day_said">Что сказал</string>
+    <string name="days_empty_title">Пока ни одного дня.</string>
+    <string name="days_empty_body">Вечером спрошу, что было главным. Что ответишь — то и встанет сюда строкой.</string>
+    <string name="week_recap_heading">ИТОГ НЕДЕЛИ</string>
+    <string name="week_told_evenings">Рассказано вечеров</string>
+    <string name="set_bedtime">Перед сном</string>
+    <!-- «В план» (Р-18.4): закрытое возвращается. Не «вернуть» — оно занято
+         откатом во всех снекбарах, и пара «сделал · вернуть» сломалась бы. -->
+    <string name="item_revive">В план</string>
+    <string name="item_revive_hint">снова живое, без срока</string>
+    <string name="item_revive_hint_note">снова живое, без срока · запись вернётся в ленту</string>
+    <string name="item_revived_undo">Снова в плане · вернуть</string>
+    <string name="history_revived">вернул в план</string>
+    <!-- Поиск (Р-18.5): строки из макета 11c, слово в слово. -->
+    <string name="search_hint">Найти</string>
+    <string name="search_cancel">отмена</string>
+    <string name="search_idle_title">Ищу по твоим словам.</string>
+    <string name="search_idle_body">По расшифровкам — так, как ты сказал, а не так, как я переписал. Ищи теми словами, которыми говорил.</string>
+    <string name="search_empty_title">Такого слова у тебя нет.</string>
+    <string name="search_empty_body">Может, ты сказал это иначе — попробуй другое слово из той же мысли.</string>
+    <string name="search_state_none">без пунктов</string>
+    <string name="set_bedtime_hint">Спрошу один раз, что было главным за день. Не ответишь — промолчу до завтра.</string>
 
     <!-- Захват -->
     <string name="capture_hint">Говорите</string>

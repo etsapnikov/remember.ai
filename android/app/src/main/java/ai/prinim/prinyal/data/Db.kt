@@ -19,8 +19,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         LinkEntity::class,
         QuestionEntity::class,
         PersonNote::class,
+        DayEntity::class,
+        WeekRecapEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = true,
 )
 abstract class PrinyalDb : RoomDatabase() {
@@ -33,6 +35,8 @@ abstract class PrinyalDb : RoomDatabase() {
     abstract fun people(): PersonDao
     abstract fun links(): LinkDao
     abstract fun questions(): QuestionDao
+    abstract fun days(): DayDao
+    abstract fun weekRecaps(): WeekRecapDao
 
     companion object {
         @Volatile
@@ -260,10 +264,31 @@ abstract class PrinyalDb : RoomDatabase() {
             }
         }
 
+        /** v13 → v14: «Дни» (Р-18.1), итог недели (Р-18.3), «В план» (Р-18.4). */
+        private val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS days (" +
+                        "date TEXT NOT NULL PRIMARY KEY, " +
+                        "audio_path TEXT NOT NULL, " +
+                        "transcript TEXT, line TEXT, " +
+                        "duration_ms INTEGER NOT NULL DEFAULT 0, " +
+                        "created_at INTEGER NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS week_recaps (" +
+                        "week_start TEXT NOT NULL PRIMARY KEY, " +
+                        "text TEXT NOT NULL, " +
+                        "created_at INTEGER NOT NULL)"
+                )
+                db.execSQL("ALTER TABLE items ADD COLUMN revived_at INTEGER DEFAULT NULL")
+            }
+        }
+
         private fun build(context: Context): PrinyalDb =
             Room.databaseBuilder(context, PrinyalDb::class.java, "prinyal.db")
                 // Destructive-падения нет намеренно: dogfood-корпус терять нельзя.
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
                 .build()
 
         /** Только для тестов. */

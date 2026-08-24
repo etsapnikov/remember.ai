@@ -31,7 +31,7 @@ class PrinyalApp : Application() {
     val returnScheduler: ReturnScheduler by lazy { ReturnScheduler(this) }
 
     val repository: NoteRepository by lazy {
-        NoteRepository(db, settings, analytics, returnScheduler)
+        NoteRepository(db, settings, analytics, returnScheduler, llm = { llm })
     }
 
     @Volatile
@@ -87,6 +87,12 @@ class PrinyalApp : Application() {
         // Первым делом: падение при старте — тоже падение, и оно самое частое.
         crashes.install()
         Notifications.ensureChannels(this)
+        ai.prinim.prinyal.returns.DayAsk.ensureChannel(this)
+        // Вечерний вопрос и итог недели: алармы одноразовые, пересбор на каждом
+        // старте — та же страховка, что у возвратов.
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            ai.prinim.prinyal.returns.DayAsk.schedule(this@PrinyalApp, settings.bedtimeNow())
+        }
         // Страховка возвратов (Р-8): прошивка душит алармы, воркер догоняет.
         ai.prinim.prinyal.returns.ReturnCatchUpWorker.ensureScheduled(this)
 

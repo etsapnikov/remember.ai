@@ -168,6 +168,8 @@ class BootReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 app.repository.rescheduleAll()
+                // Вечерний вопрос — тоже аларм, и тоже не переживает перезагрузку.
+                DayAsk.schedule(context, app.settings.bedtimeNow())
 
                 // Пропущенные, пока телефон был выключен, не выбрасываем: показываем
                 // сразу — лучше поздно, чем молча.

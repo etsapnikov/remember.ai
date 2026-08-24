@@ -159,6 +159,17 @@ class Settings(private val context: Context) {
         context.dataStore.edit { it[booleanPreferencesKey("people_backfilled")] = true }
     }
 
+    /** «Перед сном» (Р-18.1): когда спрашивать про день. Не вечернее окно — оно для дел. */
+    val bedtime: Flow<LocalTime> = context.dataStore.data.map {
+        parse(it[BEDTIME], LocalTime.of(21, 30))
+    }
+
+    suspend fun bedtimeNow(): LocalTime = bedtime.first()
+
+    suspend fun setBedtime(time: LocalTime) {
+        context.dataStore.edit { it[BEDTIME] = time.toString() }
+    }
+
     suspend fun setWindow(window: Window, time: LocalTime) {
         val key = when (window) {
             Window.MORNING, Window.TOMORROW_MORNING -> W_MORNING
@@ -184,6 +195,7 @@ class Settings(private val context: Context) {
         private const val KEY_DEEPSEEK = "deepseek_key"
         const val DEFAULT_SILENCE_THRESHOLD = 900
 
+        private val BEDTIME = stringPreferencesKey("bedtime")
         private val SERVER_URL = stringPreferencesKey("server_url")
         private val LLM_ENABLED = booleanPreferencesKey("llm_enabled")
         private val SILENCE_THRESHOLD = intPreferencesKey("silence_threshold")

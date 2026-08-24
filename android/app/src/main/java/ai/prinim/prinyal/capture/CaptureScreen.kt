@@ -48,6 +48,13 @@ class CaptureState {
     var showCancelHint by mutableStateOf(true)
     var showUpHint by mutableStateOf(true)
     var receipt by mutableStateOf(false)
+
+    /** «Записал день.» вместо «Запомнил.»: единственная запись вне ленты обязана
+     * сказать об этом словом — больше негде (12c). */
+    var receiptDay by mutableStateOf(false)
+
+    /** Плашка «про день» печатается как есть, без «дописываю». */
+    var dayPlate by mutableStateOf(false)
     var needsPermission by mutableStateOf(false)
     var failed by mutableStateOf(false)
     var tooShort by mutableStateOf(false)
@@ -96,7 +103,7 @@ fun CaptureScreen(
         contentAlignment = Alignment.Center,
     ) {
         when {
-            state.receipt -> Receipt()
+            state.receipt -> Receipt(day = state.receiptDay)
             state.needsPermission -> PermissionRequest(onGrant)
             state.failed -> Message(stringResource(R.string.error_asr_failed))
             state.tooShort -> Message(stringResource(R.string.capture_too_short))
@@ -108,10 +115,13 @@ fun CaptureScreen(
         // дописать, и переспрашивать его на экране записи не за чем.
         state.appendHint?.let { hint ->
             MetaText(
-                text = if (hint.isBlank()) {
-                    stringResource(R.string.capture_append_plain)
-                } else {
-                    stringResource(R.string.capture_append, hint)
+                text = when {
+                    // Ответ про день — не дописывание: слово «дописываю»
+                    // обещало бы, что речь приклеится к чужой записи, а она
+                    // уходит в «Дни» отдельной строкой (Р-18.1).
+                    state.receiptDay || state.dayPlate -> hint
+                    hint.isBlank() -> stringResource(R.string.capture_append_plain)
+                    else -> stringResource(R.string.capture_append, hint)
                 },
                 color = Prinyal.colors.inkFaint,
                 modifier = Modifier
@@ -128,7 +138,7 @@ fun CaptureScreen(
  * (моушн `receipt` + `noteAway` из токенов). Анимация одноразовая: экран живёт 0.6 с.
  */
 @Composable
-private fun Receipt() {
+private fun Receipt(day: Boolean = false) {
     val appear = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
         appear.animateTo(
@@ -138,7 +148,7 @@ private fun Receipt() {
     }
 
     Text(
-        text = stringResource(R.string.receipt),
+        text = stringResource(if (day) R.string.receipt_day else R.string.receipt),
         style = Prinyal.type.display,
         color = Prinyal.colors.accentSelf,
         modifier = Modifier.graphicsLayer {

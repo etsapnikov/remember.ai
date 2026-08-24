@@ -244,6 +244,73 @@ class DeepSeekClient(
     }
 
     /**
+     * Строка дня и обещание внутри ответа (Р-18.2).
+     *
+     * Ошибка модели здесь не роняет день: строка соберётся кодом из начала
+     * ответа, обещание в худшем случае останется в тексте дня — он виден
+     * целиком в раскрытии.
+     */
+    fun day(transcript: String): DayResult? {
+        if (apiKey.isBlank()) return null
+        val payload = JSONObject().apply {
+            put("model", model)
+            put("messages", JSONArray().apply {
+                put(JSONObject().put("role", "system").put("content", Prompt.DAY))
+                put(JSONObject().put("role", "user").put("content", "Ответ:\n$transcript"))
+            })
+            put("temperature", 0.2)
+            put("max_tokens", MAX_TOKENS)
+            put("response_format", JSONObject().put("type", "json_object"))
+            put("stream", false)
+            // Вечером человек ждёт квитанцию стоя — рассуждения не нужны,
+            // задача выборочная, не логическая (Р-16.1).
+            put("thinking", JSONObject().put("type", "disabled"))
+        }
+        val response = runCatching { post(payload) }.getOrNull() ?: return null
+        account("day", response)
+        if (response.code != 200) return null
+        val text = response.body
+            ?.optJSONArray("choices")?.optJSONObject(0)
+            ?.optJSONObject("message")?.optString("content")
+            .orEmpty()
+        val json = runCatching { JSONObject(text) }.getOrNull() ?: return null
+        return DayResult(
+            line = json.optString("line").takeIf { !json.isNull("line") && it.isNotBlank() },
+            task = json.optString("task").takeIf { !json.isNull("task") && it.isNotBlank() },
+        )
+    }
+
+    data class DayResult(val line: String?, val task: String?)
+
+    /** Итог недели (Р-18.3). Null — не собрался; итог не переписывается, ждём. */
+    fun weekRecap(days: List<Pair<String, String>>): String? {
+        if (apiKey.isBlank()) return null
+        val user = buildString {
+            append("Ответы за неделю:\n")
+            days.forEach { (date, text) -> append(date).append(": ").append(text).append('\n') }
+        }
+        val payload = JSONObject().apply {
+            put("model", model)
+            put("messages", JSONArray().apply {
+                put(JSONObject().put("role", "system").put("content", Prompt.WEEK_RECAP))
+                put(JSONObject().put("role", "user").put("content", user))
+            })
+            put("temperature", 0.3)
+            put("max_tokens", MAX_TOKENS)
+            put("stream", false)
+            put("thinking", JSONObject().put("type", "disabled"))
+        }
+        val response = runCatching { post(payload) }.getOrNull() ?: return null
+        account("week_recap", response)
+        if (response.code != 200) return null
+        return response.body
+            ?.optJSONArray("choices")?.optJSONObject(0)
+            ?.optJSONObject("message")?.optString("content")
+            .orEmpty().trim().trim('"', '«', '»')
+            .takeIf { it.isNotBlank() }
+    }
+
+    /**
      * Что добавил разговор (Р-16.3).
      *
      * Возвращает **только новый блок**, а не пересобранное «Собрано»: старый

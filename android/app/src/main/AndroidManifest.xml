@@ -89,6 +89,10 @@
             android:exported="false" />
 
         <receiver
+            android:name=".returns.DayAskReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".returns.BootReceiver"
             android:exported="false">
             <intent-filter>

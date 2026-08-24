@@ -77,6 +77,8 @@ fun SettingsScreen(vm: AppViewModel) {
 
     val scheduler = remember { ReturnScheduler(context) }
     var editingWindow by remember { mutableStateOf<Window?>(null) }
+    var editingBedtime by remember { mutableStateOf(false) }
+    val bedtime by vm.bedtime.collectAsState()
 
     LazyColumn(
         state = rememberLazyListState(),
@@ -99,6 +101,16 @@ fun SettingsScreen(vm: AppViewModel) {
                 WindowRow(stringResource(R.string.settings_window_weekend), windows.weekend) {
                     editingWindow = Window.WEEKEND
                 }
+                // «Перед сном» (Р-18.1) — четвёртая строка в той же секции, не
+                // новая секция. Вечернее окно 19:30 остаётся про дела; «перед
+                // сном» — про день, и это разные вещи, поэтому и время разное.
+                WindowRow(stringResource(R.string.set_bedtime), bedtime) {
+                    editingBedtime = true
+                }
+                MetaText(
+                    stringResource(R.string.set_bedtime_hint),
+                    color = Prinyal.colors.inkFaint,
+                )
             }
         }
 
@@ -339,6 +351,17 @@ fun SettingsScreen(vm: AppViewModel) {
         if (BuildConfig.DEBUG) {
             item { DeveloperSection(vm, threshold) }
         }
+    }
+
+    if (editingBedtime) {
+        TimeWheelDialog(
+            current = bedtime,
+            onDismiss = { editingBedtime = false },
+            onPick = { picked ->
+                editingBedtime = false
+                vm.setBedtime(picked)
+            },
+        )
     }
 
     editingWindow?.let { window ->

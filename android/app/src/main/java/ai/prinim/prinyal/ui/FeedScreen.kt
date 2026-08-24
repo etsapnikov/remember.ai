@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.HorizontalDivider
 import ai.prinim.prinyal.domain.FeedView
@@ -50,7 +51,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -122,6 +127,14 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
         }
 
         // Строка фильтра (Д-25) — вторая строка шапки и только на «Записях».
+        // Поиск открыт — лента уступает место выдаче, фильтр уходит: два
+        // способа отбирать записи одновременно не работают (макет 11a).
+        val searchQuery by vm.searchQuery.collectAsState()
+        if (searchQuery != null) {
+            SearchResults(vm, query = searchQuery.orEmpty(), onOpenNote = onOpenNote)
+            return@Column
+        }
+
         FilterRow(filter, onPick = { vm.setFeedFilter(it) })
 
         // Лента — единственный экран, который умеет показать запись дважды:
@@ -666,3 +679,143 @@ private fun formatTime(millis: Long): String = Dates.dayTime(millis)
 
 private fun formatDuration(ms: Long): String? =
     if (ms <= 0) null else "%d:%02d".format(ms / 60_000, (ms / 1000) % 60)
+
+
+/**
+ * Выдача поиска (Р-18.5, макет 11b): расшифровка целиком с подсветкой.
+ *
+ * 176 знаков — реплика, а не документ: человек ищет свои слова и видит их в
+ * своей фразе. Закрытое стоит рядом с живым и не приглушено — приглушение
+ * значит «сейчас не участвует», а в выдаче участвует всё.
+ */
+@Composable
+private fun SearchResults(vm: AppViewModel, query: String, onOpenNote: (String) -> Unit) {
+    val results by vm.searchResults.collectAsState()
+    val topicNames by vm.topics.collectAsState()
+    val names = remember(topicNames) { topicNames.associate { it.id to it.name } }
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    when {
+        query.isBlank() -> SearchHintScreen(
+            R.string.search_idle_title, R.string.search_idle_body,
+        )
+
+        results.isEmpty() -> SearchHintScreen(
+            R.string.search_empty_title, R.string.search_empty_body,
+        )
+
+        else -> LazyColumn(contentPadding = PaddingValues(top = Space.xs, bottom = Space.xxl)) {
+            item(key = "search-count") {
+                MetaText(
+                    text = pluralStringResource(
+                        R.plurals.feed_summary_notes, results.size, results.size,
+                    ),
+                    color = Prinyal.colors.inkFaint,
+                    modifier = Modifier
+                        .padding(horizontal = Space.screen)
+                        .padding(bottom = Space.s),
+                )
+            }
+            items(results, key = { it.entry.note.id }) { result ->
+                SearchRow(
+                    result = result,
+                    topicName = result.entry.note.topicId?.let { names[it] },
+                    onClick = { onOpenNote(result.entry.note.id) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchRow(
+    result: ai.prinim.prinyal.domain.NoteSearch.Result,
+    topicName: String?,
+    onClick: () -> Unit,
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val highlight = Prinyal.colors.accentSelfSoft
+    val note = result.entry.note
+    val transcript = note.transcript.orEmpty()
+
+    // Состояние — справка, а не сигнал: словами, без зачёркивания и зелёного.
+    val live = result.entry.items.count { ItemState.of(it.state) in setOf(
+        ItemState.PLANNED, ItemState.RETURNED, ItemState.SNOOZED,
+    ) }
+    val gone = result.entry.items.count {
+        ItemState.of(it.state) in setOf(ItemState.DISMISSED, ItemState.EXPIRED)
+    }
+    val stateWord = when {
+        result.entry.items.isEmpty() -> stringResource(R.string.search_state_none)
+        live > 0 -> "$live в плане"
+        gone > 0 && gone == result.entry.items.size -> "всё похоронено"
+        gone > 0 -> "$gone похоронено"
+        else -> "всё сделано"
+    }
+
+    // Потолок — шесть строк, обрыв только после совпадения: слово, которое
+    // искали, видно всегда (11b — единственный случай обрезки в выдаче).
+    val annotated = remember(transcript, result.spans) {
+        buildAnnotatedString {
+            var cursor = 0
+            result.spans.forEach { span ->
+                if (span.first < cursor) return@forEach
+                append(transcript.substring(cursor, span.first))
+                withStyle(SpanStyle(background = highlight)) {
+                    append(transcript.substring(span.first, span.last + 1))
+                }
+                cursor = span.last + 1
+            }
+            append(transcript.substring(cursor))
+        }
+    }
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = Space.screen)
+            .padding(bottom = Space.ml),
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                MetaText(Dates.day(note.createdAt))
+                topicName?.let { MetaText(it, color = Prinyal.colors.inkFaint, maxLines = 1) }
+            }
+            MetaText(stateWord, color = Prinyal.colors.inkFaint)
+        }
+        Text(
+            text = annotated,
+            style = Prinyal.type.body,
+            color = Prinyal.colors.ink,
+            maxLines = 6,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 2.dp),
+        )
+    }
+}
+
+@Composable
+private fun SearchHintScreen(title: Int, body: Int) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(horizontal = Space.xl)
+            .padding(top = Space.xxl),
+    ) {
+        Text(
+            text = stringResource(title),
+            style = Prinyal.type.voice,
+            color = Prinyal.colors.inkMuted,
+        )
+        Text(
+            text = stringResource(body),
+            style = Prinyal.type.voice,
+            color = Prinyal.colors.inkFaint,
+            modifier = Modifier.padding(top = Space.s),
+        )
+    }
+}
