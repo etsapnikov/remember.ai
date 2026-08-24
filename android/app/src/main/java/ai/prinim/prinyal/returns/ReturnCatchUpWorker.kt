@@ -34,6 +34,15 @@ class ReturnCatchUpWorker(
         // вопрос, жив ли страховочный воркер вообще — прошивка душит и его.
         ReturnDiag.log(applicationContext, "—", ReturnDiag.CATCHUP, mapOf("why" to "заход"))
 
+        // Заодно страхуем вечерний вопрос (Р-22.2).
+        //
+        // У возвратов страховка была с самого начала — у «Дней» её не было
+        // вовсе, и вопрос держался на одном аларме. Аларм переставляется при
+        // каждом запуске приложения: три деплоя подряд после 21:30 — и вопрос
+        // молча уехал на завтра. На прошивке Honor, которая душит алармы, то же
+        // самое случится и без деплоев.
+        catchUpDayAsk(app)
+
         app.db.returns().due(now).forEach { entity ->
             val item = app.db.items().byId(entity.itemId) ?: return@forEach
             Notifications.showReturn(
@@ -50,6 +59,29 @@ class ReturnCatchUpWorker(
         }
         return Result.success()
     }
+
+    /**
+     * Спросить про день, если время пришло, а вопроса не было.
+     *
+     * Правила те же, что у самого вопроса: один раз за вечер, до полуночи, и
+     * только если человек ещё не рассказал. После полуночи не спрашиваем —
+     * вопрос про сегодня, а сегодня уже кончилось.
+     */
+    private suspend fun catchUpDayAsk(app: ai.prinim.prinyal.PrinyalApp) {
+        val zone = java.time.ZoneId.systemDefault()
+        val now = java.time.LocalDateTime.now(zone)
+        val bedtime = app.settings.bedtimeNow()
+        if (now.toLocalTime() < bedtime) return
+
+        val today = now.toLocalDate().toString()
+        if (app.db.days().byDate(today) != null) return
+        if (app.settings.dayAskedOn() == today) return
+
+        app.settings.setDayAskedOn(today)
+        DayAsk.showAsk(applicationContext)
+        app.analytics.log("day_asked", mapOf("date" to today, "via" to "страховка"))
+    }
+
 
     companion object {
         private const val WORK_NAME = "prinyal_return_catchup"

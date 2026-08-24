@@ -159,6 +159,19 @@ class Settings(private val context: Context) {
         context.dataStore.edit { it[booleanPreferencesKey("people_backfilled")] = true }
     }
 
+    /**
+     * В какой день уже спрашивали про вечер (Р-22.2).
+     *
+     * Общая отметка для аларма и страховочного воркера: без неё они спросили бы
+     * дважды за вечер, а второй вопрос за вечер продукт себе запретил.
+     */
+    suspend fun dayAskedOn(): String =
+        context.dataStore.data.map { it[DAY_ASKED_ON].orEmpty() }.first()
+
+    suspend fun setDayAskedOn(date: String) {
+        context.dataStore.edit { it[DAY_ASKED_ON] = date }
+    }
+
     /** «Перед сном» (Р-18.1): когда спрашивать про день. Не вечернее окно — оно для дел. */
     val bedtime: Flow<LocalTime> = context.dataStore.data.map {
         parse(it[BEDTIME], LocalTime.of(21, 30))
@@ -208,6 +221,7 @@ class Settings(private val context: Context) {
         const val DEFAULT_SILENCE_THRESHOLD = 900
 
         private val BEDTIME = stringPreferencesKey("bedtime")
+        private val DAY_ASKED_ON = stringPreferencesKey("day_asked_on")
         private val SERVER_URL = stringPreferencesKey("server_url")
         private val LLM_ENABLED = booleanPreferencesKey("llm_enabled")
         private val SILENCE_THRESHOLD = intPreferencesKey("silence_threshold")

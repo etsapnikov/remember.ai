@@ -38,11 +38,15 @@ object DayAsk {
 
         val ask = now.toLocalDate().atTime(bedtime)
             .let { if (it.isAfter(now)) it else it.plusDays(1) }
-        alarms.setAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            ask.atZone(zone).toInstant().toEpochMilli(),
-            intent(context, ACTION_ASK),
-        )
+        // Точный, как у возвратов: неточный аларм давал окно в час, и вопрос
+        // «перед сном» мог прийти в половине одиннадцатого — то есть уже не
+        // перед сном (Р-22.2).
+        val at = ask.atZone(zone).toInstant().toEpochMilli()
+        if (canScheduleExact(alarms)) {
+            alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent(context, ACTION_ASK))
+        } else {
+            alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent(context, ACTION_ASK))
+        }
 
         // Итог — воскресенье, через полчаса после вопроса: последнее
         // впечатление недели должно попасть внутрь итога (решение дизайнера).
@@ -56,6 +60,13 @@ object DayAsk {
             intent(context, ACTION_RECAP),
         )
     }
+
+    private fun canScheduleExact(alarms: AlarmManager): Boolean =
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            alarms.canScheduleExactAlarms()
+        } else {
+            true
+        }
 
     private fun intent(context: Context, action: String): PendingIntent =
         PendingIntent.getBroadcast(
@@ -91,6 +102,9 @@ object DayAsk {
         )
         val notification = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_note)
+            // Цветная иконка приложения — чтобы на часах был наш знак, а не
+            // дефолтная заглушка (Р-22.1).
+            .setLargeIcon(Notifications.appIconFor(context))
             .setContentTitle(context.getString(R.string.day_question))
             .setContentIntent(open)
             .setAutoCancel(true)
@@ -112,6 +126,7 @@ object DayAsk {
         )
         val notification = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_note)
+            .setLargeIcon(Notifications.appIconFor(context))
             .setContentTitle(context.getString(R.string.week_recap_ready))
             .setContentIntent(open)
             .setAutoCancel(true)

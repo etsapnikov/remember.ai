@@ -26,10 +26,15 @@ class DayAskReceiver : BroadcastReceiver() {
                         // Уже ответил сегодня (открыл «Дни» руками и наговорил
                         // раньше вопроса) — не спрашиваем второй раз.
                         val today = java.time.LocalDate.now().toString()
-                        if (app.db.days().byDate(today) == null) {
+                        // Отметка общая со страховкой: иначе аларм и воркер
+                        // спросят дважды за вечер (Р-22.2).
+                        if (app.db.days().byDate(today) == null &&
+                            app.settings.dayAskedOn() != today
+                        ) {
+                            app.settings.setDayAskedOn(today)
                             DayAsk.showAsk(context)
+                            app.analytics.log("day_asked", mapOf("date" to today, "via" to "аларм"))
                         }
-                        app.analytics.log("day_asked", mapOf("date" to today))
                     }
 
                     DayAsk.ACTION_RECAP -> app.repository.buildWeekRecap()?.let {

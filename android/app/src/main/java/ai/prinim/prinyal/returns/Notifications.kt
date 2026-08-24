@@ -307,8 +307,38 @@ object Notifications {
         }
     }
 
+    /**
+     * Цветная иконка приложения — для часов (Р-22.1).
+     *
+     * Часы рисуют мостовое уведомление **силуэтом** small icon: от картинки
+     * остаётся альфа-маска, а если иконку не удалось разобрать — дефолтная
+     * заглушка. Именно её владелец и видел, хотя в шторке телефона наш знак
+     * стоял правильно.
+     *
+     * Через large icon картинка доезжает целиком и в цвете — так это делают
+     * мессенджеры, у которых на часах видна их собственная иконка.
+     */
+    @Volatile
+    private var appIconCache: android.graphics.Bitmap? = null
+
+    /** Та же иконка нужна вечернему вопросу — он строится своим билдером. */
+    fun appIconFor(context: Context): android.graphics.Bitmap? = appIcon(context)
+
+    private fun appIcon(context: Context): android.graphics.Bitmap? =
+        appIconCache ?: runCatching {
+            val size = context.resources.getDimensionPixelSize(
+                android.R.dimen.notification_large_icon_width
+            ).coerceIn(64, 256)
+            val drawable = context.packageManager.getApplicationIcon(context.packageName)
+            val bitmap = createBitmap(size, size)
+            drawable.setBounds(0, 0, size, size)
+            drawable.draw(android.graphics.Canvas(bitmap))
+            bitmap
+        }.getOrNull()?.also { appIconCache = it }
+
     private fun base(context: Context, channel: String): NotificationCompat.Builder =
         NotificationCompat.Builder(context, channel)
+            .setLargeIcon(appIcon(context))
             // Вектор с альфа-маской (Р-3): PNG без альфы был невидим в статус-баре.
             .setSmallIcon(icon(context))
             // Акцент «это он мне принёс»: по цвету нашу карточку находят в чужой
