@@ -304,13 +304,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * человек и записывает. Отдельной формы для факта нет: продукт слушает, а
      * не анкетирует.
      */
-    fun tellAbout(context: android.content.Context, name: String) {
+    fun tellAbout(context: android.content.Context, name: String, personId: String? = null) {
         context.startActivity(
             android.content.Intent(
                 context,
                 ai.prinim.prinyal.capture.CaptureActivity::class.java,
             ).apply {
                 putExtra(ai.prinim.prinyal.capture.CaptureActivity.EXTRA_ABOUT, name)
+                personId?.let {
+                    putExtra(ai.prinim.prinyal.capture.CaptureActivity.EXTRA_ABOUT_ID, it)
+                }
                 addFlags(
                     android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
                         android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -923,6 +926,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _undo.value = UndoEvent(UndoMessage.ItemRevived) {
             app.repository.unreviveItem(itemId, was)
         }
+    }
+
+    /** «Прекратить» (Р-21.2): выход из разговора, и ничего больше. */
+    fun stopInterview(noteId: String) = viewModelScope.launch {
+        withContext(Dispatchers.IO) {
+            app.db.notes().setInterview(
+                noteId,
+                ai.prinim.prinyal.data.InterviewState.NONE.wire,
+            )
+        }
+        app.analytics.log("interview_stop", mapOf("note" to noteId))
     }
 
     /** Последний вопрос разговора (Р-21.1) — из базы, не из памяти. */

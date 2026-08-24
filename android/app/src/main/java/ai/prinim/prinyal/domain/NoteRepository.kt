@@ -1003,6 +1003,11 @@ class NoteRepository(
         analytics.log("person_fact", mapOf("person" to personId, "note" to noteId))
     }
 
+    /** Факты из рассказа о человеке (Р-21.4) — тем же путём, что из речи. */
+    suspend fun rememberTold(personId: String, facts: List<String>) {
+        facts.forEach { rememberFact(personId, it, noteId = "") }
+    }
+
     /** Три факта — знание, четыре — досье (макет 13a). */
     private val MAX_FACTS = 3
 

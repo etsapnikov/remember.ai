@@ -271,11 +271,16 @@ fun NoteScreen(
                         // отдельной сущностью «ответ на вопрос». Флаг «asking»
                         // возвращает человека сюда же, а не на рабочий стол.
                         onAnswer = { openAppend(context, noteId, asking = true) },
-                        // «Закончить» больше не закрывает разговор молча: оно
-                        // спрашивает голосом, что человек сделает первым, и из
-                        // ответа рождается дело (Р-20.2). Свайп вниз на экране
-                        // записи — честная концовка без дела.
+                        // «Прекратить» — тихий выход, и ничего больше (Р-21.2).
+                        // Оно открывало запись с вопросом про первый шаг: человек
+                        // жал «прекратить», а продукт начинал его писать. Выход
+                        // не должен ничего просить.
+                        onStop = { vm.stopInterview(noteId) },
+                        // Превратить разговор в дело — отдельное слово, и только
+                        // когда разговор был: предлагать вывод из разговора,
+                        // которого не случилось, нечего (макет 13c).
                         onFinish = { openFirstStep(context, noteId) },
+                        grown = note.bodyMd?.contains("## Что докрутили") == true,
                     )
                 }
             }
@@ -989,8 +994,11 @@ private fun openAppend(
 private fun Interview(
     question: String?,
     stage: ai.prinim.prinyal.data.InterviewState,
+    /** Был ли хоть один круг: от этого зависит, предлагать ли вывод делом. */
+    grown: Boolean,
     onAsk: () -> Unit,
     onAnswer: () -> Unit,
+    onStop: () -> Unit,
     onFinish: () -> Unit,
 ) {
     when {
@@ -1018,12 +1026,22 @@ private fun Interview(
                 maxLines = 1,
                 modifier = Modifier.tap(onClick = onAnswer),
             )
-            MetaText(
-                text = stringResource(R.string.interview_stop),
-                color = Prinyal.colors.inkMuted,
-                maxLines = 1,
-                modifier = Modifier.tap(onClick = onFinish),
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
+                MetaText(
+                    text = stringResource(R.string.interview_stop),
+                    color = Prinyal.colors.inkMuted,
+                    maxLines = 1,
+                    modifier = Modifier.tap(onClick = onStop),
+                )
+                if (grown) {
+                    MetaText(
+                        text = stringResource(R.string.interview_to_deed),
+                        color = Prinyal.colors.inkMuted,
+                        maxLines = 1,
+                        modifier = Modifier.tap(onClick = onFinish),
+                    )
+                }
+            }
         }
 
         else -> MetaText(

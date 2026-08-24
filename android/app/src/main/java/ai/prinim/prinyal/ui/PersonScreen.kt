@@ -113,6 +113,7 @@ fun PersonScreen(
     vm: AppViewModel,
     personId: String,
     onOpenNote: (String) -> Unit,
+    onPickPack: (String) -> Unit = {},
 ) {
     val notes by vm.notesOfPerson(personId).collectAsState(initial = emptyList())
     val facts by vm.factsOfPerson(personId).collectAsState(initial = emptyList())
@@ -175,7 +176,12 @@ fun PersonScreen(
                     color = Prinyal.colors.accentSelf,
                     maxLines = 1,
                     modifier = Modifier.tap {
-                        vm.contextPackForPerson(personId, person?.name.orEmpty())
+                        // Черновик пака собирался, но экран выбора никто не
+                        // открывал — нажатие уходило в никуда. В разделе
+                        // переход делает вызывающий, и здесь так же.
+                        val name = person?.name.orEmpty()
+                        vm.contextPackForPerson(personId, name)
+                        onPickPack(name)
                     },
                 )
             }
@@ -213,14 +219,17 @@ fun PersonScreen(
                 }
             }
         }
-        if (person != null && facts.isEmpty()) {
+        // «Рассказать» живёт всегда, а не до первого факта: про человека
+        // узнают не один раз, и вход в это не должен исчезать после первого
+        // же рассказа (Р-21.3).
+        if (person != null) {
             // Второй вход для факта (Д-27): доспрос может не сработать вовсе, и
             // тогда рассказать о человеке негде. Тихая ссылка, не анкета.
             item {
                 MetaText(
                     text = stringResource(R.string.person_tell),
                     color = Prinyal.colors.accentSelf,
-                    modifier = Modifier.tap { vm.tellAbout(context, person.name) },
+                    modifier = Modifier.tap { vm.tellAbout(context, person.name, person.id) },
                 )
             }
         }

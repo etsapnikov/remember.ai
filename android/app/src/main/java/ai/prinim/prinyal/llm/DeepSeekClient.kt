@@ -356,6 +356,37 @@ class DeepSeekClient(
 
     data class FirstStep(val text: String, val dueAt: Long?)
 
+    /** Факты из рассказа о человеке (Р-21.4). */
+    fun personTell(name: String, text: String): List<String> {
+        if (apiKey.isBlank()) return emptyList()
+        val payload = JSONObject().apply {
+            put("model", model)
+            put("messages", JSONArray().apply {
+                put(JSONObject().put("role", "system").put("content", Prompt.PERSON_TELL))
+                put(JSONObject().put("role", "user").put("content", "Имя: $name\n\nРассказ:\n$text"))
+            })
+            put("temperature", 0.2)
+            put("max_tokens", MAX_TOKENS)
+            put("response_format", JSONObject().put("type", "json_object"))
+            put("stream", false)
+            put("thinking", JSONObject().put("type", "disabled"))
+        }
+        val response = runCatching { post(payload) }.getOrNull() ?: return emptyList()
+        account("person_tell", response)
+        if (response.code != 200) return emptyList()
+        val raw = response.body
+            ?.optJSONArray("choices")?.optJSONObject(0)
+            ?.optJSONObject("message")?.optString("content").orEmpty()
+        val array = runCatching { JSONObject(raw).optJSONArray("facts") }.getOrNull()
+            ?: return emptyList()
+        return (0 until array.length())
+            .mapNotNull { array.optString(it).trim().takeIf(String::isNotEmpty) }
+            // Слова человека — проверкой: карточка человека это то, что он
+            // сказал, а не то, что модель о нём подумала.
+            .filter { ai.prinim.prinyal.domain.DayLine.wordsFromCorpus(it, text) }
+            .take(3)
+    }
+
     /**
      * Какой из старых фактов отменяет новый (Р-20.1).
      *

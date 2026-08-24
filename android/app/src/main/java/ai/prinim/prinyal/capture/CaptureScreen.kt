@@ -62,6 +62,14 @@ class CaptureState {
      * само дело со сроком. Null — обычная квитанция.
      */
     var receiptStep by mutableStateOf<Pair<Boolean, String?>?>(null)
+
+    /**
+     * Имя человека, про которого рассказали (Р-21.4).
+     *
+     * Квитанция обязана назвать путь словом: рассказ не появится в ленте, и
+     * без «Записал про Веру» человек пойдёт искать его в «Записях».
+     */
+    var receiptAbout by mutableStateOf<String?>(null)
     var needsPermission by mutableStateOf(false)
     var failed by mutableStateOf(false)
     var tooShort by mutableStateOf(false)
@@ -110,7 +118,11 @@ fun CaptureScreen(
         contentAlignment = Alignment.Center,
     ) {
         when {
-            state.receipt -> Receipt(day = state.receiptDay, step = state.receiptStep)
+            state.receipt -> Receipt(
+                day = state.receiptDay,
+                step = state.receiptStep,
+                about = state.receiptAbout,
+            )
             state.needsPermission -> PermissionRequest(onGrant)
             state.failed -> Message(stringResource(R.string.error_asr_failed))
             state.tooShort -> Message(stringResource(R.string.capture_too_short))
@@ -145,7 +157,11 @@ fun CaptureScreen(
  * (моушн `receipt` + `noteAway` из токенов). Анимация одноразовая: экран живёт 0.6 с.
  */
 @Composable
-private fun Receipt(day: Boolean = false, step: Pair<Boolean, String?>? = null) {
+private fun Receipt(
+    day: Boolean = false,
+    step: Pair<Boolean, String?>? = null,
+    about: String? = null,
+) {
     val appear = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
         appear.animateTo(
@@ -158,6 +174,7 @@ private fun Receipt(day: Boolean = false, step: Pair<Boolean, String?>? = null) 
     // квитанция говорит, что произошло, и не оценивает человека. Подкрепление
     // здесь — сам факт, что мысль перестала быть мыслью.
     val words = when {
+        about != null -> stringResource(R.string.receipt_about, about)
         step != null && step.first -> stringResource(R.string.receipt_step)
         step != null -> stringResource(R.string.receipt_talk_done)
         day -> stringResource(R.string.receipt_day)

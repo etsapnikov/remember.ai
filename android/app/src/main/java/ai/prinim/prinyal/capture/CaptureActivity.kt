@@ -222,6 +222,16 @@ class CaptureActivity : ComponentActivity() {
      * его; последние [SilenceWindow.LOCK_MS] необратимы: решение уже принято,
      * дёргать индикатор туда-сюда нечестно.
      */
+    /**
+     * Сколько речи нужно, прежде чем считать тишину.
+     *
+     * У ответа на вопрос порог ниже: он бывает короче трёх секунд целиком
+     * (Р-21.2). У комка порог прежний — он защищает от случайного нажатия.
+     */
+    private fun speechBeforeAutostop(): Long =
+        if (appendTo != null || dayDate != null) Recorder.SPEECH_BEFORE_AUTOSTOP_ANSWER_MS
+        else Recorder.SPEECH_BEFORE_AUTOSTOP_MS
+
     private fun startWatchdog() {
         val settings = PrinyalApp.of(this).settings
         watchdog = lifecycleScope.launch {
@@ -248,7 +258,7 @@ class CaptureActivity : ComponentActivity() {
                 if (wasSpeech && !locked) {
                     speechMs += TICK_MS
                     silenceMs = 0
-                } else if (speechMs >= Recorder.SPEECH_BEFORE_AUTOSTOP_MS) {
+                } else if (speechMs >= speechBeforeAutostop()) {
                     silenceMs += TICK_MS
                 }
 
@@ -299,6 +309,7 @@ class CaptureActivity : ComponentActivity() {
         state.silenceLeftMs = 0
         state.receipt = true
         state.receiptDay = dayDate != null
+        state.receiptAbout = intent.getStringExtra(EXTRA_ABOUT_ID)?.let { about }
         state.appendHint = null
         Haptics.receipt(this)
 
@@ -307,6 +318,18 @@ class CaptureActivity : ComponentActivity() {
         val dayDate = this.dayDate
         lifecycleScope.launch {
             app.analytics.log(Analytics.RECEIPT_SHOWN, mapOf("note" to (appendTo ?: noteId)))
+            // Рассказ о человеке — не заметка: он пополняет карточку, а в
+            // ленте не появляется вовсе (Р-21.4). Человек добавлял контекст о
+            // человеке, а получал заметку с делами, которых не просил.
+            val personId = intent.getStringExtra(EXTRA_ABOUT_ID)
+            if (personId != null) {
+                PersonTellWorker.enqueue(
+                    this@CaptureActivity,
+                    personId,
+                    result.file.absolutePath,
+                )
+                return@launch
+            }
             // Ответ на вечерний вопрос — не заметка: уходит в «Дни», в ленте не
             // живёт, возвратов не порождает (решение владельца, Р-18.1).
             if (dayDate != null) {
@@ -527,6 +550,9 @@ class CaptureActivity : ComponentActivity() {
          * слушает тем же жестом, каким слушает всё остальное.
          */
         const val EXTRA_ABOUT = "about"
+
+        /** Кому пойдут факты рассказа (Р-21.4). Есть — заметка не создаётся. */
+        const val EXTRA_ABOUT_ID = "about_id"
 
         /** Ответ на вечерний вопрос (Р-18.1): ISO-дата дня. */
         const val EXTRA_DAY = "day"
