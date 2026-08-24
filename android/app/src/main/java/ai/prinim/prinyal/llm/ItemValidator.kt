@@ -100,7 +100,7 @@ object ItemValidator {
         return out
     }
 
-    /** Длиннее — это уже досье, а не «что известно». */
+    /** Длина одного факта: фраза, а не абзац. Числа фактов потолок не имеет. */
     private const val MAX_FACT = 160
 
     fun validate(

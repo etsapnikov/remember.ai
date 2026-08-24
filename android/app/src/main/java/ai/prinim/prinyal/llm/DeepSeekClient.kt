@@ -356,7 +356,7 @@ class DeepSeekClient(
 
     data class FirstStep(val text: String, val dueAt: Long?)
 
-    /** Факты из рассказа о человеке (Р-21.4). */
+    /** Факты из рассказа о человеке (Р-21.4). Сколько сказал — столько и берём. */
     fun personTell(name: String, text: String): List<String> {
         if (apiKey.isBlank()) return emptyList()
         val payload = JSONObject().apply {
@@ -384,7 +384,6 @@ class DeepSeekClient(
             // Слова человека — проверкой: карточка человека это то, что он
             // сказал, а не то, что модель о нём подумала.
             .filter { ai.prinim.prinyal.domain.DayLine.wordsFromCorpus(it, text) }
-            .take(3)
     }
 
     /**

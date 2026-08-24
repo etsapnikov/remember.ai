@@ -979,8 +979,15 @@ class NoteRepository(
         // каждом упоминании человека дороже, чем сравнение строк.
         if (known.any { it.text.equals(text, ignoreCase = true) }) return
 
-        if (known.size >= MAX_FACTS) {
-            val stale = llm()?.factConflict(known.map { it.text }, text) ?: return
+        // Потолка нет: про человека можно знать сколько угодно (решение
+        // владельца 24.08). Прежние три были придуманы из опасения, что
+        // карточка превратится в досье, — но досье делает не число фактов, а
+        // их род, и род мы уже ограничили: только то, что человек сказал сам.
+        //
+        // Противоречие всё равно снимаем: «живёт в Пушкино» и «переехала в
+        // Москву» рядом — это не богатое знание, а враньё в карточке. Спрашиваем
+        // модель на каждом новом факте, а не только при переполнении.
+        llm()?.factConflict(known.map { it.text }, text)?.let { stale ->
             db.personFacts().delete(known[stale].id)
         }
         db.personFacts().insert(
@@ -1007,9 +1014,6 @@ class NoteRepository(
     suspend fun rememberTold(personId: String, facts: List<String>) {
         facts.forEach { rememberFact(personId, it, noteId = "") }
     }
-
-    /** Три факта — знание, четыре — досье (макет 13a). */
-    private val MAX_FACTS = 3
 
     /**
      * Разовый пересчёт людей по уже накопленным записям (Д-26).
