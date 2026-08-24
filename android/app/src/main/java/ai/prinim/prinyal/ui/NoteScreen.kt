@@ -257,6 +257,27 @@ fun NoteScreen(
             // «Покрутить» (Р-15.14) — там же, где «Собрано»: у списка покупок
             // крутить нечего, а кнопка, которая иногда бессмысленна, учит её
             // не замечать.
+            // Резюме лупа (спека §7): карточка приклеена к заметке, выше
+            // разговора. Отдельным блоком, а не в теле: тело — слова человека,
+            // резюме собрано моделью, и граница между ними должна быть видна.
+            note.spinSummary?.takeIf { it.isNotBlank() }?.let { summary ->
+                item {
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(Prinyal.colors.wellSurface, Radius.control)
+                            .padding(Space.m),
+                        verticalArrangement = Arrangement.spacedBy(Space.sm),
+                    ) {
+                        MetaText(
+                            stringResource(R.string.spin_summary_title),
+                            color = Prinyal.colors.accentSelf,
+                        )
+                        Text(summary, style = Prinyal.type.voice, color = Prinyal.colors.ink)
+                    }
+                }
+            }
+
             if (hasBody) {
                 item {
                     Interview(
@@ -276,6 +297,7 @@ fun NoteScreen(
                         // жал «прекратить», а продукт начинал его писать. Выход
                         // не должен ничего просить.
                         onStop = { vm.stopInterview(noteId) },
+                        onSkip = { vm.skipQuestion(noteId) },
                         // Превратить разговор в дело — отдельное слово, и только
                         // когда разговор был: предлагать вывод из разговора,
                         // которого не случилось, нечего (макет 13c).
@@ -999,6 +1021,7 @@ private fun Interview(
     onAsk: () -> Unit,
     onAnswer: () -> Unit,
     onStop: () -> Unit,
+    onSkip: () -> Unit,
     onFinish: () -> Unit,
 ) {
     when {
@@ -1027,6 +1050,14 @@ private fun Interview(
                 modifier = Modifier.tap(onClick = onAnswer),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
+                // Пропуск — не выход: вопрос уходит в историю, и приходит
+                // следующий. Два пропуска подряд модель понимает как усталость.
+                MetaText(
+                    text = stringResource(R.string.interview_skip),
+                    color = Prinyal.colors.inkMuted,
+                    maxLines = 1,
+                    modifier = Modifier.tap(onClick = onSkip),
+                )
                 MetaText(
                     text = stringResource(R.string.interview_stop),
                     color = Prinyal.colors.inkMuted,

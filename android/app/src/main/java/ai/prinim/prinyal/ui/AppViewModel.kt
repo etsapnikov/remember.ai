@@ -928,6 +928,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * «Пропустить вопрос» (спека §7): один тап, и сразу следующий.
+     *
+     * Пропуск не прячется: он уходит в историю и считается моделью — два
+     * подряд, и она свернётся в резюме вместо нового вопроса. Это и есть
+     * способ сказать «хватит», не выходя из разговора.
+     */
+    fun skipQuestion(noteId: String) = viewModelScope.launch {
+        withContext(Dispatchers.IO) {
+            app.repository.skipQuestion(noteId)
+            app.repository.askNext(noteId)
+        }
+    }
+
     /** «Прекратить» (Р-21.2): выход из разговора, и ничего больше. */
     fun stopInterview(noteId: String) = viewModelScope.launch {
         withContext(Dispatchers.IO) {
@@ -937,6 +951,32 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
         app.analytics.log("interview_stop", mapOf("note" to noteId))
+    }
+
+    /**
+     * Рассказать про день руками (Р-23.1).
+     *
+     * Вечерний вопрос приходит один раз и молчит, если на него не ответили, —
+     * это правило продукта, и оно остаётся. Но до сих пор оно значило и другое:
+     * пропустил уведомление — день потерян навсегда. Теперь вход есть и в
+     * «Днях», тем же экраном записи и с той же плашкой.
+     */
+    fun tellAboutDay(context: android.content.Context) {
+        context.startActivity(
+            android.content.Intent(
+                context,
+                ai.prinim.prinyal.capture.CaptureActivity::class.java,
+            ).apply {
+                putExtra(
+                    ai.prinim.prinyal.capture.CaptureActivity.EXTRA_DAY,
+                    java.time.LocalDate.now().toString(),
+                )
+                addFlags(
+                    android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                        android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                )
+            }
+        )
     }
 
     /** Последний вопрос разговора (Р-21.1) — из базы, не из памяти. */

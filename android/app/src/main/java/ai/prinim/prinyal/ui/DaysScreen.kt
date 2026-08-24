@@ -56,12 +56,30 @@ fun DaysScreen(vm: AppViewModel) {
     // ответ, и оно проходит: там непустой транскрипт.
     val shown = days.filter { !it.line.isNullOrBlank() || !it.transcript.isNullOrBlank() }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // Сегодняшний день ещё не рассказан — предлагаем рассказать (Р-23.1).
+    // Рассказан — предлагать нечего: день не правится, это память, а не дело.
+    val today = LocalDate.now().toString()
+    val canTell = shown.none { it.date == today }
+
     if (shown.isEmpty()) {
-        EmptyDays()
+        EmptyDays(canTell = canTell, onTell = { vm.tellAboutDay(context) })
         return
     }
 
     LazyColumn(contentPadding = PaddingValues(top = Space.xs, bottom = Space.xxl)) {
+        if (canTell) {
+            item(key = "tell-today") {
+                MetaText(
+                    text = stringResource(R.string.days_tell),
+                    color = Prinyal.colors.accentSelf,
+                    modifier = Modifier
+                        .padding(horizontal = Space.screen)
+                        .padding(bottom = Space.m)
+                        .tap { vm.tellAboutDay(context) },
+                )
+            }
+        }
         items(shown, key = { it.date }) { day ->
             DayRow(
                 day = day,
@@ -157,7 +175,7 @@ private fun DayAudio(file: File, durationMs: Long) {
 }
 
 @Composable
-private fun EmptyDays() {
+private fun EmptyDays(canTell: Boolean, onTell: () -> Unit) {
     Column(
         Modifier
             .fillMaxSize()
@@ -175,5 +193,13 @@ private fun EmptyDays() {
             color = Prinyal.colors.inkFaint,
             modifier = Modifier.padding(top = Space.s),
         )
+        // Ждать до вечера, когда рассказать хочется сейчас, незачем.
+        if (canTell) {
+            MetaText(
+                text = stringResource(R.string.days_tell),
+                color = Prinyal.colors.accentSelf,
+                modifier = Modifier.padding(top = Space.ml).tap(onClick = onTell),
+            )
+        }
     }
 }

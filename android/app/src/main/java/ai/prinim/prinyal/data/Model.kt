@@ -174,6 +174,13 @@ data class NoteEntity(
     @ColumnInfo(name = "sibling_id") val siblingId: String? = null,
     /** Стадия разговора об идее (Р-19.1). */
     @ColumnInfo(name = "interview") val interview: String = InterviewState.NONE.wire,
+    /**
+     * Резюме разговора (спека §7): «Идея докручена».
+     *
+     * Отдельным полем, а не в теле: тело — слова человека, а резюме собрано
+     * моделью, и смешивать их значит потерять границу между ними.
+     */
+    @ColumnInfo(name = "spin_summary") val spinSummary: String? = null,
 )
 
 /**
@@ -560,4 +567,18 @@ data class QuestionEntity(
     @ColumnInfo(name = "note_id") val noteId: String,
     val text: String,
     @ColumnInfo(name = "asked_at") val askedAt: Long,
+    /**
+     * Ответ на этот вопрос — сырой, как надиктовали (спека §7).
+     *
+     * Пары «вопрос — ответ» нужны каждому следующему вызову: механика
+     * stateless, и вся история кладётся в промпт заново. Собирать их по
+     * времени из сегментов было бы гаданием.
+     */
+    val answer: String? = null,
+    /** Вопрос пропустили. Считается моделью как признак усталости (§3, шаг 3). */
+    val skipped: Boolean = false,
+    /** Какой слот закрывал вопрос — для телеметрии §8. */
+    val slot: String? = null,
+    /** Факт, на который опирался вопрос, и его роль — телеметрия контекста. */
+    @ColumnInfo(name = "fact_role") val factRole: String? = null,
 )

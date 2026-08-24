@@ -670,73 +670,29 @@ class NoteRepository(
      *
      * Пунктов, возвратов и раздела эта запись не касается вовсе.
      */
-    suspend fun appendInterviewRound(noteId: String, question: String, answer: String) {
-        val note = db.notes().byId(noteId) ?: return
-        val text = answer.trim()
-        if (text.isEmpty()) return
-
-        val base = note.bodyMd.orEmpty().trimEnd()
-        val body = buildString {
-            if (base.isNotEmpty()) append(base).append("\n\n")
-            if (POLISH_HEADING !in base) append(POLISH_HEADING).append("\n\n")
-            if (question.isNotBlank()) append("*").append(question.trim()).append("*").append("\n\n")
-            append(text)
-        }
-        db.notes().update(note.copy(bodyMd = body))
-        // Круг замкнулся — продукт сразу думает над следующим вопросом
-        // (петля владельца от 24.08). Кнопки «Ещё вопрос» между кругами нет:
-        // разговор не должен просить разрешения продолжиться.
-        db.notes().setInterview(noteId, InterviewState.THINKING.wire)
+    /** Ответа не случилось (промолчал) — возвращаемся к заданному вопросу. */
+    suspend fun markInterviewIdle(noteId: String) {
+        db.notes().setInterview(noteId, InterviewState.ASKED.wire)
     }
 
     /**
-     * Следующий вопрос разговора (Р-21.1).
+     * Вопрос пропустили (спека §7): он остаётся в истории и считается моделью.
      *
-     * Зовётся из фона **после** того, как ответ лёг в тело: вопрос строится по
-     * всему тексту заметки, и заданный раньше повторил бы сам себя слово в
-     * слово. Прошлая версия спрашивала сразу и получала тот же вопрос.
-     *
-     * Спросить не о чем — разговор кончается сам: пустой вопрос человеку хуже,
-     * чем его отсутствие.
+     * Пропуск — сигнал усталости: два подряд, и модель сворачивается в резюме
+     * вместо нового вопроса.
      */
-    suspend fun askNext(noteId: String): String? {
-        val note = db.notes().byId(noteId) ?: return null
-        db.notes().setInterview(noteId, InterviewState.THINKING.wire)
-
-        val idea = joinedTranscript(noteId).ifBlank { note.transcript.orEmpty() }
-        val body = note.bodyMd.orEmpty()
-        val asked = db.questions().forNote(noteId).map { it.text }
-        val fresh = llm()?.interview(
-            idea = if (body.isBlank()) idea else "$idea\n\n$body",
-            asked = asked,
-        )
-        if (fresh == null) {
-            db.notes().setInterview(noteId, InterviewState.NONE.wire)
-            return null
-        }
-        db.questions().insert(
-            ai.prinim.prinyal.data.QuestionEntity(
-                id = newId(),
-                noteId = noteId,
-                text = fresh,
-                askedAt = Instant.now().toEpochMilli(),
-            )
-        )
-        db.notes().setInterview(noteId, InterviewState.ASKED.wire)
-        analytics.log("interview_ask", mapOf("note" to noteId, "round" to asked.size + 1))
-        return fresh
+    suspend fun skipQuestion(noteId: String) {
+        val last = db.questions().forNote(noteId).maxByOrNull { it.askedAt } ?: return
+        if (last.answer != null || last.skipped) return
+        db.questions().update(last.copy(skipped = true))
+        analytics.log("spin_skip", mapOf("note" to noteId, "slot" to last.slot))
     }
 
     /**
      * Конец разговора об идее (Р-20.2, макет 13c).
      *
-     * Дело — пунктом в той же заметке, с пометкой «из разговора»: она не
-     * гаснет, потому что происхождение это факт, а не событие.
-     *
-     * Срок берётся **только из речи**: сказал «до воскресенья» — воскресенье,
-     * не сказал — дело живое без даты, и продукт спросит про него в обычном
-     * окне дня, как про любое другое. Правило §24.5 здесь не делает исключений
-     * ради красивой концовки.
+     * Дело — пунктом в той же заметке, с пометкой «из разговора». Срок берётся
+     * только из речи: правило §24.5 не делает исключений ради красивой концовки.
      *
      * @return созданный пункт или null, если дела не вышло
      */
@@ -772,10 +728,168 @@ class NoteRepository(
         return item
     }
 
-    /** Ответа не случилось (промолчал) — возвращаемся к заданному вопросу. */
-    suspend fun markInterviewIdle(noteId: String) {
-        db.notes().setInterview(noteId, InterviewState.ASKED.wire)
+    suspend fun appendInterviewRound(noteId: String, question: String, answer: String) {
+        val note = db.notes().byId(noteId) ?: return
+        val text = answer.trim()
+        if (text.isEmpty()) return
+
+        val base = note.bodyMd.orEmpty().trimEnd()
+        val body = buildString {
+            if (base.isNotEmpty()) append(base).append("\n\n")
+            if (POLISH_HEADING !in base) append(POLISH_HEADING).append("\n\n")
+            if (question.isNotBlank()) append("*").append(question.trim()).append("*").append("\n\n")
+            append(text)
+        }
+        db.notes().update(note.copy(bodyMd = body))
+        // Ответ ложится и в пару к своему вопросу: следующий вызов stateless и
+        // получает всю историю обменов заново (спека §2).
+        db.questions().forNote(noteId).maxByOrNull { it.askedAt }?.let { last ->
+            if (last.answer == null) db.questions().update(last.copy(answer = answer))
+        }
+        // Круг замкнулся — продукт сразу думает над следующим вопросом
+        // (петля владельца от 24.08). Кнопки «Ещё вопрос» между кругами нет:
+        // разговор не должен просить разрешения продолжиться.
+        db.notes().setInterview(noteId, InterviewState.THINKING.wire)
     }
+
+    /**
+     * Следующий ход разговора об идее (спека «Покрутить идею», §2).
+     *
+     * Механика stateless: каждый вызов получает заметку целиком, все пары
+     * вопрос-ответ, список заданных вопросов и свежий контекст. Между вызовами
+     * не хранится ничего, кроме самой заметки, — так дешевле и надёжнее, чем
+     * держать диалоговую сессию.
+     *
+     * Модель может вернуть не вопрос, а резюме: заметка докручена, и это
+     * естественный конец лупа, а не отказ.
+     *
+     * @return текст вопроса, либо null — если вышло резюме или спрашивать
+     *   больше не о чем
+     */
+    suspend fun askNext(noteId: String): String? {
+        val note = db.notes().byId(noteId) ?: return null
+        db.notes().setInterview(noteId, InterviewState.THINKING.wire)
+
+        val asked = db.questions().forNote(noteId)
+        val input = Spin.Input(
+            raw = joinedTranscript(noteId).ifBlank { note.transcript.orEmpty() },
+            exchanges = asked.mapNotNull { q ->
+                q.answer?.takeIf { it.isNotBlank() }?.let { Spin.Exchange(q.text, it) }
+            },
+            askedQuestions = asked.map { it.text },
+            skippedCount = asked.count { it.skipped },
+            facts = spinFacts(note),
+            now = java.time.OffsetDateTime.now().toString(),
+        )
+
+        val result = llm()?.spin(input)
+        val ask = when (result) {
+            is Spin.Result.Summary -> {
+                // Резюме приклеивается к заметке и кончает луп. Кнопка потом
+                // остаётся: нажатие пойдёт в оставшиеся пустые слоты (§7).
+                db.notes().update(
+                    db.notes().byId(noteId)!!.copy(
+                        spinSummary = listOf(result.oneLiner, result.filled, result.nextStep)
+                            .filter { it.isNotBlank() }
+                            .joinToString("\n\n"),
+                    )
+                )
+                db.notes().setInterview(noteId, InterviewState.NONE.wire)
+                analytics.log(
+                    "spin_summary",
+                    mapOf("note" to noteId, "rounds" to input.exchanges.size),
+                )
+                return null
+            }
+
+            is Spin.Result.Ask -> result
+
+            // Дважды не смогла — берём заготовку. Луп не ломается никогда (§5).
+            null -> Spin.Result.Ask(
+                text = Spin.fallback(Spin.firstEmptySlot("hypothesis", SLOTS)),
+                slot = "outcome",
+                factId = null,
+                factRole = "none",
+                anchor = null,
+            ).takeIf { input.askedQuestions.none { prev -> Spin.similar(prev, it.text) } }
+                ?: run {
+                    db.notes().setInterview(noteId, InterviewState.NONE.wire)
+                    return null
+                }
+        }
+
+        db.questions().insert(
+            ai.prinim.prinyal.data.QuestionEntity(
+                id = newId(),
+                noteId = noteId,
+                text = ask.text,
+                askedAt = Instant.now().toEpochMilli(),
+                slot = ask.slot,
+                factRole = ask.factRole,
+            )
+        )
+        db.notes().setInterview(noteId, InterviewState.ASKED.wire)
+        analytics.log(
+            "spin_ask",
+            mapOf(
+                "note" to noteId,
+                "round" to asked.size + 1,
+                "slot" to ask.slot,
+                // Телеметрия §8: какая доля вопросов вышла контекстной.
+                "fact_role" to ask.factRole,
+            ),
+        )
+        return ask.text
+    }
+
+    private val SLOTS = setOf("outcome", "fork", "risks", "step", "givens")
+
+    /**
+     * Контекст для вопроса (спека §2): что известно о человеке и что он уже
+     * диктовал похожего.
+     *
+     * Отбор наш, решение модели: чего нет в списке, того не будет и в вопросе.
+     * Прошлая заметка передаётся с датой и судьбой — из этого и рождается
+     * самый ценный вопрос лупа: «в мае диктовал похожее и забросил».
+     */
+    private suspend fun spinFacts(note: NoteEntity): List<Spin.Fact> {
+        val out = mutableListOf<Spin.Fact>()
+
+        // Люди — только те, кто назван в этой заметке: факт о постороннем в
+        // вопросе читается как слежка (§2, фильтр до модели).
+        val text = note.transcript.orEmpty()
+        db.people().allLive()
+            .filter { PersonIdentity.mentions(text, it.name) }
+            .forEach { person ->
+                db.personFacts().forPerson(person.id).forEach { fact ->
+                    out += Spin.Fact("f${out.size + 1}", "${person.name} — ${fact.text}", "profile")
+                }
+            }
+
+        LinkCandidates.of(note, db.notes().all()).take(SPIN_ARCHIVE).forEach { other ->
+            val closed = db.items().forNote(other.id)
+                .let { items -> items.isNotEmpty() && items.none {
+                    ItemState.of(it.state) in setOf(
+                        ItemState.PLANNED, ItemState.RETURNED, ItemState.SNOOZED,
+                    )
+                } }
+            out += Spin.Fact(
+                id = "f${out.size + 1}",
+                text = "${day(other.createdAt)} диктовал: «${LinkCandidates.opening(other.transcript)}», " +
+                    if (closed) "статус: докручена" else "статус: заброшена",
+                source = "archive",
+            )
+        }
+        return out.take(SPIN_FACTS_MAX)
+    }
+
+    private fun day(millis: Long): String =
+        java.time.Instant.ofEpochMilli(millis).atZone(zone).toLocalDate()
+            .format(java.time.format.DateTimeFormatter.ofPattern("dd.MM"))
+
+    /** Сколько прошлых заметок и фактов кладём в промпт (§2: top-8..12). */
+    private val SPIN_ARCHIVE = 5
+    private val SPIN_FACTS_MAX = 12
 
     /**
      * Приписать к «Собрано» блок «Что докрутили» (Р-16.3).

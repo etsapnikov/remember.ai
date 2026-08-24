@@ -238,23 +238,35 @@ class NoteRepositoryTest {
         )
     }
 
+    /** Ответ модели по схеме спеки «Покрутить идею». */
+    private fun spinAsk(text: String) = """
+        {"note_type":"hypothesis",
+         "slots":{"outcome":{"state":"empty","evidence":null},"givens":{"state":"empty","evidence":null},
+                  "fork":{"state":"empty","evidence":null},"risks":{"state":"empty","evidence":null},
+                  "step":{"state":"empty","evidence":null}},
+         "action":"ask",
+         "question":{"text":"$text","slot":"outcome","context_fact_id":null,
+                     "fact_role":"none","anchor_quote":null},
+         "summary":null}
+    """.trimIndent().replace("\n", " ")
+
     @Test
     fun `круг замыкается сам — после ответа приходит следующий вопрос`() = runTest {
-        // Петля владельца от 24.08: ответ лёг в тело → **сам** появился
-        // следующий вопрос. Кнопки между кругами нет.
-        //
-        // Модель подменена плёнкой: проверяем петлю, а не формулировки.
-        val asked = mutableListOf<String>()
+        // Спека §2: механика stateless — каждый вызов получает заметку целиком,
+        // все пары вопрос-ответ и список заданных вопросов заново.
+        val sent = mutableListOf<String>()
         var round = 0
         val llm = ai.prinim.prinyal.llm.DeepSeekClient(
             apiKey = "test",
             transport = { payload ->
-                asked += payload
+                sent += payload
                 round++
-                // Вопрос обязан пройти политику интервьюера: опираться на
-                // слова записи и не быть общим. Иначе клиент его отбракует, и
-                // тест мерил бы политику, а не петлю.
-                200 to """{"choices":[{"message":{"content":"А капли для Сони ты где брать собрался, круг $round?"}}]}"""
+                // Вопросы разные по существу: похожие валидация отбракует
+                // как перефразированный повтор, и это её работа.
+                val text = if (round == 1) "Что тут главное?" else "Какой первый шаг и когда?"
+                200 to """{"choices":[{"message":{"content":${
+                    org.json.JSONObject.quote(spinAsk(text))
+                }}}]}"""
             },
         )
         val repoWithLlm = NoteRepository(
@@ -263,27 +275,57 @@ class NoteRepositoryTest {
         val id = note()
         repoWithLlm.applyParse(id, parsed(item()).copy(bodyMd = "## Идея"))
 
-        assertEquals("А капли для Сони ты где брать собрался, круг 1?", repoWithLlm.askNext(id))
+        assertEquals("Что тут главное?", repoWithLlm.askNext(id))
         assertEquals(InterviewState.ASKED.wire, db.notes().byId(id)!!.interview)
 
-        // Ответ лёг в тело — стадия «думаю», и следующий вопрос приходит сам.
-        repoWithLlm.appendInterviewRound(
-            id, "А капли для Сони ты где брать собрался, круг 1?", "ответил вот так",
-        )
+        repoWithLlm.appendInterviewRound(id, "Что тут главное?", "ответил вот так")
         assertEquals(InterviewState.THINKING.wire, db.notes().byId(id)!!.interview)
+        // Ответ лёг в пару к своему вопросу — иначе следующий вызов его не увидит.
+        assertEquals("ответил вот так", db.questions().forNote(id).first().answer)
 
-        assertEquals("А капли для Сони ты где брать собрался, круг 2?", repoWithLlm.askNext(id))
-        assertEquals(InterviewState.ASKED.wire, db.notes().byId(id)!!.interview)
+        assertEquals("Какой первый шаг и когда?", repoWithLlm.askNext(id))
         assertEquals(2, db.questions().forNote(id).size)
 
-        // Прежние вопросы уходят в промпт — иначе второй повторит первый.
-        assertTrue("прежний вопрос не передан модели", asked.last().contains("круг 1"))
-        // И ответ, уже лежащий в теле, тоже: вопрос строится по нему.
-        assertTrue("тело не передано модели", asked.last().contains("ответил вот так"))
+        // В промпт ушли и прежний вопрос, и ответ на него: без истории модель
+        // задаст тот же вопрос второй раз.
+        assertTrue("прежний вопрос не передан", sent.last().contains("Что тут главное"))
+        assertTrue("ответ не передан", sent.last().contains("ответил вот так"))
     }
 
     @Test
-    fun `спросить не о чем — разговор кончается сам`() = runTest {
+    fun `докрученная заметка кончается резюме, а не вопросом`() = runTest {
+        // Спека §3: стоп-условие — не отказ, а естественный конец лупа.
+        val llm = ai.prinim.prinyal.llm.DeepSeekClient(
+            apiKey = "test",
+            transport = {
+                200 to """{"choices":[{"message":{"content":${
+                    org.json.JSONObject.quote(
+                        """{"note_type":"plan","slots":{},"action":"summarize","question":null,
+                            "summary":{"one_liner":"Уехать вдвоём на неделю",
+                                       "next_step":"Завтра посмотреть билеты",
+                                       "filled":"Бюджет сто тысяч."}}"""
+                    )
+                }}}]}"""
+            },
+        )
+        val repoWithLlm = NoteRepository(
+            db, Settings(context), Analytics(context), scheduler, zone, llm = { llm },
+        )
+        val id = note()
+        repoWithLlm.applyParse(id, parsed(item()))
+
+        assertNull("вместо резюме пришёл вопрос", repoWithLlm.askNext(id))
+
+        val note = db.notes().byId(id)!!
+        assertTrue("резюме не приклеено", note.spinSummary!!.contains("Уехать вдвоём"))
+        assertTrue("нет первого шага", note.spinSummary!!.contains("билеты"))
+        assertEquals("луп не закрылся", InterviewState.NONE.wire, note.interview)
+        assertEquals("резюме завело вопрос", 0, db.questions().forNote(id).size)
+    }
+
+    @Test
+    fun `модель молчит — берём заготовку, луп не ломается`() = runTest {
+        // Спека §5: после двух ретраев — фолбэк из статического словаря.
         val llm = ai.prinim.prinyal.llm.DeepSeekClient(
             apiKey = "test",
             transport = { 200 to """{"choices":[{"message":{"content":""}}]}""" },
@@ -294,12 +336,32 @@ class NoteRepositoryTest {
         val id = note()
         repoWithLlm.applyParse(id, parsed(item()))
 
-        assertNull(repoWithLlm.askNext(id))
-        assertEquals(
-            "разговор завис в «думаю»",
-            InterviewState.NONE.wire,
-            db.notes().byId(id)!!.interview,
+        val question = repoWithLlm.askNext(id)
+        assertNotNull("луп оборвался вместо заготовки", question)
+        assertEquals(InterviewState.ASKED.wire, db.notes().byId(id)!!.interview)
+    }
+
+    @Test
+    fun `пропуск остаётся в истории и считается`() = runTest {
+        // Спека §7: пропуск — сигнал усталости, а не тишина.
+        val llm = ai.prinim.prinyal.llm.DeepSeekClient(
+            apiKey = "test",
+            transport = {
+                200 to """{"choices":[{"message":{"content":${
+                    org.json.JSONObject.quote(spinAsk("Что тут главное?"))
+                }}}]}"""
+            },
         )
+        val repoWithLlm = NoteRepository(
+            db, Settings(context), Analytics(context), scheduler, zone, llm = { llm },
+        )
+        val id = note()
+        repoWithLlm.applyParse(id, parsed(item()))
+        repoWithLlm.askNext(id)
+
+        repoWithLlm.skipQuestion(id)
+
+        assertTrue("пропуск не записан", db.questions().forNote(id).single().skipped)
     }
 
     @Test

@@ -356,6 +356,52 @@ class DeepSeekClient(
 
     data class FirstStep(val text: String, val dueAt: Long?)
 
+    /**
+     * «Покрутить идею» (спека §2): один вызов — один вопрос либо резюме.
+     *
+     * До двух ретраев: пустой `content` в json-режиме — документированная
+     * особенность DeepSeek, а не исключительная ситуация. Не вышло и после них
+     * — вызывающий берёт заготовку, и луп не ломается никогда.
+     */
+    fun spin(input: ai.prinim.prinyal.domain.Spin.Input): ai.prinim.prinyal.domain.Spin.Result? {
+        if (apiKey.isBlank()) return null
+        val payload = JSONObject().apply {
+            put("model", model)
+            put("messages", JSONArray().apply {
+                put(JSONObject().put("role", "system").put("content", Prompt.SPIN))
+                put(
+                    JSONObject().put("role", "user")
+                        .put("content", ai.prinim.prinyal.domain.Spin.buildUser(input))
+                )
+            })
+            // Числа из спеки: 0.6 — вопросы не должны быть одинаковыми от
+            // заметки к заметке; 700 хватает на слоты и вопрос.
+            put("temperature", 0.6)
+            put("max_tokens", 700)
+            put("response_format", JSONObject().put("type", "json_object"))
+            put("stream", false)
+            // Латентность важнее глубины: вопрос человек ждёт, глядя в экран.
+            put("thinking", JSONObject().put("type", "disabled"))
+        }
+
+        repeat(SPIN_TRIES) {
+            val response = runCatching { post(payload) }.getOrNull()
+            if (response != null) {
+                account("spin", response)
+                if (response.code == 200) {
+                    val raw = response.body
+                        ?.optJSONArray("choices")?.optJSONObject(0)
+                        ?.optJSONObject("message")?.optString("content").orEmpty()
+                    ai.prinim.prinyal.domain.Spin.parse(raw, input)?.let { return it }
+                }
+            }
+        }
+        return null
+    }
+
+    /** Один заход и два ретрая — как в спеке §5. */
+    private val SPIN_TRIES = 3
+
     /** Факты из рассказа о человеке (Р-21.4). Сколько сказал — столько и берём. */
     fun personTell(name: String, text: String): List<String> {
         if (apiKey.isBlank()) return emptyList()

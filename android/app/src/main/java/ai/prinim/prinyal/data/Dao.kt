@@ -523,6 +523,9 @@ interface QuestionDao {
      */
     @Query("SELECT * FROM questions WHERE note_id = :noteId ORDER BY asked_at DESC LIMIT 1")
     fun watchLast(noteId: String): Flow<QuestionEntity?>
+
+    @Update
+    suspend fun update(entity: QuestionEntity)
 }
 
 
