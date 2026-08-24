@@ -88,8 +88,7 @@ fun NoteScreen(
     val entry by vm.note(noteId).collectAsState(initial = null)
     val note = entry?.note
     val linked by vm.linked(noteId).collectAsState(initial = emptyList())
-    val question by vm.question.collectAsState()
-    val polishing by vm.polishing.collectAsState()
+    val lastQuestion by vm.lastQuestion(noteId).collectAsState(initial = null)
 
     var editing by remember { mutableStateOf<ItemEntity?>(null) }
     // Раскрытие пункта: тап показывает, а меняет — второй жест (Р-15.4).
@@ -261,9 +260,11 @@ fun NoteScreen(
             if (hasBody) {
                 item {
                     Interview(
-                        question = question,
+                        // Вопрос берётся из базы, а не из памяти вьюмодели:
+                        // экран записи убивает задачу, и всё, что жило в
+                        // памяти, к возвращению человека уже потеряно.
+                        question = lastQuestion?.text,
                         stage = ai.prinim.prinyal.data.InterviewState.of(note.interview),
-                        polishing = polishing,
                         onAsk = { vm.askAboutIdea(noteId) },
                         // Отвечают тем же жестом, каким записывают: ответ
                         // становится сегментом заметки по механике Р-14.3, а не
@@ -275,7 +276,6 @@ fun NoteScreen(
                         // ответа рождается дело (Р-20.2). Свайп вниз на экране
                         // записи — честная концовка без дела.
                         onFinish = { openFirstStep(context, noteId) },
-                        onClose = { vm.closeInterview(noteId) },
                     )
                 }
             }
@@ -937,7 +937,6 @@ private fun LinkRow(link: LinkedNote, onClick: () -> Unit) {
 }
 
 
-/** Экран записи в режиме дописывания — общий вход для «Дописать» и ответа. */
 /** Вопрос про первый шаг (Р-20.2): тот же экран записи, своя плашка. */
 private fun openFirstStep(context: android.content.Context, noteId: String) {
     context.startActivity(
@@ -955,6 +954,7 @@ private fun openFirstStep(context: android.content.Context, noteId: String) {
     )
 }
 
+/** Экран записи в режиме дописывания — общий вход для «Дописать» и ответа. */
 private fun openAppend(
     context: android.content.Context,
     noteId: String,
@@ -989,50 +989,20 @@ private fun openAppend(
 private fun Interview(
     question: String?,
     stage: ai.prinim.prinyal.data.InterviewState,
-    polishing: Boolean,
     onAsk: () -> Unit,
     onAnswer: () -> Unit,
     onFinish: () -> Unit,
-    onClose: () -> Unit,
 ) {
     when {
-        // Пересборка «Собрано» — не мгновенная, и молчать о ней нельзя: экран
-        // выглядел бы так, будто «Закончить» ничего не сделало.
-        polishing -> MetaText(
-            text = stringResource(R.string.interview_polishing),
-            color = Prinyal.colors.inkFaint,
-        )
-
-        // Круг дописан — следующий начинает человек, а не продукт (Р-19.1).
-        // Автовопрос спрашивал, не дождавшись, пока ответ ляжет в тело.
-        question == null && stage == ai.prinim.prinyal.data.InterviewState.ANSWERED ->
-            Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
-                MetaText(
-                    text = stringResource(R.string.interview_more),
-                    color = Prinyal.colors.accentSelf,
-                    maxLines = 1,
-                    modifier = Modifier.tap(onClick = onAsk),
-                )
-                MetaText(
-                    text = stringResource(R.string.interview_finish),
-                    color = Prinyal.colors.inkMuted,
-                    maxLines = 1,
-                    modifier = Modifier.tap(onClick = onFinish),
-                )
-            }
-
-        question == null -> MetaText(
-            text = stringResource(R.string.interview_start),
-            color = Prinyal.colors.accentSelf,
-            modifier = Modifier.tap(onClick = onAsk),
-        )
-
-        question.isBlank() -> MetaText(
+        // Продукт думает: разбирает ответ или сочиняет следующий вопрос.
+        // Между кругами кнопки нет — разговор не просит разрешения
+        // продолжиться (петля владельца от 24.08).
+        stage == ai.prinim.prinyal.data.InterviewState.THINKING -> MetaText(
             text = stringResource(R.string.interview_thinking),
             color = Prinyal.colors.inkFaint,
         )
 
-        else -> Column(
+        stage == ai.prinim.prinyal.data.InterviewState.ASKED && question != null -> Column(
             Modifier
                 .fillMaxWidth()
                 .background(Prinyal.colors.wellSurface, Radius.control)
@@ -1040,29 +1010,26 @@ private fun Interview(
             verticalArrangement = Arrangement.spacedBy(Space.sm),
         ) {
             Text(question, style = Prinyal.type.body, color = Prinyal.colors.ink)
-            // Ответ — своей строкой, выходы — под ним.
-            //
-            // Три слова в ряд не помещаются: «Хватит» складывалось в столбик
-            // из букв — третий раз за версию один и тот же перенос. Здесь он
-            // ещё и по смыслу лишний: ответить это одно действие, а закончить
-            // и бросить — два разных выхода из него.
+            // Ответ — своей строкой, выход — под ним: три слова в ряд не
+            // помещаются, это в продукте проверено трижды.
             MetaText(
                 text = stringResource(R.string.interview_answer),
                 color = Prinyal.colors.accentSelf,
                 maxLines = 1,
                 modifier = Modifier.tap(onClick = onAnswer),
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
-                // У заданного вопроса выход один — «Хватит»: «Закончить»
-                // подводит итог разговору, а разговора ещё не было. Оно
-                // появляется после первого ответа.
-                MetaText(
-                    text = stringResource(R.string.interview_enough),
-                    color = Prinyal.colors.inkMuted,
-                    maxLines = 1,
-                    modifier = Modifier.tap(onClick = onClose),
-                )
-            }
+            MetaText(
+                text = stringResource(R.string.interview_stop),
+                color = Prinyal.colors.inkMuted,
+                maxLines = 1,
+                modifier = Modifier.tap(onClick = onFinish),
+            )
         }
+
+        else -> MetaText(
+            text = stringResource(R.string.interview_start),
+            color = Prinyal.colors.accentSelf,
+            modifier = Modifier.tap(onClick = onAsk),
+        )
     }
 }

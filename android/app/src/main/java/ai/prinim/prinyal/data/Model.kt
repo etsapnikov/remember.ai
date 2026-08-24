@@ -508,8 +508,14 @@ enum class InterviewState(val wire: String) {
     /** Вопрос задан и ждёт ответа. */
     ASKED("asked"),
 
-    /** Ответ дописан в тело: кнопка «Ещё вопрос». */
-    ANSWERED("answered");
+    /**
+     * Продукт думает: разбирает ответ или сочиняет следующий вопрос.
+     *
+     * Отдельная стадия, а не «пусто»: между ответом и новым вопросом проходят
+     * секунды, и без неё экран показывал бы кнопку «Покрутить идею», будто
+     * разговора не было.
+     */
+    THINKING("thinking");
 
     companion object {
         fun of(wire: String?): InterviewState = entries.firstOrNull { it.wire == wire } ?: NONE

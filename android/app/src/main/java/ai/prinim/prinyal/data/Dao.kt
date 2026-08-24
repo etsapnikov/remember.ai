@@ -512,6 +512,17 @@ interface QuestionDao {
 
     @Query("SELECT * FROM questions WHERE note_id = :noteId ORDER BY asked_at ASC")
     fun watch(noteId: String): Flow<List<QuestionEntity>>
+
+    /**
+     * Последний заданный вопрос — источник правды для экрана.
+     *
+     * Вопрос жил в памяти вьюмодели, и это была вторая половина поломки петли:
+     * экран записи убивает задачу, вьюмодель пересоздаётся, вопрос исчезал. С
+     * ответом человек возвращался к кнопке «Покрутить идею», будто ничего не
+     * было.
+     */
+    @Query("SELECT * FROM questions WHERE note_id = :noteId ORDER BY asked_at DESC LIMIT 1")
+    fun watchLast(noteId: String): Flow<QuestionEntity?>
 }
 
 

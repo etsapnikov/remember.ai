@@ -4,6 +4,7 @@ import ai.prinim.prinyal.data.Analytics
 import ai.prinim.prinyal.data.CaptureSource
 import ai.prinim.prinyal.data.Confidence
 import ai.prinim.prinyal.data.DueKind
+import ai.prinim.prinyal.data.InterviewState
 import ai.prinim.prinyal.data.ItemState
 import ai.prinim.prinyal.data.ItemType
 import ai.prinim.prinyal.data.NoteStatus
@@ -238,6 +239,70 @@ class NoteRepositoryTest {
     }
 
     @Test
+    fun `круг замыкается сам — после ответа приходит следующий вопрос`() = runTest {
+        // Петля владельца от 24.08: ответ лёг в тело → **сам** появился
+        // следующий вопрос. Кнопки между кругами нет.
+        //
+        // Модель подменена плёнкой: проверяем петлю, а не формулировки.
+        val asked = mutableListOf<String>()
+        var round = 0
+        val llm = ai.prinim.prinyal.llm.DeepSeekClient(
+            apiKey = "test",
+            transport = { payload ->
+                asked += payload
+                round++
+                // Вопрос обязан пройти политику интервьюера: опираться на
+                // слова записи и не быть общим. Иначе клиент его отбракует, и
+                // тест мерил бы политику, а не петлю.
+                200 to """{"choices":[{"message":{"content":"А капли для Сони ты где брать собрался, круг $round?"}}]}"""
+            },
+        )
+        val repoWithLlm = NoteRepository(
+            db, Settings(context), Analytics(context), scheduler, zone, llm = { llm },
+        )
+        val id = note()
+        repoWithLlm.applyParse(id, parsed(item()).copy(bodyMd = "## Идея"))
+
+        assertEquals("А капли для Сони ты где брать собрался, круг 1?", repoWithLlm.askNext(id))
+        assertEquals(InterviewState.ASKED.wire, db.notes().byId(id)!!.interview)
+
+        // Ответ лёг в тело — стадия «думаю», и следующий вопрос приходит сам.
+        repoWithLlm.appendInterviewRound(
+            id, "А капли для Сони ты где брать собрался, круг 1?", "ответил вот так",
+        )
+        assertEquals(InterviewState.THINKING.wire, db.notes().byId(id)!!.interview)
+
+        assertEquals("А капли для Сони ты где брать собрался, круг 2?", repoWithLlm.askNext(id))
+        assertEquals(InterviewState.ASKED.wire, db.notes().byId(id)!!.interview)
+        assertEquals(2, db.questions().forNote(id).size)
+
+        // Прежние вопросы уходят в промпт — иначе второй повторит первый.
+        assertTrue("прежний вопрос не передан модели", asked.last().contains("круг 1"))
+        // И ответ, уже лежащий в теле, тоже: вопрос строится по нему.
+        assertTrue("тело не передано модели", asked.last().contains("ответил вот так"))
+    }
+
+    @Test
+    fun `спросить не о чем — разговор кончается сам`() = runTest {
+        val llm = ai.prinim.prinyal.llm.DeepSeekClient(
+            apiKey = "test",
+            transport = { 200 to """{"choices":[{"message":{"content":""}}]}""" },
+        )
+        val repoWithLlm = NoteRepository(
+            db, Settings(context), Analytics(context), scheduler, zone, llm = { llm },
+        )
+        val id = note()
+        repoWithLlm.applyParse(id, parsed(item()))
+
+        assertNull(repoWithLlm.askNext(id))
+        assertEquals(
+            "разговор завис в «думаю»",
+            InterviewState.NONE.wire,
+            db.notes().byId(id)!!.interview,
+        )
+    }
+
+    @Test
     fun `круг пинг-понга растит тело и не трогает пункты`() = runTest {
         // Р-19.1. Главная поломка была здесь: ответ уходил общим разбором, и
         // разговор об идее перетряхивал дела записи — рождались новые пункты,
@@ -254,9 +319,11 @@ class NoteRepositoryTest {
         assertTrue("вопрос не записан", "А если убрать вводные?" in body)
         assertTrue("ответ не записан", "останутся сами заметки" in body)
         assertEquals("пункты тронуты", before, db.items().forNote(id).map { it.id to it.text })
+        // Круг замкнулся — продукт думает над следующим вопросом сам, без
+        // кнопки между кругами (петля владельца от 24.08).
         assertEquals(
-            "стадия не сменилась на «Ещё вопрос»",
-            ai.prinim.prinyal.data.InterviewState.ANSWERED.wire,
+            "разговор не пошёл на следующий круг",
+            ai.prinim.prinyal.data.InterviewState.THINKING.wire,
             db.notes().byId(id)!!.interview,
         )
 

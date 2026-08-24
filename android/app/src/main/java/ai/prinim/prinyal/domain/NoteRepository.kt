@@ -683,7 +683,48 @@ class NoteRepository(
             append(text)
         }
         db.notes().update(note.copy(bodyMd = body))
-        db.notes().setInterview(noteId, InterviewState.ANSWERED.wire)
+        // Круг замкнулся — продукт сразу думает над следующим вопросом
+        // (петля владельца от 24.08). Кнопки «Ещё вопрос» между кругами нет:
+        // разговор не должен просить разрешения продолжиться.
+        db.notes().setInterview(noteId, InterviewState.THINKING.wire)
+    }
+
+    /**
+     * Следующий вопрос разговора (Р-21.1).
+     *
+     * Зовётся из фона **после** того, как ответ лёг в тело: вопрос строится по
+     * всему тексту заметки, и заданный раньше повторил бы сам себя слово в
+     * слово. Прошлая версия спрашивала сразу и получала тот же вопрос.
+     *
+     * Спросить не о чем — разговор кончается сам: пустой вопрос человеку хуже,
+     * чем его отсутствие.
+     */
+    suspend fun askNext(noteId: String): String? {
+        val note = db.notes().byId(noteId) ?: return null
+        db.notes().setInterview(noteId, InterviewState.THINKING.wire)
+
+        val idea = joinedTranscript(noteId).ifBlank { note.transcript.orEmpty() }
+        val body = note.bodyMd.orEmpty()
+        val asked = db.questions().forNote(noteId).map { it.text }
+        val fresh = llm()?.interview(
+            idea = if (body.isBlank()) idea else "$idea\n\n$body",
+            asked = asked,
+        )
+        if (fresh == null) {
+            db.notes().setInterview(noteId, InterviewState.NONE.wire)
+            return null
+        }
+        db.questions().insert(
+            ai.prinim.prinyal.data.QuestionEntity(
+                id = newId(),
+                noteId = noteId,
+                text = fresh,
+                askedAt = Instant.now().toEpochMilli(),
+            )
+        )
+        db.notes().setInterview(noteId, InterviewState.ASKED.wire)
+        analytics.log("interview_ask", mapOf("note" to noteId, "round" to asked.size + 1))
+        return fresh
     }
 
     /**

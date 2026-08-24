@@ -101,13 +101,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _weekly = MutableStateFlow<WeeklySummary.Report?>(null)
     val weekly: StateFlow<WeeklySummary.Report?> = _weekly
 
-    /**
-     * Вопрос интервьюера по открытой заметке (Р-15.14).
-     *
-     * `null` — режим закрыт; пустая строка — режим открыт, вопрос ещё идёт.
-     */
-    private val _question = MutableStateFlow<String?>(null)
-    val question: StateFlow<String?> = _question
 
     /** Предложение починить структуру (Р-15.12). null — продукт молчит. */
     private val _structure = MutableStateFlow<StructureRepair.Offer?>(null)
@@ -117,9 +110,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _weeklyFacts = MutableStateFlow<List<WeeklyFacts.Fact>>(emptyList())
     val weeklyFacts: StateFlow<List<WeeklyFacts.Fact>> = _weeklyFacts
 
-    /** Идёт пересборка «Собрано» после разговора — экран говорит об этом. */
-    private val _polishing = MutableStateFlow(false)
-    val polishing: StateFlow<Boolean> = _polishing
 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
@@ -850,63 +840,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * продукт не читал записи.
      */
     fun askAboutIdea(noteId: String) = viewModelScope.launch {
-        _question.value = ""
-        val question = withContext(Dispatchers.IO) {
-            val note = app.db.notes().byId(noteId) ?: return@withContext null
-            val idea = app.repository.joinedTranscript(noteId).ifBlank {
-                note.transcript.orEmpty()
-            }
-            if (idea.isBlank()) return@withContext null
-            val asked = app.db.questions().forNote(noteId).map { it.text }
-            val fresh = app.llm.interview(idea, asked) ?: return@withContext null
-            app.db.questions().insert(
-                ai.prinim.prinyal.data.QuestionEntity(
-                    id = java.util.UUID.randomUUID().toString(),
-                    noteId = noteId,
-                    text = fresh,
-                    askedAt = System.currentTimeMillis(),
-                )
-            )
-            if (fresh != null) {
-                app.db.notes().setInterview(noteId, ai.prinim.prinyal.data.InterviewState.ASKED.wire)
-            }
-            fresh
-        }
-        _question.value = question
-        if (question == null) _message.value = null
+        withContext(Dispatchers.IO) { app.repository.askNext(noteId) }
     }
 
-    /**
-     * Вернулись с ответом (Р-19.1).
-     *
-     * Вопроса больше не задаём сами: круг начинает человек кнопкой «Ещё
-     * вопрос». Автовопрос спрашивал, не дождавшись, пока ответ ляжет в тело, —
-     * и повторял сам себя, потому что видел прежний текст.
-     */
-    fun resumeInterview(noteId: String) = viewModelScope.launch {
-        _question.value = null
-    }
 
     /** Выход из режима — в любой момент и без последствий. */
-    fun closeInterview(noteId: String? = null) = viewModelScope.launch {
-        _question.value = null
-        noteId?.let {
-            app.db.notes().setInterview(it, ai.prinim.prinyal.data.InterviewState.NONE.wire)
-        }
-    }
-
-    /**
-     * «Закончить» (Р-19.1): конец петли.
-     *
-     * Пересобирать нечего: каждый круг уже дописан в тело по ходу разговора.
-     * Раньше здесь стоял отдельный проход по всему тексту — он и породил тот
-     * случай, когда модель ответила на собственный вопрос за человека.
-     */
-    fun finishInterview(noteId: String) = viewModelScope.launch {
-        _question.value = null
-        app.db.notes().setInterview(noteId, ai.prinim.prinyal.data.InterviewState.NONE.wire)
-        app.analytics.log("interview_finish", mapOf("note" to noteId))
-    }
 
     /** Расход на модель (Р-16.4): за неделю и за всё время. */
     private val _spend = MutableStateFlow<Pair<TokenSpend.Spend, TokenSpend.Spend>?>(null)
@@ -986,6 +924,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             app.repository.unreviveItem(itemId, was)
         }
     }
+
+    /** Последний вопрос разговора (Р-21.1) — из базы, не из памяти. */
+    fun lastQuestion(noteId: String) = app.db.questions().watchLast(noteId)
 
     /** Факты о человеке (Р-20.1): до трёх, слитым абзацем на карточке. */
     fun factsOfPerson(personId: String) = app.db.personFacts().watch(personId)

@@ -62,6 +62,11 @@ class InterviewWorker(
             "interview_answer",
             mapOf("note" to noteId, "chars" to answer.length, "polished" to (block != null)),
         )
+
+        // Круг замыкается здесь, в фоне: следующий вопрос строится по телу, в
+        // котором ответ **уже** лежит. Прошлая версия спрашивала с экрана,
+        // не дождавшись записи, и получала тот же вопрос слово в слово.
+        app.repository.askNext(noteId)
         return Result.success()
     }
 

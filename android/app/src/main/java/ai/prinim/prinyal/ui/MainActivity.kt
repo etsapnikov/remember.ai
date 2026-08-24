@@ -68,11 +68,10 @@ class MainActivity : ComponentActivity() {
                 androidx.compose.runtime.LaunchedEffect(packTopic) {
                     packTopic?.let { vm.openPackPickByTopic(it) }
                 }
-                // Следующий вопрос ждёт разбора ответа: спрашивать по старому
-                // тексту значит спросить ровно то же самое второй раз.
-                androidx.compose.runtime.LaunchedEffect(keepAsking, openNoteId) {
-                    if (keepAsking && openNoteId != null) vm.resumeInterview(openNoteId)
-                }
+                // Ничего будить не нужно: разговор живёт в базе, и экран
+                // заметки сам покажет, на какой он стадии. Прежде здесь
+                // взводился следующий вопрос — и спрашивал по старому тексту,
+                // потому что ответ ещё не был записан.
                 // Пришли извне при уже открытом приложении — ведём туда же,
                 // куда повёл бы холодный запуск.
                 val next by incoming
@@ -81,9 +80,6 @@ class MainActivity : ComponentActivity() {
                     incoming.value = null
                     fresh.getStringExtra(EXTRA_NOTE_ID)?.let { id ->
                         route = Route.Note(id)
-                        if (fresh.getBooleanExtra(EXTRA_KEEP_ASKING, false)) {
-                            vm.resumeInterview(id)
-                        }
                         return@LaunchedEffect
                     }
                     if (fresh.getBooleanExtra(EXTRA_OPEN_WEEKLY, false)) {
