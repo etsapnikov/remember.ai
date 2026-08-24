@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; }
+  body { font-family:'Roboto', system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+  a { color:#B4552A; text-decoration:none; }
+  a:hover { color:#8E3F1D; }
+  doc-page:not(:defined) { visibility:hidden; }
+  table { width:100%; border-collapse:collapse; }
+  td, th { vertical-align:top; }
+</style>
+<script src="./doc-page.js"></script>
+</helmet>
+
+<doc-page margin="0.75in">
+
+  <h1 style="font:700 30px/1.2 Roboto; color:#1A1310; margin:0 0 10px;">Аудит шести поверхностей · чек-лист</h1>
+  <p style="font:400 15px/1.6 Roboto; color:#5C524C; margin:0 0 6px;">Ответ на ТЗ дизайнеру от 17 августа (Д-7 / Р-15.6). Смотрел 22 снимка живой сборки (тёмная и светлая), состояние 1.0.1, <span style="font-family:'JetBrains Mono',monospace; font-size:13.5px;">design-tokens.json</span> 1.0 и утверждённые макеты.</p>
+  <p style="font:400 14px/1.6 Roboto; color:#8A7E76; margin:0 0 20px;">Приоритеты как договорились: <b style="font-weight:500;">рвёт петлю</b> · <b style="font-weight:500;">мешает</b> · <b style="font-weight:500;">косметика</b>. Внутри группы — по важности. Всё, что ниже, — про уже сделанное; новых функций не предлагаю. Пометка <b style="font-weight:500;">Ф</b> означает: расхождение видно в фактуре — в токенах или в принятых решениях, — смотреть на экране не нужно.</p>
+
+  <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 22px;"><b style="font-weight:500;">Диагноз одной фразой.</b> Поверхностей стало шесть, а шапка осталась одна — глобальная. Вложенные экраны (карточка, раздел, настройки) носят чужую навигацию: подсвечена корневая поверхность, своего имени у экрана нет, выхода нет. Второе по весу — лента: она показывает всё, что накопилось, полным текстом, включая зачёркнутое, и перестала быть лентой. Остальное — расхождения реализации с принятыми решениями и словарём.</p>
+
+  <h2 style="font:700 20px/1.3 Roboto; color:#1A1310; margin:0 0 6px;">Рвёт петлю</h2>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">1. Вложенный экран носит шапку корневого · снимки 03, 07, 09–12</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Что видно.</b> На экране раздела (07) в шапке «Записи · <b style="font-weight:500;">Разделы</b> · Неделя» — активны «Разделы», а имени раздела на экране нет вообще; кнопки назад нет. Точно так же карточка записи (03, 12) показывает «<b style="font-weight:500;">Записи</b> · Разделы · Неделя» с активной лентой — карточка выглядит как лента. У настроек (09–11) не подсвечено ничего и нет заголовка «Настройки».</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Почему рвёт.</b> Человек открыл «Дача», чтобы посмотреть заметки дачи, — и не может убедиться, что он в «Даче», а не в общем списке: на экране нет ни одного слова про раздел. Уйти обратно можно только системной «назад», а она в Android физически внизу и не читается как часть интерфейса. Это единственное место, где я не могу описать, как человек делает то, за чем пришёл.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;"><b style="font-weight:500;">Что делать.</b> Правило: <b style="font-weight:500;">три слова в шапке живут только на трёх корневых поверхностях</b>. У вложенного экрана своя шапка — «‹ Разделы» строкой выше и <b style="font-weight:500;">имя экрана заголовком</b>: «Дача», «Настройки», дата записи. Ровно как в макетах 5a и 6h. Одно правило чинит четыре экрана.</p>
+  </div>
+
+  <h2 style="font:700 20px/1.3 Roboto; color:#1A1310; margin:22px 0 6px;">Мешает</h2>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">2. Красная «Убрать» в покое, четыре раза подряд · снимок 10</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Почему проблема.</b> Нарушено единственное жёсткое правило палитры: красный принадлежит жесту записи, а пара destructive живёт только в открытой зоне свайпа и никогда в покое. Сейчас в «Как я слышу» четыре красных слова столбиком — самое яркое место всех настроек, и каждое удаляет правило одним тапом без отката.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;"><b style="font-weight:500;">Что делать.</b> Убрать кнопки из строк совсем: удаление правила — свайп влево по строке, зона «Убрать» на destructive-фоне, снекбар «Убрал правило · вернуть» (§18.3). Механика уже написана и уже работает в ленте — второй способ удалять не нужен.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">3. Лента показывает закрытые пункты полным текстом · снимок 02</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Что видно.</b> Одна разобранная запись занимает пол-экрана: у записи 19:48 шесть пунктов зачёркнутым Golos SemiBold 21, под каждым зелёное «сделано». На первом экране светлой темы — шесть мусорных записей и два блока перечёркнутого текста; живых пунктов не видно ни одного.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Почему проблема.</b> Зачёркивание придумано для строк списка покупок, где человек вычёркивает сам и видит свой прогресс. У обычного пункта его роль другая: сделанное больше не требует внимания, а сейчас оно жирнее и крупнее всего остального. Плюс «сделано» повторяется пять раз подряд — то же слово, тот же цвет, ноль новой информации.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;"><b style="font-weight:500;">Что делать.</b> В ленте у записи показывать <b style="font-weight:500;">живые пункты текстом, закрытые — сводкой</b>: «3 сделано · 1 похоронено» одной meta-строкой. Готовый образец уже есть на экране раздела (07) — там сводка сделана правильно; надо просто применить её и в ленте, чтобы одна запись выглядела одинаково в двух местах.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">4. Раскрытие пункта сделано модалкой · снимок 04</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Почему проблема.</b> Во-первых, это первая модалка в продукте: мы шесть версий отказывались от диалогов, и появление затемнения с карточкой по центру ломает пластику — плюс её радиус (около 20) не встречается больше нигде. Во-вторых, теряется место: не видно, какой это пункт из четырёх и что вокруг, а раскрытие как раз про «откуда это взялось».</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;"><b style="font-weight:500;">Что делать.</b> Раскрывать на месте, в потоке карточки: строка расширяется, под ней «Из речи» и история, соседние пункты остаются на экране (§19.2). Затемнение и центрирование убрать.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">5. Карточка записи без шапки · снимки 03, 12</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Что видно.</b> Первое, что есть на карточке, — «послушать · 0:20». Ни даты, ни времени, ни статуса, ни чипа раздела (ваш дефект — подтверждаю, в карточке его действительно нет).</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;"><b style="font-weight:500;">Что делать.</b> Вернуть шапку: дата и время слева, чип раздела справа (машинный — акцентный, ручной — нейтральный). Раздел правят только в карточке, и сейчас его правят там, где его не показывают.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">6. «Неделя»: отменённые слова и крупный ноль · снимок 08</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Что видно.</b> «Пока рано судить», ниже «Закрыл» и <b style="font-weight:500;">0</b> крупной цифрой.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Почему проблема.</b> Формулировка отменена в 1.0.1 вместе с вердиктами и порогами: «судить» — про человека, а экран должен рассказывать о своей работе. И крупный ноль — единственное число на экране: продукт большим кеглем сообщает человеку, что тот не сделал ничего.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;"><b style="font-weight:500;">Что делать.</b> Строки действующие: «Пока нечего рассказать · Расскажу в конце недели — раньше выйдет гадание». Сделанное показывать только когда оно есть; при нуле строку не печатать. Собрать экран как один блок продукта с пометкой «ЗА НЕДЕЛЮ» (§19.5) — сейчас подложки нет, текст лежит прямо на фоне и от остальных экранов не отличается.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">7. Два ряда чипов про одно и то же · снимок 09</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Что видно.</b> «Когда останавливать» [тихая комната / обычно / шумно] и сразу под ним «Сколько ждать паузу» [коротко / обычно / долго], а поясняющая фраза одна на оба.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Почему проблема.</b> Два одинаковых по виду контрола с «обычно» посередине читаются как один задвоенный. Человек не знает, что крутить, когда его обрывают на полуслове, — и покрутит оба.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;"><b style="font-weight:500;">Что делать.</b> Развести словами по симптому, а не по механике: «Насколько чутко слышу» (порог) и «Сколько молчу, прежде чем остановить» (пауза), и у каждого своя одна фраза следствия. Если оба всегда крутят вместе — оставить один ряд и второй параметр вести за него автоматически.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">8. Числа на трёх экранах не сходятся · снимки 06, 09, 10</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Что видно.</b> «Без раздела <b style="font-weight:500;">14</b> заметок» в «Разделах» — и «Заметок без раздела: <b style="font-weight:500;">7</b>» в настройках, в один и тот же вечер, в одной теме. Сумма по разделам даёт 58, «Выгрузить всё в файл» обещает 60.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;"><b style="font-weight:500;">Почему проблема и что делать.</b> Продукт, который считает себя вслух, обязан считать одинаково: расхождение в два раза обесценивает и «17 живых», и «60 записей». Свести к одному счётчику и одному определению, что попадает в «Без раздела» (мусорные «не расслышал» — попадают или нет).</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">9. Раздел в ленте акцентным цветом · снимок 02</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">Подпись «Приложение» стоит в шапке каждой записи оранжевым, и в ленте образуется колонка акцента — самое заметное, что на ней есть. По §19.4 раздел в ленте — первый сегмент meta-строки, тем же цветом и кеглем, что «в плане»: в ленте раздел читают, а не правят. Акцент оставить чипу в карточке.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">10. Клавиша записи в светлой теме не перекрашена · снимок 01-светлая</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">Корпус остался тёмно-бордовым из тёмной темы — на кремовом фоне это единственное тёмное пятно на экране, клавиша выглядит выключенной. В токенах для светлой есть своя тройка: <span style="font-family:'JetBrains Mono',monospace; font-size:13px;">record #C8362A</span>, <span style="font-family:'JetBrains Mono',monospace; font-size:13px;">recordWell #8E2318</span>, <span style="font-family:'JetBrains Mono',monospace; font-size:13px;">wellSurface #EFE6DC</span> — корпус светлый, колпачок красный, ход и тень как в тёмной.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">11. Колпачок круглый вместо клавиши · снимки 01</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">По макетам 2a колпачок <span style="font-family:'JetBrains Mono',monospace; font-size:13px;">key.cap 84</span> — скруглённый квадрат с радиусом 26; в сборке он круглый. Радиуса колпачка в токенах нет вовсе (есть только <span style="font-family:'JetBrains Mono',monospace; font-size:13px;">key.dot 26</span> и <span style="font-family:'JetBrains Mono',monospace; font-size:13px;">key.recording.stopRadius 5</span>) — завести <span style="font-family:'JetBrains Mono',monospace; font-size:13px;">key.capRadius 26</span>, иначе форма ничем не закреплена. С кругом внутри квадратного корпуса объект перестаёт быть клавишей и становится обычной кнопкой диктофона, а вся пластика нажатия (колпачок 84 → 78, ход 4 dp) построена именно на клавише. Вернуть squircle.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">12. Подсветка источника залита на весь транскрипт · снимок 03</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">В карточке в покое подсвечено две трети «Что услышал» — читается как маркер по всему абзацу и мешает читать. Подсветка нужна только когда человек спросил «откуда это»: в раскрытии пункта (04) она на месте. В покое карточки — не подсвечивать.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">13. «1 живых» · снимок 06</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">Склонение сломано у двух разделов из семи — «Авто 2 заметки · 1 живых» и «Финансы 1 заметка · 1 живых». И правило пропадания непонятное: у «Здоровье» и «Дом» сегмента «живых» нет вовсе — выглядит как отсутствие данных, а не как ноль. Предлагаю: «5 заметок · 2 живых» / «1 заметка · 1 живая» / при нуле — «5 заметок · всё закрыто».</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">14. Экран записи не сообщает пути к ленте · снимки 01</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">Под клавишей две подсказки: «Нажми — остановлю» и «Свайп вниз — отменить». Про «свайп вверх — записи» не сказано, хотя приложение открывается на записи и это единственный путь к ленте без отмены. Вернуть третью подсказку по правилу R1.2 §8: появляется после первой сохранённой записи и гаснет после трёх применений жеста.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">15. «Разложить старые записи» и «Как я слышу» стоят как секции · снимки 09, 10</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;">Оба набраны как заголовки секций, хотя это элементы: под заголовком сразу его же содержимое. Правило 1.0.1 — заголовок секции не повторяет подпись элемента внутри — соблюдено формально, но нарушено по сути.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">Плюс кнопка «Разложить» — залитая акцентная пилюля, единственная в настройках: залитая кнопка в продукте означает ответ на возврат и главное действие экрана. Сделать её текстовой строкой «Разложить», а результат отдавать снекбаром «Разложил 7 записей · вернуть» — сейчас про результат не сказано ничего.</p>
+  </div>
+
+  <h2 style="font:700 20px/1.3 Roboto; color:#1A1310; margin:22px 0 10px;">Косметика</h2>
+  <table style="font:400 14px/1.6 Roboto; color:#332C28; margin:0 0 20px;">
+    <thead><tr>
+      <th style="text-align:left; padding:7px 10px 7px 0; border-bottom:1px solid #C9BFB8; font:500 12px 'JetBrains Mono',monospace; color:#6B615A; letter-spacing:.05em; width:22%;">ГДЕ</th>
+      <th style="text-align:left; padding:7px 0 7px 10px; border-bottom:1px solid #C9BFB8; font:500 12px 'JetBrains Mono',monospace; color:#6B615A; letter-spacing:.05em;">ЧТО НЕ ТАК И ЧТО ДЕЛАТЬ</th>
+    </tr></thead>
+    <tbody>
+      <tr><td style="padding:8px 10px 8px 0; border-bottom:1px solid #E4DCD6;">Словарь · 04, 09</td><td style="padding:8px 0 8px 10px; border-bottom:1px solid #E4DCD6;">Названия блоков разошлись со словарём: «Что понял», «Из речи», «Как жил» против «Отсюда услышал» и «Что с ним было». «Из речи» лучше моего — забираю в словарь. «Как жил» — про пункт так не говорят, продукт не оценивает; меняем на «Что с ним было». «Что понял» оставить.</td></tr>
+      <tr><td style="padding:8px 10px 8px 0; border-bottom:1px solid #E4DCD6;">Раскрытие · 04</td><td style="padding:8px 0 8px 10px; border-bottom:1px solid #E4DCD6;">«Как жил» с одной строкой «сделано» — заголовок ради одного слова. Показывать блок от двух событий; одно событие печатать без заголовка.</td></tr>
+      <tr><td style="padding:8px 10px 8px 0; border-bottom:1px solid #E4DCD6;">Настройки · 09</td><td style="padding:8px 0 8px 10px; border-bottom:1px solid #E4DCD6;">«Каждая — отдельный разбор, минут 1 на всё» — подстановка числа сломала фразу. «Разберу каждую отдельно, это займёт около минуты».</td></tr>
+      <tr><td style="padding:8px 10px 8px 0; border-bottom:1px solid #E4DCD6;">Настройки · 10</td><td style="padding:8px 0 8px 10px; border-bottom:1px solid #E4DCD6;">«Выгрузить всё в файл» набрано акцентом и полужирным. Акцент означает «продукт сделал сам», а это действие человека — обычная строка, число справа в meta.</td></tr>
+      <tr><td style="padding:8px 10px 8px 0; border-bottom:1px solid #E4DCD6;">Настройки · 10</td><td style="padding:8px 0 8px 10px; border-bottom:1px solid #E4DCD6;">«Работа в фоне · ограничена» — <span style="font-family:'JetBrains Mono',monospace; font-size:13px;">statusWarn</span> (#A8542B) практически совпал с <span style="font-family:'JetBrains Mono',monospace; font-size:13px;">accentSelf</span> (#B4552F): предупреждение и «сделал сам» одного цвета. Развести на два шага светлоты в обеих темах.</td></tr>
+      <tr><td style="padding:8px 10px 8px 0; border-bottom:1px solid #E4DCD6;">Лента · 02</td><td style="padding:8px 0 8px 10px; border-bottom:1px solid #E4DCD6;">«6 записей без пунктов · убрать все» целиком акцентная — кричит громче содержимого. Текст meta-цветом, акцент только на «убрать все».</td></tr>
+      <tr><td style="padding:8px 10px 8px 0; border-bottom:1px solid #E4DCD6;">Раздел · 07</td><td style="padding:8px 0 8px 10px; border-bottom:1px solid #E4DCD6;">Заголовки заметок обрезаются в одну строку с «…» и теряют смысл («выпилить из настроек пункт с р…»). Две строки, обрезка по второй.</td></tr>
+      <tr><td style="padding:8px 10px 8px 0; border-bottom:1px solid #E4DCD6;">Даты · 02, 07</td><td style="padding:8px 0 8px 10px; border-bottom:1px solid #E4DCD6;">«18 авг. · 14:38» — точка в сокращении плюс точка-разделитель, в моно это читается как мусор. «18 авг · 14:38».</td></tr>
+      <tr><td style="padding:8px 10px 8px 0; border-bottom:1px solid #E4DCD6;">Ошибка · 12</td><td style="padding:8px 0 8px 10px; border-bottom:1px solid #E4DCD6;">Контент прижат к верху, две трети экрана пусто, «Удалить запись» под самой кнопкой. Дать карточке шапку с датой и статусом «не расслышал», «Удалить запись» опустить к низу экрана.</td></tr>
+      <tr><td style="padding:8px 10px 8px 0; border-bottom:1px solid #E4DCD6;">Квитанция · Ф</td><td style="padding:8px 0 8px 10px; border-bottom:1px solid #E4DCD6;">В токенах <span style="font-family:'JetBrains Mono',monospace; font-size:13px;">type.display</span> — Spectral <b style="font-weight:500;">Regular</b> 34; решение R1.2 §14 — Bold с трекингом −2%. При переходе на систему 1.0 гарнитура сменилась, вес потерялся. Spectral SemiBold 34/38.</td></tr>
+      <tr><td style="padding:8px 10px 8px 0; border-bottom:1px solid #E4DCD6;">Тишина · Ф</td><td style="padding:8px 0 8px 10px; border-bottom:1px solid #E4DCD6;">Окно тишины теперь 2,5–6 с по наговоренному, а строка обратного отсчёта осталась из 1.0.1 («остановлю через 1,4»). Показывать реальное окно текущей записи; состояния тишины в наборе снимков нет — проверьте у себя.</td></tr>
+      <tr><td style="padding:8px 10px 8px 0; border-bottom:1px solid #E4DCD6;">Токены · Ф</td><td style="padding:8px 0 8px 10px; border-bottom:1px solid #E4DCD6;">Мёртвые после 1.0.1: <span style="font-family:'JetBrains Mono',monospace; font-size:13px;">type.verdict</span> и <span style="font-family:'JetBrains Mono',monospace; font-size:13px;">type.metric</span> (вердикт и kill-метрики уехали в «Как идёт» моно-таблицей). Разошлись с ТЗ: <span style="font-family:'JetBrains Mono',monospace; font-size:13px;">key.ring</span> (sideGain 44 против 26, widthGain 2,5 против 1) и <span style="font-family:'JetBrains Mono',monospace; font-size:13px;">haptics.receipt</span> — двойной тик против принятого одного. Свести в один источник; я подстроюсь под ваши числа, но они должны быть одни.</td></tr>
+      <tr><td style="padding:8px 10px 8px 0; border-bottom:1px solid #E4DCD6;">Хэптика</td><td style="padding:8px 0 8px 10px; border-bottom:1px solid #E4DCD6;">По токенам есть квитанция, отмена и ответ на возврат. Не хватает одного: короткого тика при долгом тапе по слову в транскрипте — жест невидимый, подтверждение обязательно. Лишнего не нашёл: на снекбарах, смене поверхности и раскрытии вибро нет — так и надо.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font:700 20px/1.3 Roboto; color:#1A1310; margin:22px 0 10px;">Пустые состояния · единым тоном</h2>
+  <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 10px;">Шаблон один: <b style="font-weight:500;">что здесь будет + откуда возьмётся</b>, без кнопок и картинок. Ни одного пустого состояния в наборе снимков нет — ниже все шесть строк, чтобы было что сверять.</p>
+  <table style="font:400 14px/1.6 Roboto; color:#332C28; margin:0 0 20px;">
+    <tbody>
+      <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; width:26%; font-family:'JetBrains Mono',monospace; font-size:12.5px;">лента</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">Пока пусто · Открой значок, скажи как есть — комком, не по пунктам. Я разберу и вернусь в нужное время.</td></tr>
+      <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:12.5px;">разделы</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">Пока пусто · Разделы появляются сами из записей — я разложу, когда пойму, о чём ты говоришь чаще всего.</td></tr>
+      <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:12.5px;">внутри раздела</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">Здесь пусто · Все записи этого раздела ушли. Раздел исчезнет сам.</td></tr>
+      <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:12.5px;">неделя</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">Пока нечего рассказать · Расскажу в конце недели — раньше выйдет гадание.</td></tr>
+      <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:12.5px;">как я слышу</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">Пока правил нет · Поправь слово в «Что услышал» — запомню и дальше буду писать правильно.</td></tr>
+      <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:12.5px;">запись без пунктов</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">Дел я тут не услышал — сохранил как есть.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font:700 20px/1.3 Roboto; color:#1A1310; margin:22px 0 10px;">Ответы на ваши три вопроса</h2>
+
+  <div style="break-inside:avoid; margin:0 0 14px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">1. Что показывать в раскрытии закрытого пункта</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;">Текст пункта, «Из речи», «Что с ним было» — и <b style="font-weight:500;">одно действие «Закрыть»</b>. «Поправить» убрать: закрытое неприкосновенно, это несущее правило сверки, и предлагать его править — обещать то, чего продукт не сделает.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">«Вернуть в план» — <b style="font-weight:500;">нет</b>. Это менеджмент задач: у человека появляется способ отменять прожитое, а у продукта — состояние «был сделан, но передумали», которого нет ни в схеме, ни в возвратах. Если человек снова про это думает, он про это скажет — и получит новую запись с новым возвратом. Ровно так продукт и устроен: вход только голосом.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 14px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">2. Спорят ли «Собрано» и «Что услышал» на большой идее</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;">Спорят, и это видно уже на снимке 03, где записи всего 20 секунд: «Что понял» и «Что услышал» отличаются на несколько слов, и человек читает почти одно и то же дважды. На идее с абзацами будет вдвое хуже.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">Решение — то самое A1: <b style="font-weight:500;">«Что услышал» свёрнут по умолчанию</b> в служебную строку «Что услышал · 2 сегмента ⌄», «Собрано» раскрыто. Сырец — источник и доказательство, а не чтение; он нужен, когда что-то не сошлось. Состояние помнить по заметке: раскрыл — так и останется.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 14px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">3. Где стоять строке «разделил на две — вот вторая»</div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">Внизу карточки, под пунктами, служебным моно. У шапки она третьей встаёт в зону, где уже дата и чип раздела, и начинает читаться как заголовок записи — хотя это техническая связь, а не то, о чём запись. Внизу же она попадается ровно тогда, когда нужна: человек дочитал и не нашёл половину сказанного.</p>
+  </div>
+
+  <h2 style="font:700 20px/1.3 Roboto; color:#1A1310; margin:22px 0 10px;">Что доснять и в каком порядке чинить</h2>
+  <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 8px;"><b style="font-weight:500;">Нужны адресно</b> (из вашего списка недостающих): <b style="font-weight:500;">разбор в процессе</b> — единственное состояние с новой анимацией, оценить её иначе нельзя; <b style="font-weight:500;">заметка на 15+ пунктов</b> и <b style="font-weight:500;">очень длинный транскрипт</b> — там ломается плотность, из-за которой затевался пункт 3; <b style="font-weight:500;">лист правки пункта</b> с датой-пикером; <b style="font-weight:500;">состояние тишины</b> перед авто-стопом. Пустая лента, пустые разделы и неделя без фактов — не нужны: они целиком описаны выше, подкладывать данные ради них не стоит.</p>
+  <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 8px;"><b style="font-weight:500;">Порядок правки.</b> Сначала пункт 1 — он один чинит четыре экрана и снимает вопрос «где я». Потом 2 и 3: красная кнопка и лента — то, что человек видит каждый день. Дальше 4–8 подряд. Косметику брать одним заходом в конце, отдельной задачей на строки и токены, — там половина пунктов лечится правкой словаря.</p>
+  <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;"><b style="font-weight:500;">Про светлую тему.</b> Кроме клавиши (пункт 10) она держится: контраст, mono-подписи и акцент читаются. Отдельного захода не нужно — правьте вместе с тёмной.</p>
+
+</doc-page>
+</x-dc>
+</body>
+</html>

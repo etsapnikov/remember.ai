@@ -37,7 +37,15 @@ object WeeklyFacts {
         val closed: Int = 0,
         /** Сколько дел человек отменил как ненужные. */
         val dropped: Int = 0,
+        /** Сколько дел принёс за неделю и сколько из них ещё висит (Р-20.3). */
+        val brought: Int = 0,
+        val hanging: Int = 0,
+        /** Сколько разговоров об идее кончились делом. */
+        val grown: Int = 0,
     )
+
+    /** Меньше — не про «принесённое не пропало», а про пустую неделю. */
+    const val KEPT_MIN = 3
 
     /** Что именно рассказать. Строки живут в strings.xml, здесь только выбор. */
     sealed interface Fact {
@@ -46,6 +54,20 @@ object WeeklyFacts {
         data class TopicRepeated(val topic: String, val notes: Int) : Fact
         data class OldestWaiting(val days: Int) : Fact
         data class Dropped(val count: Int) : Fact
+
+        /**
+         * «Из 17 принесённых дел висят четыре — остальные ты закрыл» (Р-20.3).
+         *
+         * Подкрепляем не число, а факт: **принесённое не пропало**. Доля
+         * названа словами, а не процентом: процент человек начнёт держать, а
+         * фразу держать нельзя. Ни одна из трёх метрик, которые напрашивались,
+         * не годилась — число закрытых оптимизируется дроблением, отношение —
+         * недоговариванием, скорость — избеганием трудного.
+         */
+        data class Kept(val brought: Int, val hanging: Int) : Fact
+
+        /** «Два разговора кончились делом» — только когда они были. */
+        data class Grown(val count: Int) : Fact
     }
 
     const val LONG_WAIT_DAYS = 14
@@ -87,5 +109,11 @@ object WeeklyFacts {
         if (signal.oldestWaitingDays >= LONG_WAIT_DAYS) {
             add(Fact.OldestWaiting(signal.oldestWaitingDays))
         }
+        // Подкрепление стоит среди наблюдений, а не отдельным блоком: продукт
+        // отчитывается о своей работе, а не о качестве человека (макет 13d).
+        if (signal.brought >= KEPT_MIN && signal.hanging < signal.brought) {
+            add(Fact.Kept(signal.brought, signal.hanging))
+        }
+        if (signal.grown > 0) add(Fact.Grown(signal.grown))
     }.take(MAX_FACTS)
 }

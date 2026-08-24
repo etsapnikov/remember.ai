@@ -137,18 +137,26 @@ class CaptureActivity : ComponentActivity() {
     /** Ответ на вечерний вопрос (Р-18.1): дата дня. Уходит в «Дни», не в ленту. */
     private var dayDate: String? = null
 
+    /** Конец разговора об идее (Р-20.2): ответ про первый шаг. */
+    private var firstStep: Boolean = false
+
     /** Цель дописывания и подпись для плашки контекста. */
     private fun applyAppendTarget(intent: android.content.Intent) {
         appendTo = intent.getStringExtra(EXTRA_APPEND_TO)
         about = intent.getStringExtra(EXTRA_ABOUT)
         dayDate = intent.getStringExtra(EXTRA_DAY)
+        firstStep = intent.getBooleanExtra(EXTRA_FIRST_STEP, false)
         val id = appendTo
         if (id == null) {
             // «Рассказать про Веру» (Д-27) и «про день» (Р-18.1): плашка та же,
             // что у дописывания, — человек видит, о чём говорит, и не гадает,
             // куда попадёт запись.
-            state.dayPlate = dayDate != null
-            state.appendHint = if (dayDate != null) getString(R.string.day_plate) else about
+            state.dayPlate = dayDate != null || firstStep
+            state.appendHint = when {
+                dayDate != null -> getString(R.string.day_plate)
+                firstStep -> getString(R.string.step_plate)
+                else -> about
+            }
             return
         }
         lifecycleScope.launch {
@@ -314,7 +322,16 @@ class CaptureActivity : ComponentActivity() {
                 // в тело заметки и не трогает ни пунктов, ни возвратов (Р-19.1).
                 // Раньше здесь была одна ветка на оба случая — из-за неё разговор
                 // об идее перетряхивал дела записи, и петля ломалась.
-                if (intent.getBooleanExtra(EXTRA_ASKING, false)) {
+                if (this@CaptureActivity.firstStep) {
+                    // Конец разговора: из ответа рождается дело, а не абзац.
+                    //
+                    // Единственная квитанция в продукте, которая **ждёт**: она
+                    // называет само дело, а его ещё нужно распознать и собрать.
+                    // Ждать здесь можно — человек только что вёл разговор и
+                    // стоит перед экраном, а не убежал, записав на ходу.
+                    FirstStepWorker.enqueue(this@CaptureActivity, appendTo)
+                    awaitFirstStep(app, appendTo)
+                } else if (intent.getBooleanExtra(EXTRA_ASKING, false)) {
                     InterviewWorker.enqueue(this@CaptureActivity, appendTo)
                 } else {
                     UploadWorker.enqueue(this@CaptureActivity, appendTo)
@@ -334,7 +351,9 @@ class CaptureActivity : ComponentActivity() {
         }
 
         receiptJob = lifecycleScope.launch {
-            delay(RECEIPT_MS)
+            // Квитанция первого шага держится дольше: она несёт текст дела,
+            // и три секунды на него мало.
+            delay(if (this@CaptureActivity.firstStep) RECEIPT_STEP_MS else RECEIPT_MS)
             // Дописывание возвращает туда, откуда пришли, — в тело заметки.
             //
             // Раньше экран просто убирал задачу, и человек оказывался на
@@ -436,6 +455,36 @@ class CaptureActivity : ComponentActivity() {
         finish()
     }
 
+    /**
+     * Дождаться дела из разговора (Р-20.2).
+     *
+     * Ограничено [STEP_WAIT_MS]: если разбор не успел, квитанция скажет
+     * «Разговор закончен.» — и не соврёт, потому что дело, если оно всё-таки
+     * выйдет, просто появится в заметке. Обещать в квитанции то, чего ещё нет,
+     * нельзя.
+     */
+    private suspend fun awaitFirstStep(app: PrinyalApp, noteId: String) {
+        val until = System.currentTimeMillis() + STEP_WAIT_MS
+        while (System.currentTimeMillis() < until) {
+            val step = app.db.items().forNote(noteId).firstOrNull { it.fromInterview }
+            if (step != null) {
+                val plan = ai.prinim.prinyal.domain.Phrases.plan(this, step)
+                state.receiptStep = true to "${step.text} · $plan"
+                return
+            }
+            if (app.db.notes().byId(noteId)?.interview ==
+                ai.prinim.prinyal.data.InterviewState.NONE.wire &&
+                app.db.segments().forNote(noteId).lastOrNull()?.transcript != null
+            ) {
+                // Разбор кончился, а дела не вышло — честная концовка.
+                state.receiptStep = false to null
+                return
+            }
+            kotlinx.coroutines.delay(400)
+        }
+        state.receiptStep = false to null
+    }
+
     /** Свайп вниз — отмена. Другого способа передумать не нужно. */
     private fun cancelRecording() {
         if (state.receipt) return
@@ -481,6 +530,15 @@ class CaptureActivity : ComponentActivity() {
 
         /** Ответ на вечерний вопрос (Р-18.1): ISO-дата дня. */
         const val EXTRA_DAY = "day"
+
+        /** «И что сделаешь первым?» — конец разговора об идее (Р-20.2). */
+        const val EXTRA_FIRST_STEP = "first_step"
+
+        /** Сколько ждём дело из разговора, прежде чем сказать «Разговор закончен». */
+        private const val STEP_WAIT_MS = 12_000L
+
+        /** Квитанция с делом читается дольше обычной. */
+        private const val RECEIPT_STEP_MS = 5_000L
 
         /** Ответ на вопрос «Покрутить идею»: после квитанции разговор продолжается. */
         const val EXTRA_ASKING = "asking"

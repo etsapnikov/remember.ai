@@ -58,6 +58,9 @@ class WeekSignal(
                 daysBetween(said, ret.firedAt!!) >= WeeklyFacts.LONG_WAIT_DAYS
             }
 
+            // --- принесённое за неделю ---
+            val brought = items.filter { (notesById[it.noteId]?.createdAt ?: 0) >= from }
+
             // --- самое старое живое ---
             val live = items.filter { ItemState.of(it.state) in LIVE }
             val oldest = live.mapNotNull { notesById[it.noteId]?.createdAt }.minOrNull()
@@ -71,6 +74,10 @@ class WeekSignal(
                 oldestWaitingDays = oldest?.let { daysBetween(it, now) } ?: 0,
                 closed = done.size,
                 dropped = returns.count { it.action == "dismiss" },
+                // Принесённое за неделю и что из него ещё висит (Р-20.3).
+                brought = brought.size,
+                hanging = brought.count { ItemState.of(it.state) in LIVE },
+                grown = brought.count { it.fromInterview },
             )
         }
 

@@ -170,6 +170,18 @@ class Settings(private val context: Context) {
         context.dataStore.edit { it[BEDTIME] = time.toString() }
     }
 
+    /**
+     * Сколько дел закрыто за неделю — для строки виджета (Р-20.3).
+     *
+     * Живёт в тех же prefs, что читает виджет: DataStore из `onUpdate` не
+     * прочитать синхронно, а виджету нужна цифра здесь и сейчас.
+     */
+    fun setClosedThisWeek(count: Int) {
+        context.getSharedPreferences("widget", android.content.Context.MODE_PRIVATE)
+            .edit().putInt("closed_week", count).apply()
+        ai.prinim.prinyal.capture.CaptureWidget.refresh(context)
+    }
+
     suspend fun setWindow(window: Window, time: LocalTime) {
         val key = when (window) {
             Window.MORNING, Window.TOMORROW_MORNING -> W_MORNING

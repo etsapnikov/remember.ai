@@ -21,8 +21,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PersonNote::class,
         DayEntity::class,
         WeekRecapEntity::class,
+        PersonFact::class,
     ],
-    version = 15,
+    version = 17,
     exportSchema = true,
 )
 abstract class PrinyalDb : RoomDatabase() {
@@ -37,6 +38,7 @@ abstract class PrinyalDb : RoomDatabase() {
     abstract fun questions(): QuestionDao
     abstract fun days(): DayDao
     abstract fun weekRecaps(): WeekRecapDao
+    abstract fun personFacts(): PersonFactDao
 
     companion object {
         @Volatile
@@ -292,10 +294,42 @@ abstract class PrinyalDb : RoomDatabase() {
             }
         }
 
+        /** v15 → v16: факты о людях отдельными строками (Р-20.1). */
+        private val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS person_facts (" +
+                        "id TEXT NOT NULL PRIMARY KEY, person_id TEXT NOT NULL, " +
+                        "text TEXT NOT NULL, at INTEGER NOT NULL, " +
+                        "FOREIGN KEY(person_id) REFERENCES entities(id) ON DELETE CASCADE)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_person_facts_person_id " +
+                        "ON person_facts(person_id)"
+                )
+                // Прежний единственный факт переезжает первой строкой: знание,
+                // добытое доспросом, терять нельзя.
+                db.execSQL(
+                    "INSERT INTO person_facts (id, person_id, text, at) " +
+                        "SELECT id, id, fact, first_seen FROM entities " +
+                        "WHERE fact IS NOT NULL AND fact != ''"
+                )
+            }
+        }
+
+        /** v16 → v17: пункт, выросший из разговора (Р-20.2). */
+        private val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE items ADD COLUMN from_interview INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+        }
+
         private fun build(context: Context): PrinyalDb =
             Room.databaseBuilder(context, PrinyalDb::class.java, "prinyal.db")
                 // Destructive-падения нет намеренно: dogfood-корпус терять нельзя.
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
                 .build()
 
         /** Только для тестов. */

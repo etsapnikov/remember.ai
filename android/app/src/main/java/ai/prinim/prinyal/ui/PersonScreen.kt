@@ -2,6 +2,7 @@ package ai.prinim.prinyal.ui
 
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.data.PersonOverview
+import ai.prinim.prinyal.data.ItemState
 import ai.prinim.prinyal.domain.Dates
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
@@ -114,17 +115,20 @@ fun PersonScreen(
     onOpenNote: (String) -> Unit,
 ) {
     val notes by vm.notesOfPerson(personId).collectAsState(initial = emptyList())
+    val facts by vm.factsOfPerson(personId).collectAsState(initial = emptyList())
     val people by vm.people.collectAsState()
     val person = people.firstOrNull { it.id == personId }
     val context = androidx.compose.ui.platform.LocalContext.current
 
-    // Открытые дела — только живые пункты, где человек назван адресатом.
-    // Закрытые сюда не попадают: для них есть фильтр в ленте.
+    // Счёт живого под именем — по всем незакрытым пунктам его записей, а не
+    // только по тем, где он назван адресатом (макет 13a).
+    //
+    // Прежний счёт был от блока «Открытые дела»: там адресат нужен, потому что
+    // блок отвечал на вопрос «что я должен **ему**». Строка под именем отвечает
+    // на другой: «сколько тут живого». У Савушкина живой пункт есть, а адресат
+    // у него не проставлен — и сегмент пропадал, хотя долг был виден ниже.
     val open = notes.flatMap { it.items }.filter {
-        ai.prinim.prinyal.data.ItemState.of(it.state) in LIVE_STATES &&
-            person != null && !it.who.isNullOrBlank() &&
-            ai.prinim.prinyal.domain.PersonIdentity.norm(it.who!!) ==
-            ai.prinim.prinyal.domain.PersonIdentity.norm(person.name)
+        ai.prinim.prinyal.data.ItemState.of(it.state) in LIVE_STATES
     }
 
     LazyColumn(
@@ -141,14 +145,35 @@ fun PersonScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 MetaText(
-                    text = pluralStringResource(
-                        R.plurals.person_notes, notes.size, notes.size,
-                    ) + (person?.let { " · " + stringResource(R.string.person_since, Dates.day(it.firstAt)) }.orEmpty()),
+                    // «3 записи · 2 живых · с 4 августа» (макет 13a).
+                    //
+                    // Сегмент «живых» заменяет собой блок «Открытые дела»:
+                    // долг не теряется, но перестаёт печататься дважды — он
+                    // виден там, где родился, внутри своей записи.
+                    //
+                    // Именно «живых», а не «в плане»: под именем стоит одно
+                    // число на все незакрытые пункты, а «в плане» и «вернусь» —
+                    // разные состояния фильтра, и складывать их под именем
+                    // одного из них нельзя.
+                    text = buildList {
+                        add(pluralStringResource(R.plurals.person_notes, notes.size, notes.size))
+                        if (open.isNotEmpty()) {
+                            add(pluralStringResource(R.plurals.person_live, open.size, open.size))
+                        }
+                        person?.let {
+                            add(stringResource(R.string.person_since, Dates.day(it.firstAt)))
+                        }
+                    }.joinToString(" · "),
                     color = Prinyal.colors.inkFaint,
+                    // Строка слева ужимается, а вход в пак — нет: он два слова
+                    // и в две строки читается как две команды.
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
                 MetaText(
                     text = stringResource(R.string.pack_build),
                     color = Prinyal.colors.accentSelf,
+                    maxLines = 1,
                     modifier = Modifier.tap {
                         vm.contextPackForPerson(personId, person?.name.orEmpty())
                     },
@@ -156,16 +181,39 @@ fun PersonScreen(
             }
         }
 
-        // Что известно — только когда известно.
-        person?.fact?.takeIf { it.isNotBlank() }?.let { fact ->
+        // Что известно — слитым абзацем и без заголовка (макет 13a).
+        //
+        // Список строк читается как анкета: поля, которые надо заполнить.
+        // Абзац читается как знание о человеке — и не обещает, что фактов
+        // должно быть больше. Заголовка нет: частей на экране две, и они
+        // различимы гарнитурой — Spectral для знания, Golos для записей.
+        if (facts.isNotEmpty()) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
-                    MetaText(stringResource(R.string.person_known), color = Prinyal.colors.inkFaint)
-                    Text(fact, style = Prinyal.type.voice, color = Prinyal.colors.ink)
+                    Text(
+                        // Каждый факт — предложением: «Сестра. Живёт в
+                        // Пушкино…». Слитый абзац из строчных читается как
+                        // обрывок расшифровки, а не как знание о человеке.
+                        text = facts.joinToString(" ") { fact ->
+                            fact.text.trim().trimEnd('.')
+                                .replaceFirstChar { it.uppercase() } + "."
+                        },
+                        style = Prinyal.type.voice,
+                        color = Prinyal.colors.ink,
+                    )
+                    // Дата одна, последнего пополнения: дата у каждого факта
+                    // превратила бы абзац в журнал.
+                    MetaText(
+                        stringResource(
+                            R.string.person_facts_at,
+                            Dates.day(facts.maxOf { it.at }),
+                        ),
+                        color = Prinyal.colors.inkFaint,
+                    )
                 }
             }
         }
-        if (person != null && person.fact.isNullOrBlank()) {
+        if (person != null && facts.isEmpty()) {
             // Второй вход для факта (Д-27): доспрос может не сработать вовсе, и
             // тогда рассказать о человеке негде. Тихая ссылка, не анкета.
             item {
@@ -177,21 +225,10 @@ fun PersonScreen(
             }
         }
 
-        if (open.isNotEmpty()) {
-            item { SectionTitle(stringResource(R.string.person_open)) }
-            items(open, key = { it.id }) { item ->
-                Column(Modifier.fillMaxWidth().padding(vertical = Space.xs)) {
-                    Text(item.text, style = Prinyal.type.label, color = Prinyal.colors.ink)
-                    MetaText(
-                        ai.prinim.prinyal.domain.Phrases.plan(context, item),
-                        color = Prinyal.colors.accentSelf,
-                    )
-                }
-            }
-        }
-
+        // Блока «Открытые дела» больше нет (макет 13a): дело печаталось
+        // дважды — и в блоке, и внутри записи, откуда оно взялось. Теперь дела
+        // показывает сама запись, языком ленты.
         if (notes.isNotEmpty()) {
-            item { SectionTitle(stringResource(R.string.person_notes_title)) }
             items(notes, key = { it.note.id }) { entry ->
                 Column(
                     Modifier
@@ -203,12 +240,41 @@ fun PersonScreen(
                     // Строка ленты без пунктов: первые слова и дата. Раздел не
                     // печатается — человек пришёл смотреть человека, а не
                     // структуру.
+                    val live = entry.items.filter { ItemState.of(it.state) in LIVE_STATES }
+                    val done = entry.items.size - live.size
+
+                    MetaText(
+                        text = listOfNotNull(
+                            Dates.day(entry.note.createdAt),
+                            entry.items.size.takeIf { it > 0 }?.let {
+                                pluralStringResource(R.plurals.person_note_items, it, it)
+                            },
+                        ).joinToString(" · "),
+                        color = Prinyal.colors.inkFaint,
+                    )
                     Text(
                         text = ai.prinim.prinyal.domain.LinkCandidates.opening(entry.note.transcript),
                         style = Prinyal.type.label,
                         color = Prinyal.colors.ink,
                     )
-                    MetaText(Dates.day(entry.note.createdAt), color = Prinyal.colors.inkFaint)
+                    // Живые пункты — языком ленты, закрытые — сводкой. Долг
+                    // виден там, где родился, и виден один раз.
+                    live.forEach { item ->
+                        Column(Modifier.padding(top = Space.xs)) {
+                            Text(item.text, style = Prinyal.type.label, color = Prinyal.colors.ink)
+                            MetaText(
+                                ai.prinim.prinyal.domain.Phrases.plan(context, item),
+                                color = Prinyal.colors.accentSelf,
+                            )
+                        }
+                    }
+                    if (done > 0) {
+                        MetaText(
+                            stringResource(R.string.topic_summary_done, done),
+                            color = Prinyal.colors.inkFaint,
+                            modifier = Modifier.padding(top = Space.xs),
+                        )
+                    }
                 }
             }
         }

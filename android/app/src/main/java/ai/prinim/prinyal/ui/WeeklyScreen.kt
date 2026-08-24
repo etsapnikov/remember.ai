@@ -168,6 +168,14 @@ private fun factText(fact: WeeklyFacts.Fact): String = when (fact) {
         pluralStringResource(R.plurals.week_fact_oldest, fact.days, fact.days)
     is WeeklyFacts.Fact.Dropped ->
         pluralStringResource(R.plurals.week_fact_dropped, fact.count, fact.count)
+    // Доля названа словами, а не процентом: процент человек начнёт держать.
+    is WeeklyFacts.Fact.Kept -> stringResource(
+        R.string.week_fact_kept,
+        fact.brought,
+        pluralStringResource(R.plurals.week_fact_hanging, fact.hanging, fact.hanging),
+    )
+    is WeeklyFacts.Fact.Grown ->
+        pluralStringResource(R.plurals.week_fact_grown, fact.count, fact.count)
 }
 
 @Composable

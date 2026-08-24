@@ -131,6 +131,14 @@ class WeeklyFactsTest {
                     is Fact.TopicRepeated -> assertEquals(signal.repeatedTopicNotes, fact.notes)
                     is Fact.OldestWaiting -> assertEquals(signal.oldestWaitingDays, fact.days)
                     is Fact.Dropped -> assertEquals(signal.dropped, fact.count)
+                    is Fact.Kept -> {
+                        assertEquals(signal.brought, fact.brought)
+                        assertEquals(signal.hanging, fact.hanging)
+                        // Подкрепление печатается только когда есть чем: доля
+                        // «всё висит» — не новость про то, что не пропало.
+                        assertTrue(fact.hanging < fact.brought)
+                    }
+                    is Fact.Grown -> assertEquals(signal.grown, fact.count)
                 }
             }
         }

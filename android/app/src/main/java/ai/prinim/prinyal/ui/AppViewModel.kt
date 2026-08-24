@@ -987,6 +987,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** Факты о человеке (Р-20.1): до трёх, слитым абзацем на карточке. */
+    fun factsOfPerson(personId: String) = app.db.personFacts().watch(personId)
+
     fun showMessage(text: String?) {
         _message.value = text
     }

@@ -290,6 +290,28 @@ interface ReplacementDao {
 }
 
 @Dao
+interface PersonFactDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(fact: PersonFact)
+
+    @Query("SELECT * FROM person_facts WHERE person_id = :personId ORDER BY at ASC")
+    suspend fun forPerson(personId: String): List<PersonFact>
+
+    @Query("SELECT * FROM person_facts WHERE person_id = :personId ORDER BY at ASC")
+    fun watch(personId: String): Flow<List<PersonFact>>
+
+    @Query("SELECT * FROM person_facts")
+    suspend fun all(): List<PersonFact>
+
+    @Query("DELETE FROM person_facts WHERE id = :id")
+    suspend fun delete(id: String)
+
+    @Query("SELECT COUNT(DISTINCT person_id) FROM person_facts")
+    suspend fun peopleWithFacts(): Int
+}
+
+@Dao
 interface DayDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -396,7 +418,14 @@ interface PersonDao {
             "JOIN person_notes pn ON pn.person_id = e.id " +
             "JOIN notes n ON n.id = pn.note_id AND n.deleted_at IS NULL " +
             "WHERE e.merged_into IS NULL " +
-            "GROUP BY e.id HAVING notes >= :minNotes ORDER BY lastAt DESC"
+            "GROUP BY e.id " +
+            // Порог уточнён (макет 13b): две разные записи **или** факт из
+            // речи. Факт — то самое содержимое, ради которого карточка и
+            // существует: узнав «у Веры ключи от дачи», прятать Веру до
+            // второй записи глупо.
+            "HAVING notes >= :minNotes " +
+            "OR EXISTS(SELECT 1 FROM person_facts pf WHERE pf.person_id = e.id) " +
+            "ORDER BY lastAt DESC"
     )
     fun people(minNotes: Int): Flow<List<PersonOverview>>
 

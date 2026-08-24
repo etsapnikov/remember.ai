@@ -686,6 +686,51 @@ class NoteRepository(
         db.notes().setInterview(noteId, InterviewState.ANSWERED.wire)
     }
 
+    /**
+     * Конец разговора об идее (Р-20.2, макет 13c).
+     *
+     * Дело — пунктом в той же заметке, с пометкой «из разговора»: она не
+     * гаснет, потому что происхождение это факт, а не событие.
+     *
+     * Срок берётся **только из речи**: сказал «до воскресенья» — воскресенье,
+     * не сказал — дело живое без даты, и продукт спросит про него в обычном
+     * окне дня, как про любое другое. Правило §24.5 здесь не делает исключений
+     * ради красивой концовки.
+     *
+     * @return созданный пункт или null, если дела не вышло
+     */
+    suspend fun finishInterviewWithStep(
+        noteId: String,
+        step: ai.prinim.prinyal.llm.DeepSeekClient.FirstStep?,
+    ): ItemEntity? {
+        val note = db.notes().byId(noteId) ?: return null
+        db.notes().setInterview(noteId, InterviewState.NONE.wire)
+        if (step == null) {
+            analytics.log("interview_finish", mapOf("note" to noteId, "step" to false))
+            return null
+        }
+
+        val item = ItemEntity(
+            id = newId(),
+            noteId = noteId,
+            type = ItemType.DO.wire,
+            text = step.text,
+            dueKind = if (step.dueAt != null) DueKind.EXACT.wire else DueKind.NONE.wire,
+            dueAt = step.dueAt,
+            state = ItemState.PLANNED.wire,
+            confidence = ai.prinim.prinyal.data.Confidence.HIGH.wire,
+            position = db.items().forNote(noteId).size,
+            fromInterview = true,
+        )
+        db.items().insertAll(listOf(item))
+        planReturn(item, Instant.ofEpochMilli(note.createdAt), settings.windowsNow(), Instant.now())
+        analytics.log(
+            "interview_finish",
+            mapOf("note" to noteId, "step" to true, "dated" to (step.dueAt != null)),
+        )
+        return item
+    }
+
     /** Ответа не случилось (промолчал) — возвращаемся к заданному вопросу. */
     suspend fun markInterviewIdle(noteId: String) {
         db.notes().setInterview(noteId, InterviewState.ASKED.wire)
@@ -869,20 +914,56 @@ class NoteRepository(
             }
             db.people().link(PersonNote(personId = id, noteId = noteId))
 
-            // Что прозвучало о человеке — в карточку (Р-19.3). Первый факт
-            // побеждает: доспрос и прежние записи уже дали ответ, и переписывать
-            // его новой репликой значит терять то, что человек сказал раньше.
-            facts[clean]?.let { fact ->
-                val person = db.people().byNorm(PersonIdentity.norm(clean))
-                if (person != null && person.fact.isNullOrBlank()) {
-                    db.people().update(
-                        person.copy(fact = fact, status = PersonStatus.KNOWN.wire)
-                    )
-                    analytics.log("person_fact", mapOf("person" to person.id, "note" to noteId))
-                }
-            }
+            // Что прозвучало о человеке — в карточку (Р-20.1, макет 13a).
+            facts[clean]?.let { fact -> rememberFact(id, fact, noteId) }
         }
     }
+
+    /**
+     * Копим до трёх фактов о человеке (Р-20.1, макет 13a).
+     *
+     * Четвёртый не добавляется в хвост, а **вытесняет тот, которому
+     * противоречит** («живёт в Пушкино» → «переехала в Москву»). Не
+     * противоречит ничему — не берётся вовсе: три факта это знание о человеке,
+     * четыре — уже досье, а записная книжка это другой продукт.
+     *
+     * Противоречие определяет модель: правило «переехала отменяет живёт» кодом
+     * не выражается, а сравнение строк дало бы либо дубли, либо потерю знания.
+     */
+    private suspend fun rememberFact(personId: String, fact: String, noteId: String) {
+        val text = fact.trim()
+        if (text.isEmpty()) return
+        val known = db.personFacts().forPerson(personId)
+        // Тот же факт другими словами ловим до модели: лишний запрос на
+        // каждом упоминании человека дороже, чем сравнение строк.
+        if (known.any { it.text.equals(text, ignoreCase = true) }) return
+
+        if (known.size >= MAX_FACTS) {
+            val stale = llm()?.factConflict(known.map { it.text }, text) ?: return
+            db.personFacts().delete(known[stale].id)
+        }
+        db.personFacts().insert(
+            ai.prinim.prinyal.data.PersonFact(
+                id = newId(),
+                personId = personId,
+                text = text,
+                at = Instant.now().toEpochMilli(),
+            )
+        )
+        // Статус «знаю» — чтобы человек попал в выдачу порога «две записи или
+        // факт» и перестал быть кандидатом на доспрос.
+        db.people().byId(personId)?.let { person ->
+            if (PersonStatus.of(person.status) != PersonStatus.KNOWN) {
+                db.people().update(person.copy(status = PersonStatus.KNOWN.wire, fact = text))
+            } else if (person.fact != text) {
+                db.people().update(person.copy(fact = text))
+            }
+        }
+        analytics.log("person_fact", mapOf("person" to personId, "note" to noteId))
+    }
+
+    /** Три факта — знание, четыре — досье (макет 13a). */
+    private val MAX_FACTS = 3
 
     /**
      * Разовый пересчёт людей по уже накопленным записям (Д-26).
@@ -1118,7 +1199,24 @@ class NoteRepository(
         }
         setStateAndStop(itemId, ItemState.DONE)
         analytics.log(Analytics.RETURN_ACTION, mapOf("item" to itemId, "action" to "done"))
+        refreshWidgetCount()
         return null
+    }
+
+    /**
+     * Счёт закрытого за неделю — для строки на виджете (Р-20.3, макет 13d).
+     *
+     * Кладём в prefs, а не считаем в виджете: `onUpdate` живёт миллисекунды, и
+     * запрос к базе оттуда — способ получить пустую строку на медленном
+     * телефоне. Цифра меняется только когда человек что-то закрыл.
+     */
+    private suspend fun refreshWidgetCount() {
+        val week = Instant.now().minus(7, ChronoUnit.DAYS).toEpochMilli()
+        val closed = db.items().all().count {
+            ItemState.of(it.state) == ItemState.DONE &&
+                (db.notes().byId(it.noteId)?.createdAt ?: 0) >= week
+        }
+        settings.setClosedThisWeek(closed)
     }
 
     /**

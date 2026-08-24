@@ -55,6 +55,13 @@ class CaptureState {
 
     /** Плашка «про день» печатается как есть, без «дописываю». */
     var dayPlate by mutableStateOf(false)
+
+    /**
+     * Что напечатать вместо «Запомнил.» в конце разговора об идее (Р-20.2):
+     * «Из разговора вышло дело.» или «Разговор закончен.» — и строкой ниже
+     * само дело со сроком. Null — обычная квитанция.
+     */
+    var receiptStep by mutableStateOf<Pair<Boolean, String?>?>(null)
     var needsPermission by mutableStateOf(false)
     var failed by mutableStateOf(false)
     var tooShort by mutableStateOf(false)
@@ -103,7 +110,7 @@ fun CaptureScreen(
         contentAlignment = Alignment.Center,
     ) {
         when {
-            state.receipt -> Receipt(day = state.receiptDay)
+            state.receipt -> Receipt(day = state.receiptDay, step = state.receiptStep)
             state.needsPermission -> PermissionRequest(onGrant)
             state.failed -> Message(stringResource(R.string.error_asr_failed))
             state.tooShort -> Message(stringResource(R.string.capture_too_short))
@@ -138,7 +145,7 @@ fun CaptureScreen(
  * (моушн `receipt` + `noteAway` из токенов). Анимация одноразовая: экран живёт 0.6 с.
  */
 @Composable
-private fun Receipt(day: Boolean = false) {
+private fun Receipt(day: Boolean = false, step: Pair<Boolean, String?>? = null) {
     val appear = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
         appear.animateTo(
@@ -147,15 +154,40 @@ private fun Receipt(day: Boolean = false) {
         )
     }
 
-    Text(
-        text = stringResource(if (day) R.string.receipt_day else R.string.receipt),
-        style = Prinyal.type.display,
-        color = Prinyal.colors.accentSelf,
+    // «Из разговора вышло дело.» — констатация, а не похвала (макет 13c):
+    // квитанция говорит, что произошло, и не оценивает человека. Подкрепление
+    // здесь — сам факт, что мысль перестала быть мыслью.
+    val words = when {
+        step != null && step.first -> stringResource(R.string.receipt_step)
+        step != null -> stringResource(R.string.receipt_talk_done)
+        day -> stringResource(R.string.receipt_day)
+        else -> stringResource(R.string.receipt)
+    }
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Space.m),
         modifier = Modifier.graphicsLayer {
             alpha = appear.value
             translationY = Motion.NoteAwayTranslateY * (1f - appear.value) * -1f
         },
-    )
+    ) {
+        Text(
+            text = words,
+            style = Prinyal.type.display,
+            color = Prinyal.colors.accentSelf,
+        )
+        // Само дело со сроком — строкой под квитанцией (макет 13c): человек
+        // должен увидеть, во что превратился разговор, а не гадать.
+        step?.second?.let { line ->
+            Text(
+                text = line,
+                style = Prinyal.type.body,
+                color = Prinyal.colors.inkMuted,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.padding(horizontal = Space.xl),
+            )
+        }
+    }
 }
 
 @Composable

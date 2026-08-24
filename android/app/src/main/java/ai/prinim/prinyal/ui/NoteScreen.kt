@@ -270,7 +270,11 @@ fun NoteScreen(
                         // отдельной сущностью «ответ на вопрос». Флаг «asking»
                         // возвращает человека сюда же, а не на рабочий стол.
                         onAnswer = { openAppend(context, noteId, asking = true) },
-                        onFinish = { vm.finishInterview(noteId) },
+                        // «Закончить» больше не закрывает разговор молча: оно
+                        // спрашивает голосом, что человек сделает первым, и из
+                        // ответа рождается дело (Р-20.2). Свайп вниз на экране
+                        // записи — честная концовка без дела.
+                        onFinish = { openFirstStep(context, noteId) },
                         onClose = { vm.closeInterview(noteId) },
                     )
                 }
@@ -617,7 +621,9 @@ private fun ItemCard(
             item.who?.let { MetaText(it) }
         }
         Text(
-            text = Phrases.plan(context, item),
+            text = Phrases.plan(context, item) +
+                // Происхождение — факт, а не событие: пометка не гаснет.
+                if (item.fromInterview) " · " + stringResource(R.string.item_from_interview) else "",
             style = Prinyal.type.voice,
             color = Prinyal.colors.accentSelf,
         )
@@ -932,6 +938,23 @@ private fun LinkRow(link: LinkedNote, onClick: () -> Unit) {
 
 
 /** Экран записи в режиме дописывания — общий вход для «Дописать» и ответа. */
+/** Вопрос про первый шаг (Р-20.2): тот же экран записи, своя плашка. */
+private fun openFirstStep(context: android.content.Context, noteId: String) {
+    context.startActivity(
+        android.content.Intent(
+            context,
+            ai.prinim.prinyal.capture.CaptureActivity::class.java,
+        ).apply {
+            putExtra(ai.prinim.prinyal.capture.CaptureActivity.EXTRA_APPEND_TO, noteId)
+            putExtra(ai.prinim.prinyal.capture.CaptureActivity.EXTRA_FIRST_STEP, true)
+            addFlags(
+                android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                    android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+            )
+        }
+    )
+}
+
 private fun openAppend(
     context: android.content.Context,
     noteId: String,

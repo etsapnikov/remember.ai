@@ -1,17 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Ничего, кроме кнопки: виджет не показывает данных, он провоцирует нажатие. -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  Клавиша и одна строка под ней (макет 13d).
+
+  Место строки зарезервировано **всегда**: клавиша не сдвигается и не меняет
+  размер от того, есть строке что сказать или нет. Плохая неделя не должна
+  выглядеть как другой виджет.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center">
 
     <ImageView
         android:id="@+id/widget_key"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_gravity="center"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:scaleType="fitCenter"
         android:adjustViewBounds="true"
         android:contentDescription="@string/widget_description"
         android:src="@drawable/widget_key" />
-</FrameLayout>
+
+    <TextView
+        android:id="@+id/widget_note"
+        android:layout_width="match_parent"
+        android:layout_height="15dp"
+        android:layout_marginTop="14dp"
+        android:gravity="center"
+        android:maxLines="1"
+        android:textSize="12sp"
+        android:fontFamily="monospace"
+        android:textColor="#8A7F76"
+        android:text="" />
+</LinearLayout>

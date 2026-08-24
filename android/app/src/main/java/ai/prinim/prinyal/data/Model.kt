@@ -248,6 +248,13 @@ data class ItemEntity(
      * встаёт «вернул в план». Дата и есть эта строка истории.
      */
     @ColumnInfo(name = "revived_at") val revivedAt: Long? = null,
+    /**
+     * Пункт вырос из разговора об идее (Р-20.2).
+     *
+     * Пометка не гаснет: происхождение — факт, а не событие. Это единственный
+     * способ узнать дело, которое родилось не из прямой команды «напомни…».
+     */
+    @ColumnInfo(name = "from_interview") val fromInterview: Boolean = false,
 )
 
 @Entity(
@@ -460,6 +467,34 @@ data class LinkEntity(
 )
 
 /** Чем одна заметка приходится другой. */
+/**
+ * Факт о человеке (Р-20.1, макет 13a): «сестра», «у неё ключи от дачи».
+ *
+ * Отдельной строкой, а не полем на человеке: фактов копится до трёх, и у
+ * каждого своя дата — по ней видно, что знание не выдумано сегодня.
+ *
+ * «Первый побеждает» было плохим правилом: первым легко оказывается случайное
+ * («звонила»), и оно навсегда занимает единственное место.
+ */
+@Entity(
+    tableName = "person_facts",
+    foreignKeys = [
+        ForeignKey(
+            entity = PersonEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["person_id"],
+            onDelete = ForeignKey.CASCADE,
+        )
+    ],
+    indices = [Index("person_id")],
+)
+data class PersonFact(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "person_id") val personId: String,
+    val text: String,
+    @ColumnInfo(name = "at") val at: Long,
+)
+
 /**
  * Где сейчас разговор об идее (Р-19.1).
  *

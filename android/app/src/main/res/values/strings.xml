@@ -24,6 +24,14 @@
          назван словом: запись уходит в «Дни», не в ленту. -->
     <string name="receipt_day">Записал день.</string>
     <string name="day_plate">про день</string>
+    <!-- Конец разговора об идее (макет 13c). Вопрос голосом: дела приходят из
+         речи, и формулировка человека всегда точнее пересказа. -->
+    <string name="step_plate">первый шаг</string>
+    <string name="step_question">И что сделаешь первым?</string>
+    <string name="step_cancel">Свайп вниз — без дела</string>
+    <string name="receipt_step">Из разговора вышло дело.</string>
+    <string name="receipt_talk_done">Разговор закончен.</string>
+    <string name="item_from_interview">из разговора</string>
     <string name="day_question">Что сегодня было самым главным?</string>
     <string name="week_recap_ready">Готов итог недели</string>
     <string name="channel_day">Вечерний вопрос</string>
@@ -565,6 +573,21 @@
         <item quantity="many">%1$d человек</item>
         <item quantity="other">%1$d человека</item>
     </plurals>
+    <!-- Карточка человека, вторая редакция (макет 13a). «Живых», а не
+         «в плане»: под именем одно число на все незакрытые пункты. -->
+    <plurals name="person_live">
+        <item quantity="one">%1$d живой</item>
+        <item quantity="few">%1$d живых</item>
+        <item quantity="many">%1$d живых</item>
+        <item quantity="other">%1$d живых</item>
+    </plurals>
+    <plurals name="person_note_items">
+        <item quantity="one">%1$d пункт</item>
+        <item quantity="few">%1$d пункта</item>
+        <item quantity="many">%1$d пунктов</item>
+        <item quantity="other">%1$d пунктов</item>
+    </plurals>
+    <string name="person_facts_at">из речи, последнее — %1$s</string>
     <plurals name="person_notes">
         <item quantity="one">%1$d запись</item>
         <item quantity="few">%1$d записи</item>
@@ -643,6 +666,24 @@
     <string name="channel_capture_desc">Идёт запись</string>
 
     <!-- Системные поверхности -->
+    <!-- Строка под клавишей (макет 13d): от двух закрытых дел, без сравнений
+         вниз и без процентов. -->
+    <!-- Подкрепление словами (макет 13d): подкрепляем не число, а факт, что
+         принесённое не пропало. -->
+    <string name="week_fact_kept">Из %1$d принесённых дел %2$s — остальные ты закрыл.</string>
+    <plurals name="week_fact_hanging">
+        <item quantity="one">висит одно</item>
+        <item quantity="few">висят %1$d</item>
+        <item quantity="many">висят %1$d</item>
+        <item quantity="other">висят %1$d</item>
+    </plurals>
+    <plurals name="week_fact_grown">
+        <item quantity="one">Один разговор кончился делом.</item>
+        <item quantity="few">%1$d разговора кончились делом.</item>
+        <item quantity="many">%1$d разговоров кончились делом.</item>
+        <item quantity="other">%1$d разговоров кончились делом.</item>
+    </plurals>
+    <string name="widget_week_closed">за неделю закрыто %1$d</string>
     <string name="widget_description">Кнопка записи</string>
     <string name="tile_label">Запомин.ai</string>
 </resources>

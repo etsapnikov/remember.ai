@@ -37,6 +37,13 @@ class CaptureWidget : AppWidgetProvider() {
     ) {
         appWidgetIds.forEach { id ->
             val views = RemoteViews(context.packageName, R.layout.widget_capture).apply {
+                // Подкрепление ловится там, где рука уже тянется записывать
+                // (макет 13d), — строкой под клавишей, а не второй плиткой:
+                // вторая плитка того же продукта воюет с самим жестом за место.
+                //
+                // Рост — новость, падение — молчание: «меньше, чем на прошлой»
+                // не печатается никогда. Ни нуля, ни прочерка, ни процентов.
+                setTextViewText(R.id.widget_note, weekLine(context))
                 setOnClickPendingIntent(
                     R.id.widget_root,
                     PendingIntent.getActivity(
@@ -51,7 +58,19 @@ class CaptureWidget : AppWidgetProvider() {
         }
     }
 
+    private fun weekLine(context: Context): String {
+        // Читаем синхронно и мимо Room-Flow: onUpdate живёт миллисекунды, а
+        // цифра обновляется раз в сутки — гонять корутину незачем.
+        val prefs = context.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE)
+        val closed = prefs.getInt(KEY_CLOSED_WEEK, 0)
+        // От двух: «закрыто 1» — не новость, а напоминание, что закрыл всего одно.
+        return if (closed >= 2) context.getString(R.string.widget_week_closed, closed) else ""
+    }
+
     companion object {
+        const val WIDGET_PREFS = "widget"
+        const val KEY_CLOSED_WEEK = "closed_week"
+
         fun refresh(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager.getAppWidgetIds(ComponentName(context, CaptureWidget::class.java))

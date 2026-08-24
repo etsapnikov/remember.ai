@@ -263,6 +263,10 @@ object ItemValidator {
      * Модель отдаёт местное «YYYY-MM-DDTHH:MM», unixtime считает код.
      * Инвариант PRD §3: `due_at` только в будущем.
      */
+    /** Тот же разбор даты для одиночного поля (Р-20.2). */
+    fun parseExactField(json: JSONObject, now: LocalDateTime, zone: ZoneId): Long? =
+        parseExact(json, now, zone)
+
     private fun parseExact(json: JSONObject, now: LocalDateTime, zone: ZoneId): Long? {
         val raw = listOf("exact_local", "due_local", "due_at")
             .firstNotNullOfOrNull { key ->

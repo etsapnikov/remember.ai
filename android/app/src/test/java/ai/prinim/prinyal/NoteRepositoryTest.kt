@@ -193,6 +193,51 @@ class NoteRepositoryTest {
     }
 
     @Test
+    fun `разговор кончается делом, а срок берётся только из речи`() = runTest {
+        // Р-20.2, макет 13c. Правило §24.5 не делает исключений ради красивой
+        // концовки: сказал срок — ставим, не сказал — дело живое без даты.
+        val id = note()
+        repo.applyParse(id, parsed(item()))
+        val before = db.items().forNote(id).size
+
+        val dated = repo.finishInterviewWithStep(
+            id,
+            ai.prinim.prinyal.llm.DeepSeekClient.FirstStep(
+                text = "написать пятерым клиентам",
+                dueAt = Instant.parse("2026-08-30T09:00:00Z").toEpochMilli(),
+            ),
+        )!!
+        assertEquals("написать пятерым клиентам", dated.text)
+        assertEquals(DueKind.EXACT.wire, dated.dueKind)
+        assertTrue("пометка происхождения потеряна", dated.fromInterview)
+        assertEquals(before + 1, db.items().forNote(id).size)
+
+        val undated = repo.finishInterviewWithStep(
+            id,
+            ai.prinim.prinyal.llm.DeepSeekClient.FirstStep("сходить к нотариусу", dueAt = null),
+        )!!
+        assertEquals("продукт придумал дату", DueKind.NONE.wire, undated.dueKind)
+        assertNull(undated.dueAt)
+    }
+
+    @Test
+    fun `дела не вышло — заметка остаётся идеей`() = runTest {
+        // Заставлять человека выдумывать дело ради красивой концовки — худшее,
+        // что можно сделать с разговором.
+        val id = note()
+        repo.applyParse(id, parsed(item()))
+        val before = db.items().forNote(id).size
+
+        assertNull(repo.finishInterviewWithStep(id, null))
+
+        assertEquals(before, db.items().forNote(id).size)
+        assertEquals(
+            ai.prinim.prinyal.data.InterviewState.NONE.wire,
+            db.notes().byId(id)!!.interview,
+        )
+    }
+
+    @Test
     fun `круг пинг-понга растит тело и не трогает пункты`() = runTest {
         // Р-19.1. Главная поломка была здесь: ответ уходил общим разбором, и
         // разговор об идее перетряхивал дела записи — рождались новые пункты,

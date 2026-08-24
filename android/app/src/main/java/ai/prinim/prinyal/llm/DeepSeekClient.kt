@@ -316,6 +316,82 @@ class DeepSeekClient(
     }
 
     /**
+     * Первый шаг из разговора (Р-20.2).
+     *
+     * @return дело и, если человек его назвал, срок; null — дела не вышло
+     */
+    fun firstStep(idea: String, answer: String, now: LocalDateTime, zone: ZoneId): FirstStep? {
+        if (apiKey.isBlank()) return null
+        val payload = JSONObject().apply {
+            put("model", model)
+            put("messages", JSONArray().apply {
+                put(JSONObject().put("role", "system").put("content", Prompt.FIRST_STEP))
+                put(
+                    JSONObject().put("role", "user").put(
+                        "content",
+                        "Сегодня $now.\n\nИдея:\n$idea\n\nОтвет:\n$answer",
+                    )
+                )
+            })
+            put("temperature", 0.2)
+            put("max_tokens", MAX_TOKENS)
+            put("response_format", JSONObject().put("type", "json_object"))
+            put("stream", false)
+            put("thinking", JSONObject().put("type", "disabled"))
+        }
+        val response = runCatching { post(payload) }.getOrNull() ?: return null
+        account("first_step", response)
+        if (response.code != 200) return null
+        val raw = response.body
+            ?.optJSONArray("choices")?.optJSONObject(0)
+            ?.optJSONObject("message")?.optString("content").orEmpty()
+        val json = runCatching { JSONObject(raw) }.getOrNull() ?: return null
+        val text = json.optString("text").trim()
+            .takeIf { !json.isNull("text") && it.isNotBlank() } ?: return null
+        // Слова человека — проверкой, а не просьбой: дело, которого он не
+        // говорил, попадёт в план и вернётся к нему как его собственное.
+        if (!ai.prinim.prinyal.domain.DayLine.wordsFromCorpus(text, answer)) return null
+        return FirstStep(text = text, dueAt = ItemValidator.parseExactField(json, now, zone))
+    }
+
+    data class FirstStep(val text: String, val dueAt: Long?)
+
+    /**
+     * Какой из старых фактов отменяет новый (Р-20.1).
+     *
+     * @return индекс с нуля или null — ничего не отменяет
+     */
+    fun factConflict(old: List<String>, fresh: String): Int? {
+        if (apiKey.isBlank() || old.isEmpty()) return null
+        val user = buildString {
+            append("Известно:\n")
+            old.forEachIndexed { i, f -> append(i + 1).append(". ").append(f).append('\n') }
+            append("\nНовое: ").append(fresh)
+        }
+        val payload = JSONObject().apply {
+            put("model", model)
+            put("messages", JSONArray().apply {
+                put(JSONObject().put("role", "system").put("content", Prompt.FACT_CONFLICT))
+                put(JSONObject().put("role", "user").put("content", user))
+            })
+            put("temperature", 0.1)
+            put("max_tokens", MAX_TOKENS)
+            put("response_format", JSONObject().put("type", "json_object"))
+            put("stream", false)
+            put("thinking", JSONObject().put("type", "disabled"))
+        }
+        val response = runCatching { post(payload) }.getOrNull() ?: return null
+        account("fact_conflict", response)
+        if (response.code != 200) return null
+        val text = response.body
+            ?.optJSONArray("choices")?.optJSONObject(0)
+            ?.optJSONObject("message")?.optString("content").orEmpty()
+        val json = runCatching { JSONObject(text) }.getOrNull() ?: return null
+        if (json.isNull("replaces")) return null
+        return json.optInt("replaces", 0).takeIf { it in 1..old.size }?.minus(1)
+    }
+
+    /**
      * Ответ пинг-понга, приведённый в порядок (Р-19.1).
      *
      * Null — не смогли или ответ пуст; тогда в тело идёт расшифровка как есть.
