@@ -75,6 +75,7 @@ import java.util.Locale
  */
 @Composable
 fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val notes by vm.feed.collectAsState()
     val llmEnabled by vm.llmEnabled.collectAsState()
     val ask by vm.askCandidate.collectAsState()
@@ -188,7 +189,7 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
                 item(key = "ask-${person.id}") {
                     AskCard(
                         name = person.name,
-                        onAnswer = { vm.answerPerson(person.id, it) },
+                        onTell = { vm.tellAbout(context, person.name, person.id) },
                         onDecline = { vm.declinePerson(person.id) },
                     )
                     Hairline()

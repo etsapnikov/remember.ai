@@ -212,6 +212,9 @@ class UploadWorker(
             Notifications.showBatch(applicationContext, parsed, Instant.now())
         }
 
+        // Веса больше не нужны: держать их до следующей записи значит ходить по
+        // краю OOM всё время, пока человек листает экраны (Р-24.1).
+        app.releaseAsr()
         return if (retryNeeded) Result.retry() else Result.success()
     }
 

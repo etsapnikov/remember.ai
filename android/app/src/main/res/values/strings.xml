@@ -40,6 +40,11 @@
     <string name="channel_day">Вечерний вопрос</string>
     <string name="days_title">Дни</string>
     <string name="day_said">Что сказал</string>
+    <!-- Правка впечатления (Р-24.3): одна попытка на вечер была жестокостью. -->
+    <string name="day_fix">Поправить</string>
+    <string name="day_retell">Рассказать заново</string>
+    <string name="day_save">Сохранить</string>
+    <string name="day_cancel">отмена</string>
     <!-- Вход руками (Р-23.1): вечерний вопрос приходит один раз, и до сих пор
          пропущенное уведомление значило потерянный день. -->
     <string name="days_tell">Рассказать про день</string>

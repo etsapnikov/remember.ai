@@ -38,11 +38,9 @@ import androidx.compose.ui.res.stringResource
 @Composable
 fun AskCard(
     name: String,
-    onAnswer: (String) -> Unit,
+    onTell: () -> Unit,
     onDecline: () -> Unit,
 ) {
-    var answering by remember(name) { mutableStateOf(false) }
-    var draft by remember(name) { mutableStateOf("") }
 
     // Подложки нет (Д-30). Радиус с заливкой — та же форма, что у «Собрано» и
     // вечернего возврата, и вопрос читался как ещё одна запись, только чужая.
@@ -63,13 +61,17 @@ fun AskCard(
             color = Prinyal.colors.ink,
         )
 
-        if (!answering) {
-            Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
+            // «Рассказать» открывает запись, а не поле для набора.
+                //
+                // Здесь стояло текстовое поле — единственное место в продукте,
+                // где про человека предлагалось **напечатать**. Человек жал и
+                // ждал, что его начнут слушать, а получал клавиатуру.
                 Text(
                     text = stringResource(R.string.ask_tell),
                     style = Prinyal.type.label,
                     color = Prinyal.colors.accentSelf,
-                    modifier = Modifier.tap { answering = true },
+                    modifier = Modifier.tap(onClick = onTell),
                 )
                 // «Не надо» закрывает имя **навсегда**, и цена сказана рядом,
                 // до нажатия: раньше она жила в снекбаре после, когда решение
@@ -84,22 +86,6 @@ fun AskCard(
                     text = "· " + stringResource(R.string.ask_never),
                     color = Prinyal.colors.inkFaint,
                 )
-            }
-        } else {
-            BasicTextField(
-                value = draft,
-                onValueChange = { draft = it },
-                singleLine = true,
-                textStyle = Prinyal.type.body.copy(color = Prinyal.colors.ink),
-                cursorBrush = SolidColor(Prinyal.colors.accentSelf),
-                modifier = Modifier.fillMaxWidth().padding(vertical = Space.xs),
-            )
-            Text(
-                text = stringResource(R.string.ask_save),
-                style = Prinyal.type.label,
-                color = Prinyal.colors.accentSelf,
-                modifier = Modifier.tap { if (draft.isNotBlank()) onAnswer(draft.trim()) },
-            )
         }
     }
 }

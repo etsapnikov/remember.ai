@@ -75,6 +75,9 @@ class DayWorker(
             "day_answered",
             mapOf("date" to date, "chars" to transcript.length, "task" to (task != null)),
         )
+        // Веса больше не нужны: держать их до следующей записи значит
+        // ходить по краю OOM всё время, пока человек листает экраны.
+        app.releaseAsr()
         return Result.success()
     }
 

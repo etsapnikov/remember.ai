@@ -982,6 +982,32 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** Последний вопрос разговора (Р-21.1) — из базы, не из памяти. */
     fun lastQuestion(noteId: String) = app.db.questions().watchLast(noteId)
 
+    /** Поправить впечатление дня руками (Р-24.3). */
+    fun editDayLine(date: String, line: String) = viewModelScope.launch {
+        withContext(Dispatchers.IO) { app.repository.editDayLine(date, line) }
+    }
+
+    /**
+     * Рассказать про день заново голосом (Р-24.3).
+     *
+     * Тот же экран записи и та же дата: запись по дате перезаписывает прежнюю,
+     * и день пересобирается целиком — со свежей расшифровкой и новой строкой.
+     */
+    fun retellDay(context: android.content.Context, date: String) {
+        context.startActivity(
+            android.content.Intent(
+                context,
+                ai.prinim.prinyal.capture.CaptureActivity::class.java,
+            ).apply {
+                putExtra(ai.prinim.prinyal.capture.CaptureActivity.EXTRA_DAY, date)
+                addFlags(
+                    android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                        android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                )
+            }
+        )
+    }
+
     /** Факты о человеке (Р-20.1): до трёх, слитым абзацем на карточке. */
     fun factsOfPerson(personId: String) = app.db.personFacts().watch(personId)
 

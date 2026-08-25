@@ -1510,6 +1510,22 @@ class NoteRepository(
     }
 
     /**
+     * Поправить впечатление дня руками (Р-24.3).
+     *
+     * День остаётся памятью, а не делом, — но одна попытка на вечер была
+     * жестокостью: модель сжимает ответ, и если она сжала мимо, человек не мог
+     * ничего сделать. Правка меняет только строку; сказанное не трогается —
+     * оно остаётся в раскрытии как было.
+     */
+    suspend fun editDayLine(date: String, line: String) {
+        val day = db.days().byDate(date) ?: return
+        val text = line.trim()
+        if (text.isEmpty()) return
+        db.days().update(day.copy(line = text))
+        analytics.log("day_edit", mapOf("date" to date, "chars" to text.length))
+    }
+
+    /**
      * Итог недели (Р-18.3): собрать один раз, в воскресенье вечером.
      *
      * Меньше [WEEK_RECAP_MIN_DAYS] отвеченных дней — итога нет и уведомления
