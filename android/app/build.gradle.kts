@@ -22,7 +22,7 @@ android {
         versionCode = (System.currentTimeMillis() / 60_000L).toInt()
         // Версия отставала на десять итераций: в сборке стояло 1.0.1, пока
         // в докам шло 1.1.х. Дальше правим её вместе со scope-документом.
-        versionName = "1.2.0"
+        versionName = "1.2.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Ключ DeepSeek едет в APK: версия работает без сервера (решение владельца,

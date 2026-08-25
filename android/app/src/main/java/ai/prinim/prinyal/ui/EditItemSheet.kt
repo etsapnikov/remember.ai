@@ -70,7 +70,15 @@ fun EditItemSheet(
     var text by remember { mutableStateOf(TextFieldValue(item.text)) }
     var type by remember { mutableStateOf(ItemType.of(item.type)) }
     // Ручная дата: побеждает окно, потому что человек назвал конкретный день.
-    var exactAt by remember { mutableStateOf<Long?>(null) }
+    // Дата пункта подхватывается сразу (Р-24.4).
+    //
+    // Поле начиналось с null, и пункт со сроком «5 октября» открывался так,
+    // будто срока нет вовсе: ни окно не выбрано, ни день не показан. Человек
+    // видел шит, где на вопрос «когда» нет ответа, и делал единственный
+    // возможный вывод — дату поменять нельзя. А её можно, просто чип молчал.
+    var exactAt by remember(item.id) {
+        mutableStateOf(item.dueAt.takeIf { DueKind.of(item.dueKind) == DueKind.EXACT })
+    }
     var pickingDate by remember { mutableStateOf(false) }
     var window by remember {
         mutableStateOf(
@@ -193,7 +201,17 @@ fun EditItemSheet(
                                     picker.selectedDateMillis?.let { day ->
                                         // Полдень выбранного дня: полночь читается
                                         // как «ночью», а окно утра у нас своё.
-                                        exactAt = day + MORNING_OFFSET_MS
+                                        // Час сохраняется: «5 октября в 18:00»
+                                        // при правке дня не должно съезжать на
+                                        // утро — человек менял дату, не время.
+                                        val keep = exactAt?.let { prev ->
+                                            prev - java.time.Instant.ofEpochMilli(prev)
+                                                .atZone(java.time.ZoneId.systemDefault())
+                                                .toLocalDate()
+                                                .atStartOfDay(java.time.ZoneId.systemDefault())
+                                                .toInstant().toEpochMilli()
+                                        } ?: MORNING_OFFSET_MS
+                                        exactAt = day + keep
                                         noSchedule = false
                                         window = null
                                     }

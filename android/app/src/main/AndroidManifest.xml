@@ -29,7 +29,8 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="false"
-        android:theme="@style/Theme.Prinyal">
+        android:theme="@style/Theme.Prinyal"
+        android:largeHeap="true">
 
         <!-- Между желанием и записью нет ни одного экрана: иконка открывает
              приложение сразу в запись (PRD §F-1).

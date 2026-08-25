@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -85,13 +87,21 @@ fun DaysScreen(vm: AppViewModel) {
                 day = day,
                 opened = opened == day.date,
                 onToggle = { opened = if (opened == day.date) null else day.date },
+                onEdit = { vm.editDayLine(day.date, it) },
+                onRetell = { vm.retellDay(context, day.date) },
             )
         }
     }
 }
 
 @Composable
-private fun DayRow(day: DayEntity, opened: Boolean, onToggle: () -> Unit) {
+private fun DayRow(
+    day: DayEntity,
+    opened: Boolean,
+    onToggle: () -> Unit,
+    onEdit: (String) -> Unit,
+    onRetell: () -> Unit,
+) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -119,7 +129,23 @@ private fun DayRow(day: DayEntity, opened: Boolean, onToggle: () -> Unit) {
             )
         }
 
+        androidx.compose.animation.AnimatedVisibility(
+            visible = opened,
+            enter = androidx.compose.animation.expandVertically(
+                animationSpec = androidx.compose.animation.core.tween(
+                    ai.prinim.prinyal.ui.theme.Motion.Polish.EXPAND_MS,
+                    easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                ),
+            ) + androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.shrinkVertically(
+                animationSpec = androidx.compose.animation.core.tween(
+                    ai.prinim.prinyal.ui.theme.Motion.Polish.EXPAND_MS,
+                ),
+            ) + androidx.compose.animation.fadeOut(),
+        ) {
         if (opened) {
+            var draft by remember(day.date) { mutableStateOf<String?>(null) }
+
             // Раскрытие на месте, не карточка: 176 знаков не стоят перехода,
             // а в «Днях» смысл — в соседстве дней (12c).
             Column(
@@ -130,6 +156,57 @@ private fun DayRow(day: DayEntity, opened: Boolean, onToggle: () -> Unit) {
                     .padding(Space.m),
                 verticalArrangement = Arrangement.spacedBy(Space.sm),
             ) {
+                // Впечатление правится и руками, и голосом (Р-24.3): модель
+                // сжимает ответ, и одной попытки на вечер мало, если сжала мимо.
+                draft?.let { text ->
+                    val focus = remember { androidx.compose.ui.focus.FocusRequester() }
+                    androidx.compose.foundation.text.BasicTextField(
+                        value = text,
+                        onValueChange = { draft = it },
+                        textStyle = Prinyal.type.body.copy(color = Prinyal.colors.ink),
+                        cursorBrush = androidx.compose.ui.graphics.SolidColor(
+                            Prinyal.colors.accentSelf,
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focus),
+                    )
+                    // Поле само забирает фокус: без этого оно открывалось
+                    // немым — клавиатуры нет, и «Поправить» выглядит сломанным.
+                    LaunchedEffect(Unit) { focus.requestFocus() }
+                    Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
+                        MetaText(
+                            text = stringResource(R.string.day_save),
+                            color = Prinyal.colors.accentSelf,
+                            modifier = Modifier.tap {
+                                onEdit(text)
+                                draft = null
+                            },
+                        )
+                        MetaText(
+                            text = stringResource(R.string.day_cancel),
+                            color = Prinyal.colors.inkMuted,
+                            modifier = Modifier.tap { draft = null },
+                        )
+                    }
+                }
+                if (draft == null) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
+                        MetaText(
+                            text = stringResource(R.string.day_fix),
+                            color = Prinyal.colors.accentSelf,
+                            modifier = Modifier.tap {
+                                draft = day.line ?: day.transcript.orEmpty()
+                            },
+                        )
+                        MetaText(
+                            text = stringResource(R.string.day_retell),
+                            color = Prinyal.colors.inkMuted,
+                            modifier = Modifier.tap(onClick = onRetell),
+                        )
+                    }
+                }
+
                 MetaText(stringResource(R.string.day_said), color = Prinyal.colors.inkFaint)
                 Text(
                     text = day.transcript.orEmpty().ifBlank { "…" },
@@ -140,6 +217,7 @@ private fun DayRow(day: DayEntity, opened: Boolean, onToggle: () -> Unit) {
                 // есть только здесь (ответ дизайнера на вопрос 5).
                 DayAudio(File(day.audioPath), day.durationMs)
             }
+        }
         }
     }
 }

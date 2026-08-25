@@ -115,6 +115,7 @@ fun AppScaffold(route: Route, onRoute: (Route) -> Unit) {
                         personId = route.id,
                         onOpenNote = { onRoute(Route.Note(it)) },
                         onPickPack = { name -> onRoute(Route.PackPick(name)) },
+                        onBack = { onRoute(Route.People) },
                     )
                     is Route.PackPick -> PackPickScreen(
                         vm,
@@ -136,6 +137,27 @@ fun AppScaffold(route: Route, onRoute: (Route) -> Unit) {
             }
         }
 
+        // Снекбар въезжает, а не появляется (полишинг, п. 8): мгновенное
+        // появление плашки читается как ошибка — в остальном продукте мгновенно
+        // появляются только они. А снекбар несёт «вернуть», и его появление
+        // человек обязан заметить, а не обнаружить.
+        androidx.compose.animation.AnimatedVisibility(
+            visible = undo != null,
+            modifier = Modifier.align(Alignment.BottomCenter),
+            enter = androidx.compose.animation.slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = androidx.compose.animation.core.tween(
+                    ai.prinim.prinyal.ui.theme.Motion.Polish.SNACK_IN_MS,
+                    easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                ),
+            ),
+            exit = androidx.compose.animation.slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = androidx.compose.animation.core.tween(
+                    ai.prinim.prinyal.ui.theme.Motion.Polish.SNACK_OUT_MS,
+                ),
+            ),
+        ) {
         undo?.let { event ->
             UndoSnackbar(
                 event = event,
@@ -144,10 +166,9 @@ fun AppScaffold(route: Route, onRoute: (Route) -> Unit) {
                     vm.purgeDeleted()
                 },
                 onUndone = { vm.consumeUndo() },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(Space.m),
+                modifier = Modifier.padding(Space.m),
             )
+        }
         }
     }
 }

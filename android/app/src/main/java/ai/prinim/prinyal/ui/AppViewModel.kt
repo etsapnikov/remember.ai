@@ -982,6 +982,51 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** Последний вопрос разговора (Р-21.1) — из базы, не из памяти. */
     fun lastQuestion(noteId: String) = app.db.questions().watchLast(noteId)
 
+    /** Поправить впечатление дня руками (Р-24.3). */
+    fun editDayLine(date: String, line: String) = viewModelScope.launch {
+        withContext(Dispatchers.IO) { app.repository.editDayLine(date, line) }
+    }
+
+    /**
+     * Рассказать про день заново голосом (Р-24.3).
+     *
+     * Тот же экран записи и та же дата: запись по дате перезаписывает прежнюю,
+     * и день пересобирается целиком — со свежей расшифровкой и новой строкой.
+     */
+    fun retellDay(context: android.content.Context, date: String) {
+        context.startActivity(
+            android.content.Intent(
+                context,
+                ai.prinim.prinyal.capture.CaptureActivity::class.java,
+            ).apply {
+                putExtra(ai.prinim.prinyal.capture.CaptureActivity.EXTRA_DAY, date)
+                addFlags(
+                    android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                        android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                )
+            }
+        )
+    }
+
+    /** Переименовать человека (Р-25.3): имя приходит из речи и с ошибками. */
+    fun renamePerson(personId: String, name: String) = viewModelScope.launch {
+        withContext(Dispatchers.IO) { app.repository.renamePerson(personId, name) }
+    }
+
+    /** Удалить знание о человеке (Р-25.4). Записи остаются: там его слова. */
+    fun deletePerson(personId: String) = viewModelScope.launch {
+        withContext(Dispatchers.IO) { app.repository.deletePerson(personId) }
+    }
+
+    /** Склеить дубль руками (Р-25.2): записи и факты переезжают. */
+    fun mergePeopleById(fromId: String, intoId: String) = viewModelScope.launch {
+        withContext(Dispatchers.IO) { app.repository.mergePeople(fromId, intoId) }
+    }
+
+    /** Кого можно предложить как второго в склейке — все, кроме себя. */
+    val allPeople = app.db.people().watchLive()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     /** Факты о человеке (Р-20.1): до трёх, слитым абзацем на карточке. */
     fun factsOfPerson(personId: String) = app.db.personFacts().watch(personId)
 

@@ -403,6 +403,18 @@ interface PersonDao {
     @Query("UPDATE entities SET merged_into = :target WHERE id = :id")
     suspend fun mergeInto(id: String, target: String)
 
+    @Query("DELETE FROM entities WHERE id = :id")
+    suspend fun delete(id: String)
+
+    @Query("DELETE FROM person_notes WHERE person_id = :id")
+    suspend fun unlinkAll(id: String)
+
+    @Query("UPDATE person_notes SET person_id = :into WHERE person_id = :from")
+    suspend fun moveLinks(from: String, into: String)
+
+    @Query("UPDATE person_facts SET person_id = :into WHERE person_id = :from")
+    suspend fun moveFacts(from: String, into: String)
+
     @Query("UPDATE entities SET apart = :other WHERE id = :id")
     suspend fun keepApart(id: String, other: String)
 

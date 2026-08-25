@@ -40,6 +40,11 @@
     <string name="channel_day">Вечерний вопрос</string>
     <string name="days_title">Дни</string>
     <string name="day_said">Что сказал</string>
+    <!-- Правка впечатления (Р-24.3): одна попытка на вечер была жестокостью. -->
+    <string name="day_fix">Поправить</string>
+    <string name="day_retell">Рассказать заново</string>
+    <string name="day_save">Сохранить</string>
+    <string name="day_cancel">отмена</string>
     <!-- Вход руками (Р-23.1): вечерний вопрос приходит один раз, и до сих пор
          пропущенное уведомление значило потерянный день. -->
     <string name="days_tell">Рассказать про день</string>
@@ -323,7 +328,7 @@
     <!-- Лента: состояния и шапки записей -->
     <string name="feed_parsing_off">разбор выключен · включить</string>
     <string name="feed_recording_now">Идёт запись</string>
-    <string name="feed_empty_title">Пока пусто</string>
+    <string name="feed_empty_title">Пока ни одной записи</string>
     <string name="feed_empty_body">Открой значок, скажи как есть — комком, не по пунктам. Я разберу и вернусь в нужное время.</string>
     <plurals name="note_items_count">
         <item quantity="one">%1$d пункт</item>
@@ -602,6 +607,15 @@
         <item quantity="many">%1$d пунктов</item>
         <item quantity="other">%1$d пунктов</item>
     </plurals>
+    <!-- Работа с записной книжкой (Р-25.2–25.4). Имя приходит из речи и с
+         ошибками; дубль заводится сам; удаляется знание, а не записи. -->
+    <string name="person_rename">Переименовать</string>
+    <string name="person_merge">Это дубль</string>
+    <string name="person_merge_pick">Кто это на самом деле</string>
+    <string name="person_delete">Удалить</string>
+    <string name="person_delete_hint">записи останутся, уйдёт только карточка</string>
+    <string name="person_save">Сохранить</string>
+    <string name="person_cancel">отмена</string>
     <string name="person_facts_at">из речи, последнее — %1$s</string>
     <plurals name="person_notes">
         <item quantity="one">%1$d запись</item>
@@ -650,7 +664,10 @@
         <item quantity="other">%1$d живых</item>
     </plurals>
     <string name="topics_all_closed">всё закрыто</string>
-    <string name="topics_empty_title">Пока пусто</string>
+    <!-- «Пока …» — содержимое придёт само; «Здесь пусто» — только когда оно
+         было и ушло (полишинг, п. 6). Разница смысловая: в первом случае
+         человек ничего не сделал не так. -->
+    <string name="topics_empty_title">Пока разделов нет</string>
     <string name="topics_empty_body">Разделы появляются сами из записей — я разложу, когда пойму, о чём ты говоришь чаще всего.</string>
     <string name="topic_summary_planned">%1$d в плане</string>
     <string name="topic_summary_done">%1$d сделано</string>
