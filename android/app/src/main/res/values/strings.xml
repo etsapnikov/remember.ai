@@ -328,7 +328,7 @@
     <!-- Лента: состояния и шапки записей -->
     <string name="feed_parsing_off">разбор выключен · включить</string>
     <string name="feed_recording_now">Идёт запись</string>
-    <string name="feed_empty_title">Пока пусто</string>
+    <string name="feed_empty_title">Пока ни одной записи</string>
     <string name="feed_empty_body">Открой значок, скажи как есть — комком, не по пунктам. Я разберу и вернусь в нужное время.</string>
     <plurals name="note_items_count">
         <item quantity="one">%1$d пункт</item>
@@ -655,7 +655,10 @@
         <item quantity="other">%1$d живых</item>
     </plurals>
     <string name="topics_all_closed">всё закрыто</string>
-    <string name="topics_empty_title">Пока пусто</string>
+    <!-- «Пока …» — содержимое придёт само; «Здесь пусто» — только когда оно
+         было и ушло (полишинг, п. 6). Разница смысловая: в первом случае
+         человек ничего не сделал не так. -->
+    <string name="topics_empty_title">Пока разделов нет</string>
     <string name="topics_empty_body">Разделы появляются сами из записей — я разложу, когда пойму, о чём ты говоришь чаще всего.</string>
     <string name="topic_summary_planned">%1$d в плане</string>
     <string name="topic_summary_done">%1$d сделано</string>

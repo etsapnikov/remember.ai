@@ -129,6 +129,20 @@ private fun DayRow(
             )
         }
 
+        androidx.compose.animation.AnimatedVisibility(
+            visible = opened,
+            enter = androidx.compose.animation.expandVertically(
+                animationSpec = androidx.compose.animation.core.tween(
+                    ai.prinim.prinyal.ui.theme.Motion.Polish.EXPAND_MS,
+                    easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                ),
+            ) + androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.shrinkVertically(
+                animationSpec = androidx.compose.animation.core.tween(
+                    ai.prinim.prinyal.ui.theme.Motion.Polish.EXPAND_MS,
+                ),
+            ) + androidx.compose.animation.fadeOut(),
+        ) {
         if (opened) {
             var draft by remember(day.date) { mutableStateOf<String?>(null) }
 
@@ -203,6 +217,7 @@ private fun DayRow(
                 // есть только здесь (ответ дизайнера на вопрос 5).
                 DayAudio(File(day.audioPath), day.durationMs)
             }
+        }
         }
     }
 }

@@ -82,11 +82,14 @@ fun AskCard(
                     color = Prinyal.colors.inkMuted,
                     modifier = Modifier.tap(onClick = onDecline),
                 )
-                MetaText(
-                    text = "· " + stringResource(R.string.ask_never),
-                    color = Prinyal.colors.inkFaint,
-                )
         }
+        // Приписка — своей строкой, а не третьим элементом ряда (полишинг,
+        // п. 5): в ряду слов переноса не бывает, а «больше не спрошу» в строку
+        // с двумя действиями не влезает и ломалась пополам.
+        MetaText(
+            text = stringResource(R.string.ask_never),
+            color = Prinyal.colors.inkFaint,
+        )
     }
 }
 
@@ -134,10 +137,10 @@ fun MergeAskCard(
                 color = Prinyal.colors.inkMuted,
                 modifier = Modifier.tap(onClick = onApart),
             )
-            MetaText(
-                text = "· " + stringResource(R.string.ask_never),
-                color = Prinyal.colors.inkFaint,
-            )
         }
+        MetaText(
+            text = stringResource(R.string.ask_never),
+            color = Prinyal.colors.inkFaint,
+        )
     }
 }

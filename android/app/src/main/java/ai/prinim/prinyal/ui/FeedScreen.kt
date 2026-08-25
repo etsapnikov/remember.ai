@@ -171,6 +171,17 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
             )
         }
 
+        // Кроссфейд списка при смене фильтра (полишинг, п. 10): при похожих
+        // выдачах — «в плане» → «вернусь» — иначе непонятно, сменилось ли
+        // вообще. Слова фильтра при этом не двигаются: они переключатель, а не
+        // содержимое.
+        androidx.compose.animation.Crossfade(
+            targetState = filter,
+            animationSpec = androidx.compose.animation.core.tween(
+                ai.prinim.prinyal.ui.theme.Motion.Polish.FILTER_MS,
+            ),
+            label = "filter",
+        ) { _ ->
         LazyColumn(
             state = listState,
             contentPadding = PaddingValues(top = Space.xs, bottom = Space.xxl),
@@ -270,6 +281,7 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
                     }
                 }
             }
+        }
         }
     }
 }
@@ -445,7 +457,12 @@ private fun NoteRow(
     // отличается от общего.
     // Под заголовком «ПОВТОРЯЮТСЯ» слова «в плане» не нужно — фильтр уже сказал.
     val bare = section?.kind == FeedView.Section.Kind.REPEATING
+    // «Просто сохраню» в ленте не печатается (полишинг, п. 1): при наличии
+    // политики оно ничего не добавляет, а без неё говорит, что продукт ничего
+    // не обещал, — и это видно по отсутствию строки. В карточке остаётся.
+    val none = stringResource(R.string.plan_none)
     val plans = row.shown.map { Phrases.plan(context, it, bare = bare) }
+        .map { if (it == none) "" else it }
     // Общий статус — тот, что у большинства, а не единственный на всех. Если
     // требовать полного совпадения, то одна дата среди трёх «просто сохраню»
     // возвращает нас к статусу под каждым пунктом — то есть к тому, из-за чего
@@ -455,6 +472,7 @@ private fun NoteRow(
         // остаётся политикой обычных пунктов (макеты 10a). Повтор всегда несёт
         // свою строку под собой, даже если он в записи один.
         .filterIndexed { index, _ -> row.shown[index].repeatRule == null }
+        .filter { it.isNotEmpty() }
         .let { plain ->
             plain.groupingBy { it }.eachCount()
                 .filterValues { it > 1 }
@@ -516,8 +534,11 @@ private fun NoteRow(
                             item = item,
                             // Свой статус — только когда он отличается от общего.
                             // У повтора — всегда: общей строки у него не бывает.
-                            showPlan = item.repeatRule != null ||
-                                commonPlan == null || plans[index] != commonPlan,
+                            // §21.1: под пунктом статус только если отличается
+                            // от политики записи. Повтор — единственное
+                            // исключение: его график не поднимается наверх.
+                            showPlan = plans[index].isNotEmpty() &&
+                                (item.repeatRule != null || plans[index] != commonPlan),
                             plan = plans[index],
                         )
                     }
@@ -525,15 +546,24 @@ private fun NoteRow(
             }
         }
 
-        rest(row)?.let {
-            MetaText(it, color = Prinyal.colors.inkFaint, modifier = Modifier.padding(top = Space.sm))
-        }
-
-        // Один статус на запись, внизу группы.
-        if (commonPlan != null && row.shown.isNotEmpty()) {
+        // Последняя строка записи одна — и политика, и остаток в ней сегментами
+        // (полишинг, п. 1): «в плане · напомню днём · 5 сделано».
+        //
+        // Их было две отдельных, и вместе с шапкой и статусом под пунктом
+        // выходило четыре служебных строки вокруг двух строк смысла. Норма
+        // теперь такая: **служебных строк на записи не больше, чем строк
+        // содержания**.
+        val tail = listOfNotNull(commonPlan?.takeIf { row.shown.isNotEmpty() }, rest(row))
+        if (tail.isNotEmpty()) {
             MetaText(
-                text = commonPlan,
-                color = Prinyal.colors.accentSelf,
+                text = tail.joinToString(" · "),
+                // Цвет по первому сегменту: политика — это «продукт сделал сам»,
+                // остаток — справка. Если политики нет, строка служебная.
+                color = if (commonPlan != null && row.shown.isNotEmpty()) {
+                    Prinyal.colors.accentSelf
+                } else {
+                    Prinyal.colors.inkFaint
+                },
                 modifier = Modifier.padding(top = Space.sm),
             )
         }

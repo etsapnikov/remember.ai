@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; }
+  body { font-family:'Roboto', system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+  a { color:#B4552A; text-decoration:none; }
+  a:hover { color:#8E3F1D; }
+  doc-page:not(:defined) { visibility:hidden; }
+  table { width:100%; border-collapse:collapse; }
+  td, th { vertical-align:top; }
+</style>
+<script src="./doc-page.js"></script>
+</helmet>
+
+<doc-page margin="0.75in">
+
+  <h1 style="font:700 30px/1.2 Roboto; color:#1A1310; margin:0 0 10px;">Полишинг 1.1.3 · сплошная ревизия</h1>
+  <p style="font:400 15px/1.6 Roboto; color:#5C524C; margin:0 0 6px;">Ответ на ТЗ «полишинг того, что есть». Смотрел дизайн-систему 1.0, <span style="font-family:'JetBrains Mono',monospace; font-size:13.5px;">design-tokens.json</span> 1.0.3 и все принятые решения §18–§26 — то есть фактуру продукта целиком, версия за версией.</p>
+  <p style="font:400 14px/1.6 Roboto; color:#8A7E76; margin:0 0 6px;"><b style="font-weight:500;">Про снимки честно:</b> 26 кадров из <span style="font-family:'JetBrains Mono',monospace; font-size:13.5px;">docs/ui-1_1_3/</span> в проект приехали с побитыми именами и не открываются ни одним способом. Поэтому эта ревизия — по фактуре, а не по пикселям: почти всё ниже помечено <b style="font-weight:500;">Ф</b> (расхождение видно в токенах и решениях, смотреть на экране не нужно). Пометка <b style="font-weight:500;">Э</b> — пункт из ваших шести наблюдений, я сужу по описанию и прошу сверить с кадром. Перезалейте кадры латиницей — пройду ещё раз по пикселям.</p>
+  <p style="font:400 14px/1.6 Roboto; color:#8A7E76; margin:0 0 20px;">Приоритеты как договорились: <b style="font-weight:500;">рвёт петлю</b> · <b style="font-weight:500;">мешает</b> · <b style="font-weight:500;">косметика</b>. Внутри группы — по важности. Новых сущностей, экранов и цветов не предлагаю ни одного.</p>
+
+  <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 12px;"><b style="font-weight:500;">Диагноз одной фразой.</b> Продукт рос правильными шагами, но каждая версия добавляла <b style="font-weight:500;">служебную строку</b> и <b style="font-weight:500;">своё расстояние</b>. Содержание за версию не выросло — выросла обвязка вокруг него: на карточке до четырёх мета-строк вокруг двух строк смысла, и шесть разных отбивок там, где должно быть две. Второе — тема: светлая палитра живёт в токенах с 1.0.2, но продукт её не переключает, то есть у нас не две темы, а одна и мёртвый код.</p>
+  <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 22px;"><b style="font-weight:500;">Общее правило полишинга,</b> которое я предлагаю принять до правок: <b style="font-weight:500;">на экране не может быть больше служебных строк, чем строк содержания</b>. Оно проверяемо глазом на любом кадре и само чинит половину списка ниже.</p>
+
+  <h2 style="font:700 20px/1.3 Roboto; color:#1A1310; margin:0 0 6px;">Рвёт петлю</h2>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">1. Мета-строк больше, чем содержания <span style="font:500 13px 'JetBrains Mono',monospace; color:#B4552A;">Э · Ф</span></div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Что накопилось.</b> На одной записи в ленте сегодня печатаются: шапка «19:27 · Приложение · 1 пункт», статус под пунктом («в плане · напомню днём»), тип-вердикт («просто сохраню»), сводка закрытых («1 сделано»). Четыре служебных строки вокруг двух строк смысла. Каждая появилась в своей версии и была права по отдельности: шапка — Д-24, статус — §21.1, вердикт — §17, сводка — Д-18.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Почему рвёт.</b> Лента — единственная поверхность, которую человек читает не глазами, а по диагонали, на ходу. Когда обвязки больше, чем текста, диагональное чтение перестаёт работать: он видит ритм из серых строк и не находит, что́ ему делать. Это ровно та болезнь, которую лечили в Д-18, вернувшаяся через новые строки, а не через старые.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Что делать — норма «две служебных на запись».</b> Порядок вытеснения, сверху вниз: <b style="font-weight:500;">1</b> шапка записи (время · раздел · N пунктов) — остаётся всегда; <b style="font-weight:500;">2</b> последняя строка записи — политика возврата, и <b style="font-weight:500;">сводка закрытых становится её сегментом</b>, не отдельной строкой: «в плане · напомню днём · 5 сделано»; <b style="font-weight:500;">3</b> статус под пунктом — только если отличается от политики записи (§21.1, см. пункт 2); <b style="font-weight:500;">4</b> тип-вердикт «просто сохраню» <b style="font-weight:500;">в ленте не печатается вовсе</b> — при наличии политики он ничего не добавляет; в карточке остаётся.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">Итог: 4 → 2. Макет — <span style="font-family:'JetBrains Mono',monospace; font-size:13.5px;">14b</span> в «Принял — UI R1»: словами это не показать, потому что вопрос в том, как выглядит запись целиком.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">2. Статус под пунктом дублирует политику записи <span style="font:500 13px 'JetBrains Mono',monospace; color:#B4552A;">Ф</span></div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Что не сделано.</b> §21.1 говорит прямо: «политика возврата печатается один раз, последней строкой записи; под пунктом статус появляется только если отличается от общего». В ваших примерах из ТЗ он печатается и там, и там — значит правило не реализовано, а именно оно даёт половину экономии из пункта 1.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;"><b style="font-weight:500;">Что делать.</b> Реализовать как написано, плюс одно уточнение, которого в §21.1 не было и которое ТЗ 1.0.4 подняло: <b style="font-weight:500;">график повтора — это исключение</b>, он всегда стоит под своим пунктом и никогда не поднимается в строку записи (§23.1). Других исключений нет.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">3. Тем объявлено две, работает одна <span style="font:500 13px 'JetBrains Mono',monospace; color:#B4552A;">Э · Ф</span></div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Что видно.</b> Кадры 25 и 26 сняты при разной системной теме и выглядят одинаково — приложение системную тему не читает. При этом светлая палитра в токенах есть с 1.0.2, и в §20.9 я отдельно чинил под неё клавишу (<span style="font-family:'JetBrains Mono',monospace; font-size:13px;">key.light.*</span>), потому что корпус приходил из тёмной темы. То есть мы платим за две темы и получаем одну.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Почему это петля, а не косметика.</b> Пока вопрос открыт, каждая следующая правка цвета делается вслепую: я не знаю, на каком фоне человек её увидит. Дальше расхождение будет расти само — как выросло на клавише.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Моё решение — тёмная канонична, светлая обязана работать.</b> Тёмная объявлена эталоном в системе, на ней собраны все квитанции, клавиша и подсветка источника; менять эталон ради того, что сборка его не включила, — уступка багу. Светлую не выкидываем: продукт открывают днём на улице, и текстовому продукту светлая тема физически нужна. Значит: сборка читает системную тему, обе палитры полные, третьей не бывает.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;"><b style="font-weight:500;">Проверка на приёмке:</b> одна и та же запись в двух темах — совпадают все шесть смыслов цвета (фон, обычный текст, служебный, акцент-«сделал сам», зелёное «сделано», красный жеста записи). Отдельного переключателя в настройках не заводим: система уже спросила.</p>
+  </div>
+
+  <h2 style="font:700 20px/1.3 Roboto; color:#1A1310; margin:22px 0 6px;">Мешает</h2>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">4. Плотность: шесть отбивок вместо ступеней <span style="font:500 13px 'JetBrains Mono',monospace; color:#B4552A;">Э · Ф</span></div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Отчего разное дыхание.</b> Лента строилась на 32 между записями и 12 между пунктами (Д-24), список строк — на 15+15 с хайрлайном (§22.1), «Дни» — на 16+16 (§25.6), блоки карточки — на 22–26 по месту. Каждое число право в своём экране, но вместе они не образуют шкалы, поэтому «между» — карточка человека, выбор в пак — импровизирует.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Что делать.</b> Одна лестница на весь продукт, шесть ступеней, все существующие числа к ней уже почти сходятся:</p>
+    <table style="width:100%; border-collapse:collapse; font:400 14px/1.6 Roboto; color:#332C28; margin:0 0 8px;">
+      <thead><tr>
+        <th style="text-align:left; padding:8px 10px 8px 0; border-bottom:1px solid #C9BFB8; font:500 12px 'JetBrains Mono',monospace; color:#6B615A;">СТУПЕНЬ</th>
+        <th style="text-align:left; padding:8px 0 8px 10px; border-bottom:1px solid #C9BFB8; font:500 12px 'JetBrains Mono',monospace; color:#6B615A;">ЧТО РАЗДЕЛЯЕТ</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:13px;">4</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">текст и его собственную мета-строку — они одно целое</td></tr>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:13px;">8</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">заголовок и то, что под ним</td></tr>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:13px;">12</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">однородные элементы внутри группы — пункты одной записи</td></tr>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:13px;">16</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">строки списка (с хайрлайном) и блоки внутри карточки</td></tr>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:13px;">24</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">смысловые части экрана — шапка ↔ содержимое, блок ↔ блок</td></tr>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:13px;">32</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">записи в ленте — единственное место, где нужен воздух-разделитель</td></tr>
+      </tbody>
+    </table>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Правило, которое отвечает на «один ритм на всё».</b> Плотность задаётся не размером отступа, а <b style="font-weight:500;">числом ступеней, которые экран использует</b>. Список строк живёт на двух (4 и 16) и поэтому плотный — это правильно, он оглавление. Лента живёт на четырёх (4, 12, 24, 32) и поэтому дышит — это тоже правильно, её читают по диагонали. Экран становится неопрятным не когда отступы малы, а когда ступеней больше четырёх. <b style="font-weight:500;">Норма: не больше четырёх ступеней на экран, поля экрана всегда 18.</b></p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">Макет — <span style="font-family:'JetBrains Mono',monospace; font-size:13.5px;">14a</span>: три поверхности рядом с линейкой ступеней, единственный способ увидеть шкалу.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">5. Ряды слов держатся на памяти дизайнера <span style="font:500 13px 'JetBrains Mono',monospace; color:#B4552A;">Э · Ф</span></div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Согласен, это долг.</b> Я трижды за версию считал ширины руками (§24.2, §25.1) и трижды получал «формально влезает, фактически втиснуто». Нормы не было, была арифметика в переписке.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Норма.</b> Ряд слов помещается, если сумма ширин слов и зазоров <b style="font-weight:500;">не больше 90% ширины контента</b> — 10% запаса под фолбэк гарнитуры и самое длинное состояние. Если не влезает, шаги строго в этом порядке: <b style="font-weight:500;">1</b> кегль на одну ступень вниз (16→15), <b style="font-weight:500;">2</b> зазор до 7, <b style="font-weight:500;">3</b> убрать слово. Переноса на вторую строку и горизонтального скролла в рядах слов не бывает никогда — ряд слов, который прокручивается, перестаёт быть виден целиком, а он для этого и существует.</p>
+    <table style="width:100%; border-collapse:collapse; font:400 14px/1.6 Roboto; color:#332C28; margin:0 0 8px;">
+      <thead><tr>
+        <th style="text-align:left; padding:8px 10px 8px 0; border-bottom:1px solid #C9BFB8; font:500 12px 'JetBrains Mono',monospace; color:#6B615A;">РЯД</th>
+        <th style="text-align:left; padding:8px 10px 8px 10px; border-bottom:1px solid #C9BFB8; font:500 12px 'JetBrains Mono',monospace; color:#6B615A;">КЕГЛЬ · ЗАЗОР</th>
+        <th style="text-align:left; padding:8px 0 8px 10px; border-bottom:1px solid #C9BFB8; font:500 12px 'JetBrains Mono',monospace; color:#6B615A;">ПОТОЛОК СЛОВ</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6;">шапка поверхностей</td><td style="padding:7px 10px 7px 10px; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:13px;">21 акт. / 15 · 12</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">4 — объявлено пределом (§25.1)</td></tr>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6;">фильтр ленты</td><td style="padding:7px 10px 7px 10px; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:13px;">15 · 7</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">6 («просрочено» — только когда есть)</td></tr>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6;">действия карточки</td><td style="padding:7px 10px 7px 10px; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:13px;">17 · 18</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">3 — четвёртое уходит строкой ниже (§23.2)</td></tr>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6;">ответы карточки вопроса</td><td style="padding:7px 10px 7px 10px; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:13px;">17 · столбцом</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">2 — и они стоят друг под другом, не в ряд</td></tr>
+      </tbody>
+    </table>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">Макет — <span style="font-family:'JetBrains Mono',monospace; font-size:13.5px;">14c</span>: замеры на трёх реальных рядах, включая тот, что не влезает.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">6. Девять пустых состояний, пять разных начал <span style="font:500 13px 'JetBrains Mono',monospace; color:#B4552A;">Ф</span></div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;">Перечитал подряд. Шаблон «что здесь будет + откуда возьмётся» выдержан во всех, Spectral 18 — тоже. Расходятся первые слова, а это единственное, что человек прочитает: «Здесь пусто» (дважды — внутри раздела и в пустом фильтре), «Пока пусто», «Пока никого», «Пока ни одного дня», «Пока правил нет». Пять разных начал на один и тот же такт.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;"><b style="font-weight:500;">Правило на первую строку.</b> «Пока …» — если содержимое придёт само, от продукта или от времени. «Здесь пусто» — только если содержимое было и ушло. Разница смысловая: в первом случае человек ничего не сделал не так, во втором он видит след своей работы.</p>
+    <table style="width:100%; border-collapse:collapse; font:400 14px/1.6 Roboto; color:#332C28; margin:0 0 8px;">
+      <thead><tr>
+        <th style="text-align:left; padding:8px 10px 8px 0; border-bottom:1px solid #C9BFB8; font:500 12px 'JetBrains Mono',monospace; color:#6B615A;">КЛЮЧ</th>
+        <th style="text-align:left; padding:8px 0 8px 10px; border-bottom:1px solid #C9BFB8; font:500 12px 'JetBrains Mono',monospace; color:#6B615A;">ПЕРВАЯ СТРОКА</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:12.5px;">topics_empty</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">Пока разделов нет. <span style="color:#8A7E76;">— было «Пока пусто»</span></td></tr>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:12.5px;">empty_people</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">Пока никого. <span style="color:#8A7E76;">— оставить</span></td></tr>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:12.5px;">days_empty</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">Пока ни одного дня. <span style="color:#8A7E76;">— оставить</span></td></tr>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:12.5px;">empty_dict</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">Пока правил нет. <span style="color:#8A7E76;">— оставить</span></td></tr>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:12.5px;">filter_empty_buried</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">Пока ничего не похоронено. <span style="color:#8A7E76;">— было «Здесь пусто»</span></td></tr>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:12.5px;">empty_topic_inside</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">Здесь пусто. <span style="color:#8A7E76;">— содержимое ушло, верно</span></td></tr>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:12.5px;">search_empty</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">без первой строки — поиск в покое не пустое состояние, а приглашение</td></tr>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:12.5px;">search_not_found</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">Не нашёл. <span style="color:#8A7E76;">— это ответ на действие, а не состояние экрана</span></td></tr>
+        <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6; font-family:'JetBrains Mono',monospace; font-size:12.5px;">empty_pick</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">не пустое состояние вовсе — см. пункт 9</td></tr>
+      </tbody>
+    </table>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">Вторые строки не трогаю ни в одном: они точные. Правка чисто словарная, макетов не требует.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 16px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">7. Раскрытие без движения — человек теряет место <span style="font:500 13px 'JetBrains Mono',monospace; color:#B4552A;">Э</span></div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;">Раскрытие пункта (§20.3) и дня (§25.3) происходит мгновенно: строка была одна, стала на пять строк выше, всё под ней прыгнуло. Это единственное место, где отсутствие анимации не «быстро», а «непонятно»: соседние строки уехали, и человек не уверен, что раскрылось то, во что он ткнул.</p>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;"><b style="font-weight:500;">Что делать.</b> Рост высоты 140 мс, ease-out; содержимое внутри проявляется без задержки вместе с высотой. Закрытие — те же 140 мс. Больше в раскрытии ничего не двигается.</p>
+  </div>
+
+  <h2 style="font:700 20px/1.3 Roboto; color:#1A1310; margin:22px 0 6px;">Косметика</h2>
+
+  <div style="break-inside:avoid; margin:0 0 14px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">8. Снекбар появляется, а не приезжает <span style="font:500 13px 'JetBrains Mono',monospace; color:#B4552A;">Э</span></div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">Мгновенное появление плашки внизу читается как ошибка — в остальном продукте мгновенно появляются только ошибки. Въезд снизу 160 мс, уход — 120 мс вниз. Это единственная анимация, которую я считаю обязательной вне раскрытия: снекбар несёт «вернуть», и человек должен успеть заметить его появление, а не обнаружить.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 14px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">9. «Собирать нечего» одето в пустое состояние <span style="font:500 13px 'JetBrains Mono',monospace; color:#B4552A;">Ф</span></div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">«Здесь одна запись. Пак получится короче самой записи — открой её, это быстрее» (§22.4) — это не пустой экран, а отказ продукта от бесполезной работы. Пустое состояние объясняет, чем экран наполнится; здесь наполнять нечем и не нужно. Набирать той же парой строк Spectral, но без первой строки-«диагноза»: одна фраза и всё.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 14px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">10. Смена фильтра происходит без следа <span style="font:500 13px 'JetBrains Mono',monospace; color:#B4552A;">Э</span></div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">Список подменяется мгновенно, и при похожем содержимом («в плане» → «вернусь») непонятно, сменился ли он вообще. Кроссфейд 120 мс — только содержимое списка, слова фильтра не двигаются. Больше нигде переходов не добавлять: смена поверхности обязана быть мгновенной, иначе шапка перестанет читаться как переключатель.</p>
+  </div>
+
+  <div style="break-inside:avoid; margin:0 0 14px;">
+    <div style="font:500 16px/1.4 Roboto; color:#1A1310; margin-bottom:5px;">11. Сверить кегль неактивных слов шапки <span style="font:500 13px 'JetBrains Mono',monospace; color:#B4552A;">Ф</span></div>
+    <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">§18.8 задавал <span style="font-family:'JetBrains Mono',monospace; font-size:13px;">surface.tab-idle</span> 16, §25.6 снизил до 15 вместе с зазором 14 → 12. Проверить, что применено во всех четырёх поверхностях, а не только там, где чинили «Дни»: два разных кегля в одной строке — самое заметное, что вообще может случиться в шапке.</p>
+  </div>
+
+  <h2 style="font:700 20px/1.3 Roboto; color:#1A1310; margin:22px 0 6px;">Анимации целиком: где нужно, где вредит</h2>
+  <table style="width:100%; border-collapse:collapse; font:400 14px/1.6 Roboto; color:#332C28; margin:0 0 12px;">
+    <thead><tr>
+      <th style="text-align:left; padding:8px 10px 8px 0; border-bottom:1px solid #C9BFB8; font:500 12px 'JetBrains Mono',monospace; color:#6B615A;">ЧТО</th>
+      <th style="text-align:left; padding:8px 0 8px 10px; border-bottom:1px solid #C9BFB8; font:500 12px 'JetBrains Mono',monospace; color:#6B615A;">РЕШЕНИЕ</th>
+    </tr></thead>
+    <tbody>
+      <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6;">раскрытие пункта, дня, сырца</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">140 мс ease-out по высоте — <b style="font-weight:500;">нужно</b>, иначе теряется место</td></tr>
+      <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6;">снекбар</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">въезд 160 / уход 120 — <b style="font-weight:500;">нужно</b>, он несёт «вернуть»</td></tr>
+      <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6;">смена фильтра</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">кроссфейд списка 120 — <b style="font-weight:500;">нужно</b> при похожих выдачах</td></tr>
+      <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6;">удаление строки свайпом</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">коллапс 120 — <b style="font-weight:500;">нужно</b>, движение продолжает палец</td></tr>
+      <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6;">смена поверхности в шапке</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;"><b style="font-weight:500;">мгновенно</b> — задержка врёт про вес переключателя</td></tr>
+      <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6;">вход на вложенный экран</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;"><b style="font-weight:500;">системный</b> переход платформы, свой не рисуем</td></tr>
+      <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6;">квитанция, кольцо записи</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;">как есть — <b style="font-weight:500;">не трогать</b>, это лицо продукта</td></tr>
+      <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6;">появление ленты, списков, карточек</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;"><b style="font-weight:500;">запрещено</b> — лента не собирается на глазах</td></tr>
+      <tr><td style="padding:7px 10px 7px 0; border-bottom:1px solid #E4DCD6;">параллакс, «дыхание», пружины, вращение</td><td style="padding:7px 0 7px 10px; border-bottom:1px solid #E4DCD6;"><b style="font-weight:500;">запрещено</b> — в продукте не двигается ничего, кроме того, что человек толкнул</td></tr>
+    </tbody>
+  </table>
+  <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 22px;"><b style="font-weight:500;">Правило движения одной фразой:</b> анимируется только то, что меняет геометрию под пальцем. Всё остальное меняется мгновенно.</p>
+
+  <h2 style="font:700 20px/1.3 Roboto; color:#1A1310; margin:0 0 6px;">Чего в полишинге не будет</h2>
+  <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 6px;">Ни одной новой сущности, экрана, иконки вместо слова и цвета сверх трёх. Отдельно отказываюсь от четырёх вещей, которые в полишинге обычно предлагают и которые здесь были бы регрессом: переключателя тем в настройках (система уже спросила), иконок в шапке вместо слов, «плотного режима» списка как настройки (плотность — решение дизайнера, а не человека), скругления и подложек у строк ленты (контейнер в этом продукте значит «продукт сделал сам»).</p>
+  <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0 0 20px;"><b style="font-weight:500;">Порядок работ.</b> Пункт 2 первым — он самый дешёвый и сразу снимает строку. Затем 1 и 4 вместе: мета-строки и лестница отступов трогают одни и те же экраны, разводить их по разным заходам значит верстать ленту дважды. Затем 3 (тема) — это работа сборки, не разметки, и она параллельна. Затем 5, 6. Анимации (7, 8, 10) — последними, одним заходом: их приёмка требует живого устройства.</p>
+
+  <h2 style="font:700 20px/1.3 Roboto; color:#1A1310; margin:0 0 6px;">Приёмка полишинга</h2>
+  <p style="font:400 15px/1.65 Roboto; color:#332C28; margin:0;">На любом кадре служебных строк не больше, чем строк содержания. Ни на одном экране не больше четырёх ступеней отступов, поля везде 18. Ни один ряд слов не переносится, не обрезается и не прокручивается. Первые строки семи пустых состояний читаются как один голос (у поиска в покое её нет, «собирать нечего» — не пустое состояние). Одна и та же запись в светлой и тёмной теме несёт одни и те же шесть смыслов цвета. Двигается только то, что человек толкнул.</p>
+
+</doc-page>
+</x-dc>
+</body>
+</html>

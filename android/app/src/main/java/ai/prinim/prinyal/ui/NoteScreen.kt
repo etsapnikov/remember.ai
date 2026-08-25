@@ -322,7 +322,33 @@ fun NoteScreen(
                     )
                     // Раскрытие живёт под своим пунктом: соседние остаются на
                     // экране, и видно, откуда взялось (аудит Д-7, п. 4).
-                    if (opened?.id == item.id) {
+                    // Раскрытие растёт, а не появляется (полишинг, п. 7): строка
+                    // была одна, стала пятью, и всё под ней прыгнуло. Это
+                    // единственное место, где мгновенность читается не как
+                    // «быстро», а как «непонятно, что раскрылось».
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = opened?.id == item.id,
+                        enter = androidx.compose.animation.expandVertically(
+                            animationSpec = androidx.compose.animation.core.tween(
+                                ai.prinim.prinyal.ui.theme.Motion.Polish.EXPAND_MS,
+                                easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                            ),
+                        ) + androidx.compose.animation.fadeIn(
+                            animationSpec = androidx.compose.animation.core.tween(
+                                ai.prinim.prinyal.ui.theme.Motion.Polish.EXPAND_MS,
+                            ),
+                        ),
+                        exit = androidx.compose.animation.shrinkVertically(
+                            animationSpec = androidx.compose.animation.core.tween(
+                                ai.prinim.prinyal.ui.theme.Motion.Polish.EXPAND_MS,
+                            ),
+                        ) + androidx.compose.animation.fadeOut(
+                            animationSpec = androidx.compose.animation.core.tween(
+                                ai.prinim.prinyal.ui.theme.Motion.Polish.EXPAND_MS,
+                            ),
+                        ),
+                    ) {
+                        if (opened?.id == item.id) {
                         LaunchedEffect(item.id) { openedReturns = vm.returnsFor(item.id) }
                         ItemDetail(
                             item = item,
@@ -347,6 +373,7 @@ fun NoteScreen(
                             },
                             onDismiss = { opened = null },
                         )
+                        }
                     }
                 }
             } else if (status == NoteStatus.RECORDED || status == NoteStatus.QUEUED ||
