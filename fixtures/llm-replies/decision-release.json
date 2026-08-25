@@ -1,23 +1,23 @@
 {
  "id": "decision-release",
- "prompt_version": "10",
- "recorded_at": "2026-08-24T17:03:35",
- "took_s": 2.5,
+ "prompt_version": "11",
+ "recorded_at": "2026-08-25T21:40:18",
+ "took_s": 2.7,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2747,
+  "prompt_tokens": 2759,
   "completion_tokens": 148,
-  "total_tokens": 2895,
+  "total_tokens": 2907,
   "prompt_tokens_details": {
    "cached_tokens": 2688
   },
   "prompt_cache_hit_tokens": 2688,
-  "prompt_cache_miss_tokens": 59
+  "prompt_cache_miss_tokens": 71
  },
  "response": {
-  "id": "bd98b6e4-f9b8-4729-bbf8-01944ad7aa80",
+  "id": "b5cc38e9-ff6b-45e5-bfd4-6e11570909fb",
   "object": "chat.completion",
-  "created": 1787580215,
+  "created": 1787683216,
   "model": "deepseek-v4-flash",
   "choices": [
    {
@@ -31,14 +31,14 @@
    }
   ],
   "usage": {
-   "prompt_tokens": 2747,
+   "prompt_tokens": 2759,
    "completion_tokens": 148,
-   "total_tokens": 2895,
+   "total_tokens": 2907,
    "prompt_tokens_details": {
     "cached_tokens": 2688
    },
    "prompt_cache_hit_tokens": 2688,
-   "prompt_cache_miss_tokens": 59
+   "prompt_cache_miss_tokens": 71
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

@@ -12,6 +12,7 @@ import respx
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.prompt import PROMPT_VERSION
 
 from .conftest import TOKEN, deepseek_reply, silence_wav, speech_like_wav, to_m4a
 
@@ -153,7 +154,7 @@ def test_meta_carries_the_numbers_analytics_needs(client, m4a):
     meta = post(client, m4a).json()["meta"]
     assert meta["asr_ms"] >= 0 and meta["llm_ms"] >= 0
     assert meta["duration_ms"] == pytest.approx(3000, abs=250)
-    assert meta["prompt_version"] == "8"
+    assert meta["prompt_version"] == PROMPT_VERSION
     assert meta["segments"] >= 1
 
 
@@ -161,7 +162,7 @@ def test_health_reports_the_stack(client):
     body = client.get("/health").json()
     assert body["ok"] is True
     assert body["asr"] == "stub"
-    assert body["prompt_version"] == "8"
+    assert body["prompt_version"] == PROMPT_VERSION
 
 
 # --- путь для ASR на устройстве ---

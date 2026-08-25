@@ -53,9 +53,7 @@ class PersonTellWorker(
 
     private suspend fun transcribe(app: PrinyalApp, audio: File): String? {
         if (!audio.exists()) return ""
-        if (!ModelStore.ready(app)) {
-            if (!ModelStore.install(app)) return null
-        }
+        if (!ModelStore.install(app)) return null
         val engine = app.asr() ?: return null
         return runCatching {
             val samples = AudioDecoder.decode(audio)

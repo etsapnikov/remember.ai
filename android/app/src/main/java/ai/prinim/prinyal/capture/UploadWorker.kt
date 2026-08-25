@@ -273,10 +273,12 @@ class UploadWorker(
         store: Boolean = true,
     ): String? {
         // Веса распаковываются здесь, перед первым распознаванием: старт
-        // приложения не должен ждать 326 МБ.
-        if (!ModelStore.ready(app)) {
-            if (!ModelStore.install(app)) return null
-        }
+        // приложения не должен ждать 310 МБ.
+        //
+        // Зовём распаковку всегда, а не только когда файлов нет. Прежняя обёртка
+        // «есть файлы — не трогать» пропустила бы смену модели: имена файлов те
+        // же, а веса и словарь другие. Внутри стоит сверка размеров, она дешёвая.
+        if (!ModelStore.install(app)) return null
         val engine = app.asr() ?: return null
         return try {
             val started = System.currentTimeMillis()

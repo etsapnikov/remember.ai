@@ -1,44 +1,44 @@
 {
  "id": "repeat-monthly",
- "prompt_version": "10",
- "recorded_at": "2026-08-24T17:04:02",
- "took_s": 2.6,
+ "prompt_version": "11",
+ "recorded_at": "2026-08-25T21:40:47",
+ "took_s": 2.4,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2747,
-  "completion_tokens": 141,
-  "total_tokens": 2888,
+  "prompt_tokens": 2759,
+  "completion_tokens": 119,
+  "total_tokens": 2878,
   "prompt_tokens_details": {
    "cached_tokens": 2688
   },
   "prompt_cache_hit_tokens": 2688,
-  "prompt_cache_miss_tokens": 59
+  "prompt_cache_miss_tokens": 71
  },
  "response": {
-  "id": "9ef2ae34-74d3-4f7d-880f-55cd6e562882",
+  "id": "cee0383c-41ca-4ffb-9163-7cc120e124f5",
   "object": "chat.completion",
-  "created": 1787580241,
+  "created": 1787683246,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Дом\",\n  \"entities\": [],\n  \"person_facts\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"передавать показания счётчиков\",\n      \"who\": null,\n      \"due_kind\": \"none\",\n      \"window\": null,\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"передавать показания счётчиков\",\n      \"repeat\": \"monthly:15\"\n    }\n  ]\n}"
+     "content": "{\"note_kind\": \"tasks\", \"topic\": \"Дом\", \"entities\": [], \"person_facts\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"do\", \"text\": \"передавать показания счётчиков\", \"who\": null, \"due_kind\": \"none\", \"window\": null, \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"передавать показания счётчиков\", \"repeat\": \"monthly:15\"}]}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2747,
-   "completion_tokens": 141,
-   "total_tokens": 2888,
+   "prompt_tokens": 2759,
+   "completion_tokens": 119,
+   "total_tokens": 2878,
    "prompt_tokens_details": {
     "cached_tokens": 2688
    },
    "prompt_cache_hit_tokens": 2688,
-   "prompt_cache_miss_tokens": 59
+   "prompt_cache_miss_tokens": 71
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

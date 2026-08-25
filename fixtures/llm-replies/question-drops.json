@@ -1,44 +1,44 @@
 {
  "id": "question-drops",
- "prompt_version": "10",
- "recorded_at": "2026-08-24T17:03:59",
- "took_s": 2.4,
+ "prompt_version": "11",
+ "recorded_at": "2026-08-25T21:40:45",
+ "took_s": 2.7,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2756,
-  "completion_tokens": 126,
-  "total_tokens": 2882,
+  "prompt_tokens": 2768,
+  "completion_tokens": 57,
+  "total_tokens": 2825,
   "prompt_tokens_details": {
    "cached_tokens": 2688
   },
   "prompt_cache_hit_tokens": 2688,
-  "prompt_cache_miss_tokens": 68
+  "prompt_cache_miss_tokens": 80
  },
  "response": {
-  "id": "37bfc4e3-5bfe-400b-8613-3796679ae671",
+  "id": "0e4aaf0a-8cee-42a3-b852-8bef3d809cd1",
   "object": "chat.completion",
-  "created": 1787580239,
+  "created": 1787683243,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\"note_kind\": \"question\", \"topic\": \"Здоровье\", \"entities\": [], \"person_facts\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"fact\", \"text\": \"детские капли в нос можно капать не дольше пяти дней\", \"who\": null, \"due_kind\": \"none\", \"window\": null, \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"детские капли в нос можно капать не дольше пяти дней\"}]}"
+     "content": "{\n  \"note_kind\": \"question\",\n  \"topic\": \"Здоровье\",\n  \"entities\": [],\n  \"person_facts\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [],\n  \"links\": []\n}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2756,
-   "completion_tokens": 126,
-   "total_tokens": 2882,
+   "prompt_tokens": 2768,
+   "completion_tokens": 57,
+   "total_tokens": 2825,
    "prompt_tokens_details": {
     "cached_tokens": 2688
    },
    "prompt_cache_hit_tokens": 2688,
-   "prompt_cache_miss_tokens": 68
+   "prompt_cache_miss_tokens": 80
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

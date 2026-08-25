@@ -10,19 +10,30 @@ import java.nio.FloatBuffer
 import java.nio.LongBuffer
 
 /**
- * GigaAM-RNNT v2 на устройстве (ONNX, int8-MatMul).
+ * GigaAM-RNNT v3 e2e на устройстве (ONNX, int8-MatMul).
  *
  * Аудио не покидает телефон вообще: наружу уходит только текст, и только на стадию
  * разбора. Это сильнее исходного контура PRD §7, где звук шёл на свой сервер.
  *
+ * До 1.3 здесь стояла v2 с **посимвольным русским алфавитом**: пробел и 32 буквы,
+ * захардкоженные списком. Латинской буквы в нём не было физически, поэтому
+ * английские термины она записывала на слух кириллицей — «джоп дискрипшен»,
+ * «дета сета», «мэджик девять про макс». Половина рабочих заметок владельца
+ * состоит ровно из таких слов, и починить это после распознавания значило
+ * угадывать, что человек имел в виду.
+ *
+ * У v3 словарь на 1025 BPE-кусков, среди них 84 латинских, точка, запятая и
+ * вопросительный знак. Она пишет «job description» и «memory usage» сама, а
+ * заодно расставляет знаки и заглавные, которых раньше не было вовсе.
+ *
  * Граф — экспорт официального пакета, сигнатуры зафиксированы:
  *  - encoder: `audio_signal [B, 64, T]`, `length [B] int64` → `encoded [B, 768, T']`,
  *    `encoded_len [B] int32`;
- *  - decoder: `x [B, 1] int64`, `hi/ci [1, B, 320]` → `dec [B, 1, 320]`, `ho/co`;
- *  - joint: `enc [B, 768, 1]`, `dec [B, 320, 1]` → `joint [B, 1, 1, 34]`.
+ *  - decoder: `x [B, 1] int64`, `h.1/c.1 [1, B, 320]` → `dec [B, 1, 320]`, `h/c`;
+ *  - joint: `enc [B, 768, 1]`, `dec [B, 320, 1]` → `joint [B, 1, 1, 1025]`.
  *
- * Словарь символьный: 33 метки (пробел + 32 буквы), blank — индекс 33. Регистр
- * нижний, пунктуации нет — нормализацию делает стадия разбора.
+ * Веса переквантованы нами (`scripts/quantize_v3.py`), а не взяты вендорские:
+ * те квантуют ещё и свёртки в `ConvInteger`, которого рантайм не умеет.
  */
 class GigaAmOnDevice(private val models: File) : Closeable {
 
@@ -32,6 +43,10 @@ class GigaAmOnDevice(private val models: File) : Closeable {
     private var decoder: OrtSession? = null
     private var joint: OrtSession? = null
 
+    /** Словарь и blank читаются из файла рядом с весами — вместе они и версия модели. */
+    private var labels: Array<String> = emptyArray()
+    private var blank: Int = -1
+
     val isReady: Boolean get() = encoder != null
 
     fun load() {
@@ -40,15 +55,18 @@ class GigaAmOnDevice(private val models: File) : Closeable {
             setIntraOpNumThreads(THREADS)
             setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
         }
+        labels = readVocab(file(VOCAB))
+        blank = labels.indexOf(BLANK_TOKEN)
+        require(blank >= 0) { "в словаре нет $BLANK_TOKEN" }
         encoder = env.createSession(file(ENCODER).absolutePath, options)
         decoder = env.createSession(file(DECODER).absolutePath, options)
         joint = env.createSession(file(JOINT).absolutePath, options)
-        Log.i(TAG, "GigaAM загружен из ${models.absolutePath}")
+        Log.i(TAG, "GigaAM загружен из ${models.absolutePath}: ${labels.size} кусков, blank $blank")
     }
 
     /**
      * @param samples моно PCM 16 кГц в диапазоне [-1, 1]
-     * @return транскрипт в нижнем регистре без пунктуации
+     * @return транскрипт с пунктуацией и заглавными, английские термины латиницей
      */
     fun transcribe(samples: FloatArray): String {
         load()
@@ -101,7 +119,7 @@ class GigaAmOnDevice(private val models: File) : Closeable {
         val hidden = longArrayOf(1, 1, STATE)
         var h = FloatArray(STATE.toInt())
         var c = FloatArray(STATE.toInt())
-        var previous = BLANK.toLong()
+        var previous = blank.toLong()
 
         val text = StringBuilder()
         val frameBuffer = FloatArray(ENCODER_DIM)
@@ -119,9 +137,9 @@ class GigaAmOnDevice(private val models: File) : Closeable {
             var emitted = 0
             while (emitted < MAX_SYMBOLS_PER_FRAME) {
                 val token = runJoint(joi, frameBuffer, decoderOut.state)
-                if (token == BLANK) break
+                if (token == blank) break
 
-                text.append(LABELS[token])
+                text.append(labels[token])
                 previous = token.toLong()
                 h = pendingH
                 c = pendingC
@@ -131,8 +149,17 @@ class GigaAmOnDevice(private val models: File) : Closeable {
                 emitted++
             }
         }
-        return text.toString().trim()
+        return join(text)
     }
+
+    /**
+     * Куски → текст. Метка начала слова становится пробелом.
+     *
+     * Первый кусок фразы тоже приходит с меткой, поэтому строка начинается с
+     * пробела — его снимаем, а не оставляем на совести вызывающего.
+     */
+    private fun join(pieces: CharSequence): String =
+        pieces.toString().replace(WORD_START, ' ').trim()
 
     private class DecoderOut(val state: FloatArray, val h: FloatArray, val c: FloatArray)
 
@@ -146,7 +173,7 @@ class GigaAmOnDevice(private val models: File) : Closeable {
         OnnxTensor.createTensor(env, LongBuffer.wrap(longArrayOf(token)), longArrayOf(1, 1)).use { x ->
             OnnxTensor.createTensor(env, FloatBuffer.wrap(h), hiddenShape).use { hi ->
                 OnnxTensor.createTensor(env, FloatBuffer.wrap(c), hiddenShape).use { ci ->
-                    dec.run(mapOf("x" to x, "hi" to hi, "ci" to ci)).use { result ->
+                    dec.run(mapOf("x" to x, STATE_H to hi, STATE_C to ci)).use { result ->
                         @Suppress("UNCHECKED_CAST")
                         val out = result.get(0).value as Array<Array<FloatArray>>
                         @Suppress("UNCHECKED_CAST")
@@ -197,20 +224,56 @@ class GigaAmOnDevice(private val models: File) : Closeable {
         const val DECODER = "decoder.onnx"
         const val JOINT = "joint.onnx"
 
+        /**
+         * Имена входов состояния у v3 — `h.1` и `c.1`, а не `hi`/`ci`.
+         *
+         * Точка с единицей досталась от экспорта torch: так он назвал аргументы
+         * LSTM. Имя выглядит как опечатка, поэтому держим его константой с
+         * пояснением, чтобы никто не «поправил» его обратно.
+         */
+        private const val STATE_H = "h.1"
+        private const val STATE_C = "c.1"
+
         private const val ENCODER_DIM = 768
         private const val STATE = 320L
         private const val THREADS = 4
-        private const val MAX_SYMBOLS_PER_FRAME = 10
+        /** `max_tokens_per_step` из config.json модели. */
+        private const val MAX_SYMBOLS_PER_FRAME = 3
 
-        /** Словарь из `v2_rnnt.yaml`: пробел плюс 32 буквы; blank — следом за ними. */
-        val LABELS = arrayOf(
-            " ", "а", "б", "в", "г", "д", "е", "ж", "з", "и", "й", "к", "л", "м", "н",
-            "о", "п", "р", "с", "т", "у", "ф", "х", "ц", "ч", "ш", "щ", "ъ", "ы", "ь",
-            "э", "ю", "я",
-        )
-        const val BLANK = 33
+        const val VOCAB = "vocab.txt"
+
+        /**
+         * Куски склеиваются в слова по метке SentencePiece.
+         *
+         * `▁` — не подчёркивание, а признак начала слова: «▁job» + «▁desc» +
+         * «ription» это «job description», а не «jobdescription». Без замены
+         * транскрипт слипся бы в одну строку без пробелов.
+         */
+        const val WORD_START = '\u2581'
+
+        /** Blank в словаре назван явно; полагаться на «последний индекс» не станем. */
+        const val BLANK_TOKEN = "<blk>"
+
+        /**
+         * Словарь из файла: строка «кусок индекс», индексы подряд от нуля.
+         *
+         * Читаем с конца строки: сам кусок может содержать пробел, а индекс —
+         * нет, поэтому делим по последнему пробелу, а не по первому.
+         */
+        fun readVocab(file: File): Array<String> {
+            val pieces = HashMap<Int, String>()
+            file.forEachLine { line ->
+                if (line.isEmpty()) return@forEachLine
+                val cut = line.lastIndexOf(' ')
+                if (cut <= 0) return@forEachLine
+                val index = line.substring(cut + 1).toIntOrNull() ?: return@forEachLine
+                pieces[index] = line.substring(0, cut)
+            }
+            val size = (pieces.keys.maxOrNull() ?: -1) + 1
+            return Array(size) { pieces[it] ?: "" }
+        }
 
         fun modelsPresent(dir: File): Boolean =
-            listOf(ENCODER, DECODER, JOINT).all { File(dir, it).length() > 0 }
+            listOf(ENCODER, DECODER, JOINT, VOCAB).all { File(dir, it).length() > 0 }
     }
 }

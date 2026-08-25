@@ -71,7 +71,12 @@ android {
     androidResources {
         // Веса и так сжаты квантованием: архивирование даёт единицы процентов,
         // а распаковку замедляет заметно.
-        noCompress += "onnx"
+        //
+        // Словарь здесь же, и по другой причине: распаковка спрашивает у asset
+        // длину через `openFd`, а сжатый asset дескриптора не имеет вовсе —
+        // «probably compressed». Текстовый файл в 13 КБ архиватор сжимает
+        // охотно, и без этой строки распаковка падает целиком, вместе с весами.
+        noCompress += listOf("onnx", "txt")
     }
 
     testOptions {
@@ -126,6 +131,10 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.onnxruntime.jvm)
+
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.runner)
 }
 
 

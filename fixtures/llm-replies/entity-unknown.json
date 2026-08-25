@@ -1,44 +1,44 @@
 {
  "id": "entity-unknown",
- "prompt_version": "10",
- "recorded_at": "2026-08-24T17:03:38",
- "took_s": 2.6,
+ "prompt_version": "11",
+ "recorded_at": "2026-08-25T21:40:21",
+ "took_s": 2.9,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2743,
-  "completion_tokens": 175,
-  "total_tokens": 2918,
+  "prompt_tokens": 2755,
+  "completion_tokens": 208,
+  "total_tokens": 2963,
   "prompt_tokens_details": {
    "cached_tokens": 2688
   },
   "prompt_cache_hit_tokens": 2688,
-  "prompt_cache_miss_tokens": 55
+  "prompt_cache_miss_tokens": 67
  },
  "response": {
-  "id": "16321f44-a1c0-4b35-a914-91549a51a626",
+  "id": "0638b67d-2c7a-4b1d-88ac-58867fbff260",
   "object": "chat.completion",
-  "created": 1787580217,
+  "created": 1787683219,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\"note_kind\": \"tasks\", \"topic\": \"Дом\", \"entities\": [\"Юля\"], \"person_facts\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"tell\", \"text\": \"узнать у Юли размер\", \"who\": \"Юля\", \"due_kind\": \"window\", \"window\": \"evening\", \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"узнать у юли размер\"}, {\"type\": \"buy\", \"text\": \"заказать бельё\", \"who\": null, \"due_kind\": \"window\", \"window\": \"day\", \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"заказать бельё\"}]}"
+     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Дом\",\n  \"entities\": [\"Юля\"],\n  \"person_facts\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"tell\",\n      \"text\": \"узнать у Юли размер\",\n      \"who\": \"Юля\",\n      \"due_kind\": \"window\",\n      \"window\": \"evening\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"узнать у юли размер\"\n    },\n    {\n      \"type\": \"buy\",\n      \"text\": \"заказать бельё\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"заказать бельё\"\n    }\n  ]\n}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2743,
-   "completion_tokens": 175,
-   "total_tokens": 2918,
+   "prompt_tokens": 2755,
+   "completion_tokens": 208,
+   "total_tokens": 2963,
    "prompt_tokens_details": {
     "cached_tokens": 2688
    },
    "prompt_cache_hit_tokens": 2688,
-   "prompt_cache_miss_tokens": 55
+   "prompt_cache_miss_tokens": 67
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }
