@@ -19,6 +19,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -114,9 +122,12 @@ fun PersonScreen(
     personId: String,
     onOpenNote: (String) -> Unit,
     onPickPack: (String) -> Unit = {},
+    onBack: () -> Unit = {},
 ) {
     val notes by vm.notesOfPerson(personId).collectAsState(initial = emptyList())
     val facts by vm.factsOfPerson(personId).collectAsState(initial = emptyList())
+    val everyone by vm.allPeople.collectAsState()
+    val others = everyone.filter { it.id != personId }
     val people by vm.people.collectAsState()
     val person = people.firstOrNull { it.id == personId }
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -234,6 +245,26 @@ fun PersonScreen(
             }
         }
 
+        // Имя приходит из речи, и распознаётся оно с ошибками — значит его
+        // надо уметь чинить, а дубль склеивать (Р-25.2–25.4). Действия внизу
+        // карточки, приглушённые: это работа с записной книжкой, а не с
+        // содержанием, и открывать ею человека незачем.
+        person?.let { subject ->
+            item {
+                PersonActions(
+                    name = subject.name,
+                    id = subject.id,
+                    others = others,
+                    onRename = { vm.renamePerson(subject.id, it) },
+                    onMerge = { vm.mergePeopleById(subject.id, it) },
+                    onDelete = {
+                        vm.deletePerson(subject.id)
+                        onBack()
+                    },
+                )
+            }
+        }
+
         // Блока «Открытые дела» больше нет (макет 13a): дело печаталось
         // дважды — и в блоке, и внутри записи, откуда оно взялось. Теперь дела
         // показывает сама запись, языком ленты.
@@ -305,3 +336,124 @@ private val LIVE_STATES = setOf(
     ai.prinim.prinyal.data.ItemState.RETURNED,
     ai.prinim.prinyal.data.ItemState.SNOOZED,
 )
+
+
+/**
+ * Работа с записной книжкой (Р-25.2–25.4): имя, дубль, удаление.
+ *
+ * Внизу карточки и приглушённо — это не про содержание, а про порядок в списке.
+ * Открывать карточку человека этими словами было бы неправдой о том, зачем она.
+ */
+@Composable
+private fun PersonActions(
+    name: String,
+    id: String,
+    others: List<ai.prinim.prinyal.data.PersonEntity>,
+    onRename: (String) -> Unit,
+    onMerge: (String) -> Unit,
+    onDelete: () -> Unit,
+) {
+    var renaming by remember(id) { mutableStateOf<String?>(null) }
+    var merging by remember(id) { mutableStateOf(false) }
+
+    Column(
+        Modifier.fillMaxWidth().padding(top = Space.ml),
+        verticalArrangement = Arrangement.spacedBy(Space.s),
+    ) {
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Prinyal.colors.hairline))
+
+        when {
+            renaming != null -> {
+                val focus = remember { androidx.compose.ui.focus.FocusRequester() }
+                androidx.compose.foundation.text.BasicTextField(
+                    value = renaming.orEmpty(),
+                    onValueChange = { renaming = it },
+                    singleLine = true,
+                    textStyle = Prinyal.type.itemTitle.copy(color = Prinyal.colors.ink),
+                    cursorBrush = androidx.compose.ui.graphics.SolidColor(
+                        Prinyal.colors.accentSelf,
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = Space.s)
+                        .focusRequester(focus),
+                )
+                LaunchedEffect(Unit) { focus.requestFocus() }
+                Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
+                    MetaText(
+                        text = stringResource(R.string.person_save),
+                        color = Prinyal.colors.accentSelf,
+                        modifier = Modifier.tap {
+                            renaming?.let(onRename)
+                            renaming = null
+                        },
+                    )
+                    MetaText(
+                        text = stringResource(R.string.person_cancel),
+                        color = Prinyal.colors.inkMuted,
+                        modifier = Modifier.tap { renaming = null },
+                    )
+                }
+            }
+
+            merging -> {
+                // Список имён, а не поиск: людей единицы, и выбор из семи строк
+                // короче любого поля ввода.
+                MetaText(
+                    stringResource(R.string.person_merge_pick),
+                    color = Prinyal.colors.inkFaint,
+                )
+                others.forEach { other ->
+                    Text(
+                        text = other.name,
+                        style = Prinyal.type.label,
+                        color = Prinyal.colors.ink,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .tap {
+                                onMerge(other.id)
+                                merging = false
+                            }
+                            .padding(vertical = Space.xs),
+                    )
+                }
+                MetaText(
+                    text = stringResource(R.string.person_cancel),
+                    color = Prinyal.colors.inkMuted,
+                    modifier = Modifier.tap { merging = false },
+                )
+            }
+
+            else -> {
+                Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
+                    MetaText(
+                        text = stringResource(R.string.person_rename),
+                        color = Prinyal.colors.inkMuted,
+                        maxLines = 1,
+                        modifier = Modifier.tap { renaming = name },
+                    )
+                    if (others.isNotEmpty()) {
+                        MetaText(
+                            text = stringResource(R.string.person_merge),
+                            color = Prinyal.colors.inkMuted,
+                            maxLines = 1,
+                            modifier = Modifier.tap { merging = true },
+                        )
+                    }
+                }
+                // Удаление своей строкой: оно необратимо, и в ряду с правкой
+                // читалось бы как равное ей (полишинг, п. 5).
+                MetaText(
+                    text = stringResource(R.string.person_delete),
+                    color = Prinyal.colors.inkMuted,
+                    maxLines = 1,
+                    modifier = Modifier.tap(onClick = onDelete),
+                )
+                MetaText(
+                    stringResource(R.string.person_delete_hint),
+                    color = Prinyal.colors.inkFaint,
+                )
+            }
+        }
+    }
+}

@@ -251,6 +251,74 @@ class NoteRepositoryTest {
     """.trimIndent().replace("\n", " ")
 
     @Test
+    fun `склейка людей переносит записи и факты`() = runTest {
+        // Р-25.2. Раньше склейка только помечала строку merged_into, и записи
+        // оставались висеть на пустой половине: карточка живого их не
+        // показывала, а мёртвая строка в списке не появлялась.
+        val a = ai.prinim.prinyal.data.PersonEntity(
+            id = "p1", name = "Саня Иванов", nameNorm = "саня иванов", firstSeen = 1,
+        )
+        val b = a.copy(id = "p2", name = "Саша Иванов", nameNorm = "саша иванов")
+        db.people().insert(a)
+        db.people().insert(b)
+        val id = note()
+        db.people().link(ai.prinim.prinyal.data.PersonNote(personId = "p1", noteId = id))
+        db.personFacts().insert(
+            ai.prinim.prinyal.data.PersonFact("f1", "p1", "коллега", 1L)
+        )
+
+        repo.mergePeople("p1", "p2")
+
+        assertEquals(0, db.personFacts().forPerson("p1").size)
+        assertEquals("факт не переехал", 1, db.personFacts().forPerson("p2").size)
+        assertEquals("записи не переехали", 1, db.people().notesOfOnce("p2").size)
+    }
+
+    @Test
+    fun `переименование пересчитывает ключ, а совпадение имён склеивает`() = runTest {
+        // Р-25.3. Без пересчёта ключа следующая запись с новым написанием
+        // завела бы второго человека рядом с этим.
+        db.people().insert(
+            ai.prinim.prinyal.data.PersonEntity(
+                id = "p1", name = "Чупрунова", nameNorm = "чупрунова", firstSeen = 1,
+            )
+        )
+        repo.renamePerson("p1", "Чупрунов")
+        val renamed = db.people().byId("p1")!!
+        assertEquals("Чупрунов", renamed.name)
+        assertEquals(ai.prinim.prinyal.domain.PersonIdentity.norm("Чупрунов"), renamed.nameNorm)
+
+        // Переименование в уже существующее имя — это не правка, а склейка.
+        db.people().insert(
+            ai.prinim.prinyal.data.PersonEntity(
+                id = "p2", name = "Вера", nameNorm = ai.prinim.prinyal.domain.PersonIdentity.norm("Вера"), firstSeen = 1,
+            )
+        )
+        repo.renamePerson("p1", "Вера")
+        assertEquals("p2", db.people().byId("p1")!!.mergedInto)
+    }
+
+    @Test
+    fun `удаление человека не трогает записи`() = runTest {
+        // Р-25.4. Удаляется знание о человеке, а не сказанное про него: он
+        // упомянут в записях словами, и вычищать их значило бы править речь.
+        db.people().insert(
+            ai.prinim.prinyal.data.PersonEntity(
+                id = "p1", name = "Вера", nameNorm = "вера", firstSeen = 1,
+            )
+        )
+        val id = note()
+        db.people().link(ai.prinim.prinyal.data.PersonNote(personId = "p1", noteId = id))
+        db.personFacts().insert(ai.prinim.prinyal.data.PersonFact("f1", "p1", "сестра", 1L))
+
+        repo.deletePerson("p1")
+
+        assertNull(db.people().byId("p1"))
+        assertEquals(0, db.personFacts().forPerson("p1").size)
+        assertNotNull("запись пропала вместе с человеком", db.notes().byId(id))
+    }
+
+    @Test
     fun `впечатление дня правится, а сказанное остаётся`() = runTest {
         // Р-24.3: модель сжимает ответ, и одной попытки на вечер мало, если
         // сжала мимо. Правится строка; сказанное не трогается — оно остаётся

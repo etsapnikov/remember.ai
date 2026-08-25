@@ -1185,8 +1185,58 @@ class NoteRepository(
      * одного человека; «разные» — фиксируем навсегда, чтобы не переспрашивать.
      */
     suspend fun mergePeople(fromId: String, intoId: String) {
+        if (fromId == intoId) return
+        // Записи и факты переезжают к тому, в кого склеили (Р-25.2).
+        //
+        // Раньше склейка только помечала строку `merged_into`, и записи
+        // оставались висеть на пустой половине: карточка живого человека их не
+        // показывала, а мёртвая строка в списке не появлялась. Дубль исчезал
+        // вместе со своей половиной корпуса.
+        db.people().moveLinks(fromId, intoId)
+        db.people().moveFacts(fromId, intoId)
         db.people().mergeInto(fromId, intoId)
         analytics.log("people_merged", mapOf("from" to fromId, "into" to intoId))
+    }
+
+    /**
+     * Переименовать человека (Р-25.3).
+     *
+     * Имя приходит из речи и распознаётся с ошибками — «Чупрунова» вместо
+     * «Чупрунов», «Юля» вместо «Юлия». Исправить его было негде, а имя это
+     * единственное, чем человек в продукте назван.
+     *
+     * Ключ пересчитывается вместе с именем: без этого следующая запись с новым
+     * написанием заведёт второго человека рядом с этим.
+     */
+    suspend fun renamePerson(personId: String, name: String) {
+        val person = db.people().byId(personId) ?: return
+        val clean = name.trim()
+        if (clean.isEmpty() || clean == person.name) return
+        val norm = PersonIdentity.norm(clean)
+        // Такое имя уже есть — это не переименование, а склейка.
+        db.people().byNorm(norm)?.takeIf { it.id != personId }?.let { existing ->
+            mergePeople(personId, existing.id)
+            return
+        }
+        db.people().update(person.copy(name = clean, nameNorm = norm))
+        analytics.log("person_renamed", mapOf("person" to personId))
+    }
+
+    /**
+     * Удалить человека (Р-25.4).
+     *
+     * Удаляется только знание о нём: связи с записями и факты. Сами записи не
+     * трогаются — человек упомянут в них словами, и вычищать их значило бы
+     * править сказанное.
+     *
+     * Он может появиться снова, если снова прозвучит: это не бан, а «я про
+     * него ничего не знаю».
+     */
+    suspend fun deletePerson(personId: String) {
+        db.people().unlinkAll(personId)
+        db.personFacts().forPerson(personId).forEach { db.personFacts().delete(it.id) }
+        db.people().delete(personId)
+        analytics.log("person_deleted", mapOf("person" to personId))
     }
 
     /** «Разные» (Д-30): фиксируем навсегда, чтобы не переспрашивать. */

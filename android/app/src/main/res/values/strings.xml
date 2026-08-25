@@ -607,6 +607,15 @@
         <item quantity="many">%1$d пунктов</item>
         <item quantity="other">%1$d пунктов</item>
     </plurals>
+    <!-- Работа с записной книжкой (Р-25.2–25.4). Имя приходит из речи и с
+         ошибками; дубль заводится сам; удаляется знание, а не записи. -->
+    <string name="person_rename">Переименовать</string>
+    <string name="person_merge">Это дубль</string>
+    <string name="person_merge_pick">Кто это на самом деле</string>
+    <string name="person_delete">Удалить</string>
+    <string name="person_delete_hint">записи останутся, уйдёт только карточка</string>
+    <string name="person_save">Сохранить</string>
+    <string name="person_cancel">отмена</string>
     <string name="person_facts_at">из речи, последнее — %1$s</string>
     <plurals name="person_notes">
         <item quantity="one">%1$d запись</item>

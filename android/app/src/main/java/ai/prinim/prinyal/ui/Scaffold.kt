@@ -115,6 +115,7 @@ fun AppScaffold(route: Route, onRoute: (Route) -> Unit) {
                         personId = route.id,
                         onOpenNote = { onRoute(Route.Note(it)) },
                         onPickPack = { name -> onRoute(Route.PackPick(name)) },
+                        onBack = { onRoute(Route.People) },
                     )
                     is Route.PackPick -> PackPickScreen(
                         vm,

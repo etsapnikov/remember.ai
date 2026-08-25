@@ -1008,6 +1008,25 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
+    /** Переименовать человека (Р-25.3): имя приходит из речи и с ошибками. */
+    fun renamePerson(personId: String, name: String) = viewModelScope.launch {
+        withContext(Dispatchers.IO) { app.repository.renamePerson(personId, name) }
+    }
+
+    /** Удалить знание о человеке (Р-25.4). Записи остаются: там его слова. */
+    fun deletePerson(personId: String) = viewModelScope.launch {
+        withContext(Dispatchers.IO) { app.repository.deletePerson(personId) }
+    }
+
+    /** Склеить дубль руками (Р-25.2): записи и факты переезжают. */
+    fun mergePeopleById(fromId: String, intoId: String) = viewModelScope.launch {
+        withContext(Dispatchers.IO) { app.repository.mergePeople(fromId, intoId) }
+    }
+
+    /** Кого можно предложить как второго в склейке — все, кроме себя. */
+    val allPeople = app.db.people().watchLive()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     /** Факты о человеке (Р-20.1): до трёх, слитым абзацем на карточке. */
     fun factsOfPerson(personId: String) = app.db.personFacts().watch(personId)
 
