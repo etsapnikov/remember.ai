@@ -36,10 +36,22 @@
              приложение сразу в запись (PRD §F-1).
              adjustResize, не adjustPan: при правке транскрипта окно должно
              сжиматься, иначе клавиатура уводит вверх и шапку, и статус-бар. -->
+        <!--
+          Поворот не пересоздаёт экран записи (Р-26.1).
+
+          Активити пересоздавалась, onCreate начинал новую запись — и
+          наговоренное до поворота пропадало вместе с прежним объектом. Человек
+          поворачивал телефон в кармане или ложась, и диктовка начиналась
+          заново, молча.
+
+          Конфигурацию перехватываем сами: на этом экране нечему
+          перестраиваться под ландшафт — клавиша по центру, отсчёт под ней.
+        -->
         <activity
             android:name=".capture.CaptureActivity"
             android:exported="true"
             android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|density|fontScale|uiMode"
             android:excludeFromRecents="true"
             android:taskAffinity=".capture"
             android:windowSoftInputMode="adjustResize"
