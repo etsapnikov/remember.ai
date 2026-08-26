@@ -15,8 +15,21 @@ import java.nio.ByteOrder
  */
 object AudioDecoder {
 
+    /**
+     * Подмена декодера для тестов.
+     *
+     * Декодирование опирается на `MediaExtractor` — часть медиастека Android,
+     * которого в JVM-тестах нет вовсе: любой файл там раскодируется в тишину.
+     * Без этого шва путь захвата непроверяем целиком, потому что уже на первом
+     * шаге речь превращается в пустоту, и дальше проверять нечего.
+     */
+    @androidx.annotation.VisibleForTesting
+    @Volatile
+    var decoder: ((File) -> FloatArray)? = null
+
     /** @return сэмплы в диапазоне [-1, 1] на частоте [MelFeatures.SAMPLE_RATE] */
     fun decode(file: File): FloatArray {
+        decoder?.let { return it(file) }
         val extractor = MediaExtractor()
         extractor.setDataSource(file.absolutePath)
 

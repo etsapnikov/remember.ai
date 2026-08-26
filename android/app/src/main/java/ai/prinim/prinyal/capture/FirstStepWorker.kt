@@ -58,8 +58,13 @@ class FirstStepWorker(
 
     private suspend fun transcribe(app: PrinyalApp, audio: File): String? {
         if (!audio.exists()) return ""
-        if (!ModelStore.install(app)) return null
-        val engine = app.asr() ?: return null
+        // Сначала спрашиваем движок, потом распаковываем. Поднятый движок —
+        // сам себе доказательство, что веса на месте; проверять их снова на
+        // каждой записи пачки значит лезть в архив APK четыре раза впустую.
+        val engine = app.asr() ?: run {
+            if (!ModelStore.install(app)) return null
+            app.asr() ?: return null
+        }
         return runCatching {
             val samples = AudioDecoder.decode(audio)
             val heard = if (samples.isEmpty()) "" else engine.transcribe(samples)

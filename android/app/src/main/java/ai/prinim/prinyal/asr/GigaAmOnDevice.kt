@@ -35,7 +35,7 @@ import java.nio.LongBuffer
  * Веса переквантованы нами (`scripts/quantize_v3.py`), а не взяты вендорские:
  * те квантуют ещё и свёртки в `ConvInteger`, которого рантайм не умеет.
  */
-class GigaAmOnDevice(private val models: File) : Closeable {
+class GigaAmOnDevice(private val models: File) : Closeable, SpeechToText {
 
     private val env: OrtEnvironment by lazy { OrtEnvironment.getEnvironment() }
 
@@ -68,7 +68,7 @@ class GigaAmOnDevice(private val models: File) : Closeable {
      * @param samples моно PCM 16 кГц в диапазоне [-1, 1]
      * @return транскрипт с пунктуацией и заглавными, английские термины латиницей
      */
-    fun transcribe(samples: FloatArray): String {
+    override fun transcribe(samples: FloatArray): String {
         load()
         val enc = encoder ?: return ""
         val dec = decoder ?: return ""

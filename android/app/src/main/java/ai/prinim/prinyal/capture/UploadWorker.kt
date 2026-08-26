@@ -43,7 +43,6 @@ class UploadWorker(
     override suspend fun doWork(): Result {
         val app = PrinyalApp.of(applicationContext)
         val baseUrl = app.settings.serverUrlNow()
-        val token = app.settings.token
 
         val pending = app.db.notes().pending()
         if (pending.isEmpty()) return Result.success()
@@ -106,9 +105,13 @@ class UploadWorker(
                 transcript.isBlank() -> IngestOutcome.Fatal("asr_empty")
                 // Адрес сервера задан — идём через свой бэкенд (контур PRD §2).
                 // Не задан — разбираем сами: версия работает без сервера.
+                // Токен читается здесь, а не в начале: он лежит в шифрованном
+                // хранилище, а на этом пути — разбор на устройстве — не нужен
+                // вовсе. Расшифровывать секрет ради ветки, в которую не зайдём,
+                // незачем.
                 baseUrl.isNotBlank() -> app.api.parse(
                     baseUrl = baseUrl,
-                    token = token,
+                    token = app.settings.token,
                     noteId = note.id,
                     transcript = transcript,
                     createdAtSeconds = note.createdAt / 1000,
@@ -278,8 +281,13 @@ class UploadWorker(
         // Зовём распаковку всегда, а не только когда файлов нет. Прежняя обёртка
         // «есть файлы — не трогать» пропустила бы смену модели: имена файлов те
         // же, а веса и словарь другие. Внутри стоит сверка размеров, она дешёвая.
-        if (!ModelStore.install(app)) return null
-        val engine = app.asr() ?: return null
+        // Сначала спрашиваем движок, потом распаковываем. Поднятый движок —
+        // сам себе доказательство, что веса на месте; проверять их снова на
+        // каждой записи пачки значит лезть в архив APK четыре раза впустую.
+        val engine = app.asr() ?: run {
+            if (!ModelStore.install(app)) return null
+            app.asr() ?: return null
+        }
         return try {
             val started = System.currentTimeMillis()
             val samples = AudioDecoder.decode(audio)

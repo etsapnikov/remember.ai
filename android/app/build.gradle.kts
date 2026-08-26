@@ -131,6 +131,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.onnxruntime.jvm)
+    testImplementation(libs.androidx.work.testing)
 
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.core)
