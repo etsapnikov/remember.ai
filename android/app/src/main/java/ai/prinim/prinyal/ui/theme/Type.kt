@@ -16,11 +16,16 @@ import androidx.compose.ui.unit.sp
 import ai.prinim.prinyal.R
 
 /**
- * Типографика из `assets/design-tokens.json`, раздел `type`.
+ * Типографика полишинга 1.3 (ТЗ §3).
  *
- * Кириллица первична: шрифты выбраны с полным русским набором, кегли проверяются на
- * длинных словах («переоформить», «стоматология»). Минимальный кегль основного
- * текста — 16sp (ТЗ UI §2, п. 6), поэтому масштабирования вниз здесь нет.
+ * Три роли, и смешивать их нельзя (приёмка §6): контент — [Content],
+ * служебное — [JetBrainsMono], голос продукта — [VoiceFamily] курсивом.
+ *
+ * Гарнитуры. ТЗ называет Manrope для контента и Literata Italic для голоса; в
+ * сборке лежат Golos Text и Spectral — обе с полной кириллицей и той же ролью
+ * (грот без засечек / серифный курсив). Подменяются они здесь, двумя
+ * значениями, поэтому смена гарнитуры — правка этого файла и добавление ttf,
+ * а не обход по экранам.
  */
 
 val Spectral = FontFamily(
@@ -38,6 +43,11 @@ val GolosText = FontFamily(
     ),
     Font(
         R.font.golos_text,
+        FontWeight.Medium,
+        variationSettings = FontVariation.Settings(FontVariation.weight(500)),
+    ),
+    Font(
+        R.font.golos_text,
         FontWeight.SemiBold,
         variationSettings = FontVariation.Settings(FontVariation.weight(600)),
     ),
@@ -45,6 +55,11 @@ val GolosText = FontFamily(
         R.font.golos_text,
         FontWeight.Bold,
         variationSettings = FontVariation.Settings(FontVariation.weight(700)),
+    ),
+    Font(
+        R.font.golos_text,
+        FontWeight.ExtraBold,
+        variationSettings = FontVariation.Settings(FontVariation.weight(800)),
     ),
 )
 
@@ -54,10 +69,21 @@ val JetBrainsMono = FontFamily(
         FontWeight.Normal,
         variationSettings = FontVariation.Settings(FontVariation.weight(400)),
     ),
+    Font(
+        R.font.jetbrains_mono,
+        FontWeight.Medium,
+        variationSettings = FontVariation.Settings(FontVariation.weight(500)),
+    ),
 )
 
-// Компоновка строки без «прижатого» первого ряда — иначе крупная квитанция
-// visually съезжает вверх в своей коробке.
+/** Роль «контент» — на месте Manrope из ТЗ. */
+val Content = GolosText
+
+/** Роль «голос продукта» — на месте Literata Italic из ТЗ. */
+val VoiceFamily = Spectral
+
+// Компоновка строки без «прижатого» первого ряда — иначе крупный заголовок
+// визуально съезжает вверх в своей коробке.
 private val EvenLines = LineHeightStyle(
     alignment = LineHeightStyle.Alignment.Center,
     trim = LineHeightStyle.Trim.None,
@@ -67,112 +93,192 @@ private val EvenLines = LineHeightStyle(
 data class PrinyalTypography(
     /** Квитанция «Принял.» — единственное место этого кегля. */
     val display: TextStyle,
-    /** Реплики продукта: план возврата, причина. Курсив — голос, не текст пользователя. */
-    val voice: TextStyle,
-    /** Текст айтема. */
+    /** Заголовок экрана: «Настройки», «Люди», имя человека. */
+    val screenTitle: TextStyle,
+    /** Активный таб. */
+    val tabActive: TextStyle,
+    /** Неактивный таб. */
+    val tabInactive: TextStyle,
+    /** Строка списка: раздел, человек, настройка. */
+    val listRow: TextStyle,
+    /** Заголовок записи в ленте и на карточке. */
+    val noteTitle: TextStyle,
+    /** Текст пункта. */
     val itemTitle: TextStyle,
+    /** Текст дня, расшифровка, длинные абзацы. */
     val body: TextStyle,
-    /** Кнопки. */
+    /** Голос продукта: вопросы, пояснения, пустые состояния. Только курсив. */
+    val voice: TextStyle,
+    /** Голос продукта мелко — пояснение под строкой настройки. */
+    val voiceSmall: TextStyle,
+    /** Текст кнопки. */
     val label: TextStyle,
-    /** Время, статусы, служебное. */
+    /** Подпись под клавишей записи — первая строка пары. */
+    val hint: TextStyle,
+    /** Заголовок экрана отказа в микрофоне: 19 SemiBold (ТЗ §5, экран 22). */
+    val micTitle: TextStyle,
+    /** Вторая строка пары: тише и мельче. */
+    val hintSecondary: TextStyle,
+    /** Время, счётчики, даты, метки возврата, глоссарий, дев-панель. Только моно. */
     val meta: TextStyle,
-    /** Вердикт «Недели» — «Петля жива» одним словом. */
+    /** Самое мелкое служебное — 12, ниже не спускаемся. */
+    val metaSmall: TextStyle,
+    /** Заголовок группы: моно 12 капсом с трекингом. */
+    val groupLabel: TextStyle,
+    /** Вердикт «Недели» — «Петля буксует» одним словом. */
     val verdict: TextStyle,
     /** Значение kill-метрики. */
     val metric: TextStyle,
-    /**
-     * Таймер записи. Расширение шкалы: это единственное место, где время —
-     * не служебная подпись, а содержание экрана (ТЗ UI §3.2 требует крупную
-     * живую индикацию записи). Семейство то же, что у meta, — время моноширинное,
-     * иначе цифры скачут по ширине на каждой секунде.
-     */
+    /** Таймер записи — единственное место, где время есть содержание экрана. */
     val timer: TextStyle,
 )
 
-/**
- * Шкала поднята на шаг относительно 1.0.2 по замечанию владельца: на телефоне
- * набор читался мелко. Выросли **все** уровни, а не отдельные строки, — иначе
- * иерархия поплыла бы: служебное подтянулось бы к основному, и текст перестал
- * бы делиться на «что сказано» и «что продукт про это думает».
- *
- * Сильнее прочих подрос meta (13 → 15): это самый частый уровень в продукте —
- * им набраны планы, статусы, даты и слова-кнопки, — и именно он читался хуже
- * всего.
- */
 val PrinyalType = PrinyalTypography(
     display = TextStyle(
-        fontFamily = Spectral,
-        // SemiBold, а не Regular: при переходе на систему 1.0 гарнитура
-        // сменилась и вес потерялся молча (аудит Д-7). Решение R1.2 §14 —
-        // насыщенный, с трекингом −2%.
+        fontFamily = VoiceFamily,
         fontWeight = FontWeight.SemiBold,
-        // 34, не 38: «Запомнил.» на 38 занимало 178 dp и съедало поля на узком
-        // экране. Трекинг −2% заодно возвращает точку в ритм после длинного
-        // слова (R1.2 §14).
         fontSize = 36.sp,
         letterSpacing = (-0.02).em,
         lineHeight = 1.12.em,
         lineHeightStyle = EvenLines,
     ),
-    voice = TextStyle(
-        fontFamily = Spectral,
-        fontWeight = FontWeight.Normal,
-        fontStyle = FontStyle.Italic,
-        fontSize = 19.sp,
-        lineHeight = 1.45.em,
-        lineHeightStyle = EvenLines,
-    ),
-    itemTitle = TextStyle(
-        fontFamily = GolosText,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 23.sp,
-        lineHeight = 1.3.em,
-        lineHeightStyle = EvenLines,
-    ),
-    body = TextStyle(
-        fontFamily = GolosText,
-        fontWeight = FontWeight.Normal,
-        fontSize = 18.sp,
-        lineHeight = 1.5.em,
-        lineHeightStyle = EvenLines,
-    ),
-    label = TextStyle(
-        fontFamily = GolosText,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 17.sp,
-        lineHeight = 1.3.em,
-        lineHeightStyle = EvenLines,
-    ),
-    verdict = TextStyle(
-        fontFamily = GolosText,
-        fontWeight = FontWeight.Bold,
-        fontSize = 32.sp,
-        lineHeight = 1.13.em,
-        lineHeightStyle = EvenLines,
-    ),
-    metric = TextStyle(
-        fontFamily = GolosText,
-        fontWeight = FontWeight.Bold,
+    screenTitle = TextStyle(
+        fontFamily = Content,
+        fontWeight = FontWeight.ExtraBold,
         fontSize = 28.sp,
         lineHeight = 1.15.em,
         lineHeightStyle = EvenLines,
     ),
-    timer = TextStyle(
-        fontFamily = JetBrainsMono,
-        fontWeight = FontWeight.Normal,
-        // 22, не 30: крупным таймер был потому, что был единственным признаком
-        // жизни. Теперь жизнь показывает кольцо (R1.2 §13).
-        fontSize = 23.sp,
-        letterSpacing = 0.04.em,
+    tabActive = TextStyle(
+        fontFamily = Content,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 20.sp,
+        lineHeight = 1.em,
+        lineHeightStyle = EvenLines,
+    ),
+    tabInactive = TextStyle(
+        fontFamily = Content,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 15.sp,
+        lineHeight = 1.em,
+        lineHeightStyle = EvenLines,
+    ),
+    listRow = TextStyle(
+        fontFamily = Content,
+        fontWeight = FontWeight.Bold,
+        fontSize = 18.sp,
         lineHeight = 1.2.em,
+        lineHeightStyle = EvenLines,
+    ),
+    noteTitle = TextStyle(
+        fontFamily = Content,
+        fontWeight = FontWeight.Bold,
+        fontSize = 17.sp,
+        lineHeight = 1.4.em,
+        lineHeightStyle = EvenLines,
+    ),
+    itemTitle = TextStyle(
+        fontFamily = Content,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 16.sp,
+        lineHeight = 1.4.em,
+        lineHeightStyle = EvenLines,
+    ),
+    body = TextStyle(
+        fontFamily = Content,
+        fontWeight = FontWeight.Normal,
+        fontSize = 17.sp,
+        lineHeight = 1.5.em,
+        lineHeightStyle = EvenLines,
+    ),
+    voice = TextStyle(
+        fontFamily = VoiceFamily,
+        fontWeight = FontWeight.Normal,
+        fontStyle = FontStyle.Italic,
+        fontSize = 17.sp,
+        lineHeight = 1.5.em,
+        lineHeightStyle = EvenLines,
+    ),
+    voiceSmall = TextStyle(
+        fontFamily = VoiceFamily,
+        fontWeight = FontWeight.Normal,
+        fontStyle = FontStyle.Italic,
+        fontSize = 14.sp,
+        lineHeight = 1.45.em,
+        lineHeightStyle = EvenLines,
+    ),
+    label = TextStyle(
+        fontFamily = Content,
+        fontWeight = FontWeight.Bold,
+        fontSize = 16.sp,
+        lineHeight = 1.2.em,
+        lineHeightStyle = EvenLines,
+    ),
+    hint = TextStyle(
+        fontFamily = Content,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 17.sp,
+        lineHeight = 1.4.em,
+        lineHeightStyle = EvenLines,
+    ),
+    micTitle = TextStyle(
+        fontFamily = Content,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 19.sp,
+        lineHeight = 1.45.em,
+        lineHeightStyle = EvenLines,
+    ),
+    hintSecondary = TextStyle(
+        fontFamily = Content,
+        fontWeight = FontWeight.Normal,
+        fontSize = 15.sp,
+        lineHeight = 1.4.em,
         lineHeightStyle = EvenLines,
     ),
     meta = TextStyle(
         fontFamily = JetBrainsMono,
-        fontWeight = FontWeight.Normal,
-        fontSize = 15.sp,
+        fontWeight = FontWeight.Medium,
+        fontSize = 13.sp,
         letterSpacing = 0.02.em,
         lineHeight = 1.3.em,
+        lineHeightStyle = EvenLines,
+    ),
+    metaSmall = TextStyle(
+        fontFamily = JetBrainsMono,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        letterSpacing = 0.02.em,
+        lineHeight = 1.3.em,
+        lineHeightStyle = EvenLines,
+    ),
+    groupLabel = TextStyle(
+        fontFamily = JetBrainsMono,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        letterSpacing = 0.1.em,
+        lineHeight = 1.em,
+        lineHeightStyle = EvenLines,
+    ),
+    verdict = TextStyle(
+        fontFamily = Content,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 28.sp,
+        lineHeight = 1.15.em,
+        lineHeightStyle = EvenLines,
+    ),
+    metric = TextStyle(
+        fontFamily = Content,
+        fontWeight = FontWeight.Bold,
+        fontSize = 22.sp,
+        lineHeight = 1.2.em,
+        lineHeightStyle = EvenLines,
+    ),
+    timer = TextStyle(
+        fontFamily = JetBrainsMono,
+        fontWeight = FontWeight.Medium,
+        fontSize = 40.sp,
+        letterSpacing = 0.04.em,
+        lineHeight = 1.em,
         lineHeightStyle = EvenLines,
     ),
 )

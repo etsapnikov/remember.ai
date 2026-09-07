@@ -5,6 +5,9 @@ import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.Touch
 import ai.prinim.prinyal.ui.theme.tap
+import ai.prinim.prinyal.ui.components.TertiaryButton
+import ai.prinim.prinyal.ui.theme.Radius
+import ai.prinim.prinyal.ui.theme.Sizes
 import ai.prinim.prinyal.ui.theme.Space
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -18,6 +21,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -275,23 +285,31 @@ private fun TopBar(route: Route, onRoute: (Route) -> Unit, onSearch: () -> Unit)
         Column(
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Space.screen, vertical = Space.m),
-            verticalArrangement = Arrangement.spacedBy(Space.xs),
+                .padding(horizontal = Space.screen - Touch.PAD_DP.dp),
+            verticalArrangement = Arrangement.spacedBy(Space.s),
         ) {
-            MetaText(
-                text = "‹ $parentName",
-                color = Prinyal.colors.inkFaint,
-                modifier = Modifier.tap { onRoute(target) },
-            )
+            // Путь назад — служебное, значит моно. Высоту цели даёт tap().
+            Box(Modifier.height(Sizes.tabBar), contentAlignment = Alignment.CenterStart) {
+                MetaText(
+                    text = "‹ $parentName",
+                    color = Prinyal.colors.inkFaint,
+                    modifier = Modifier.tap { onRoute(target) },
+                )
+            }
             title?.let {
                 // Две строки максимум: длинное имя раздела иначе отжимает
                 // содержимое экрана вниз, и списка не видно вовсе.
                 Text(
                     it,
-                    style = Prinyal.type.itemTitle,
+                    style = Prinyal.type.screenTitle,
                     color = Prinyal.colors.ink,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(
+                        start = Touch.PAD_DP.dp,
+                        end = Touch.PAD_DP.dp,
+                        bottom = Space.m,
+                    ),
                 )
             }
         }
@@ -310,69 +328,75 @@ private fun TopBar(route: Route, onRoute: (Route) -> Unit, onSearch: () -> Unit)
     Row(
         Modifier
             .fillMaxWidth()
-            // Зона нажатия слова несёт свои 6 dp с каждого борта — поле экрана
-            // ужимается на них, иначе слова стоят не по левому краю контента.
-            .padding(horizontal = Space.screen - Touch.PAD_DP.dp, vertical = Space.m),
-        verticalAlignment = Alignment.Bottom,
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .height(Sizes.tabBar)
+            .padding(horizontal = Space.screen),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
+        // Nav сжимаемый: иконки справа держат свои 44 всегда, слова уступают
+        // первыми. До 1.3 «Неделя» и лупа делили остаток поровну — и на узком
+        // экране лупа уезжала за край (ТЗ §4).
         Row(
-            // Зазор дают сами зоны нажатия (6+6=12 — ровно макетный): свой шаг
-            // сверху выталкивал «Неделю» за край. Четыре слова — предел, и он
-            // достигнут: пятая поверхность потребует отказа от одной из четырёх.
-            horizontalArrangement = Arrangement.spacedBy(0.dp),
-            verticalAlignment = Alignment.Bottom,
-            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(Sizes.tabGap),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                // weight(1f) один на строку. Их было два — у слов и у распорки
+                // между словами и иконками, — и место делилось пополам: «Дни»
+                // обрезались до «Д», «Неделя» уезжала за край совсем.
+                .weight(1f)
+                .horizontalScroll(rememberScrollState()),
         ) {
             surfaces.forEach { (target, label) ->
                 val current = target == route
-                Text(
-                    text = label,
-                    // Ревизия 12a: кеглей в шапочном стеке два, а не три —
-                    // активное 23 и всё остальное 15, как у строки фильтра.
-                    // Четвёртое слово влезает следствием, а не целью. Потолок
-                    // сказан дизайнером прямо: четыре слова — предел.
-                    style = if (current) Prinyal.type.itemTitle.copy(fontSize = 21.sp)
-                    else Prinyal.type.body.copy(fontSize = 15.sp),
-                    color = if (current) Prinyal.colors.ink else Prinyal.colors.inkFaint,
-                    maxLines = 1,
-                    softWrap = false,
-                    modifier = Modifier.tap { onRoute(target) },
-                )
+                Box(
+                    Modifier
+                        .height(Sizes.tabBar)
+                        .clickable(onClick = { onRoute(target) }),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = label,
+                        style = if (current) Prinyal.type.tabActive else Prinyal.type.tabInactive,
+                        color = if (current) Prinyal.colors.ink else Prinyal.colors.inkFaint,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                }
             }
         }
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(0.dp),
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            // Лупа — не поверхность: она у правого края вместе с «···» и
-            // стоит только на «Записях» (макет 11a).
-            // Глифы без 48-dp квадрата: два полных квадрата съедали 96 dp —
-            // на них и падала «Неделя». Высоту зоны даёт сама шапка, ширину —
-            // паддинг; в углу экрана этого хватает (правка после 12a).
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // Лупа стоит только на «Записях» (макет 11a).
             if (route is Route.Feed) {
-                Text(
-                    text = "⌕",
-                    style = Prinyal.type.itemTitle,
-                    color = Prinyal.colors.inkFaint,
-                    modifier = Modifier
-                        .clickable(onClick = onSearch)
-                        .padding(horizontal = Space.xs),
-                )
+                NavIcon(glyph = "⌕", onClick = onSearch)
             }
-            // Настройки — не поверхность, а служебное, поэтому знаком, а не словом.
-            Text(
-                text = "···",
-                style = Prinyal.type.itemTitle,
-                color = Prinyal.colors.inkFaint,
-                modifier = Modifier
-                    .clickable { onRoute(Route.Settings) }
-                    .padding(horizontal = Space.xs),
-            )
+            // Настройки — служебное, поэтому знаком, а не словом.
+            NavIcon(glyph = "···", onClick = { onRoute(Route.Settings) })
         }
     }
 }
 
+/**
+ * Иконка шапки: 44×44, радиус 14, подсветка поверхностью при нажатии (ТЗ §4).
+ *
+ * До 1.3 это были глифы с горизонтальным паддингом 4: цель выходила около
+ * 20×24 — вдвое ниже нормы, и промах по «···» открывал ленту вместо настроек.
+ */
+@Composable
+private fun NavIcon(glyph: String, onClick: () -> Unit) {
+    val interaction = androidx.compose.runtime.remember {
+        androidx.compose.foundation.interaction.MutableInteractionSource()
+    }
+    val pressed by interaction.collectIsPressedAsState()
+    Box(
+        Modifier
+            .size(Sizes.navIcon)
+            .clip(Radius.icon)
+            .background(if (pressed) Prinyal.colors.surface else Color.Transparent)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text = glyph, style = Prinyal.type.tabActive, color = Prinyal.colors.inkFaint)
+    }
+}
 
 /**
  * Поле поиска на месте слов шапки (макет 11a): новой поверхности нет,
@@ -384,34 +408,46 @@ private fun SearchBar(query: String, onQuery: (String) -> Unit, onCancel: () -> 
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = Space.screen, vertical = Space.m),
+            .height(Sizes.tabBar)
+            .padding(horizontal = Space.screen),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Space.m),
+        horizontalArrangement = Arrangement.spacedBy(Space.sm),
     ) {
-        androidx.compose.foundation.text.BasicTextField(
-            value = query,
-            onValueChange = onQuery,
-            textStyle = Prinyal.type.itemTitle.copy(color = Prinyal.colors.ink),
-            cursorBrush = androidx.compose.ui.graphics.SolidColor(Prinyal.colors.accentSelf),
-            singleLine = true,
-            modifier = Modifier
+        // Поле, а не строка текста: 52 с радиусом 16 на поверхности (ТЗ §5).
+        Row(
+            Modifier
                 .weight(1f)
-                .focusRequester(focus),
-            decorationBox = { inner ->
-                if (query.isEmpty()) {
-                    Text(
-                        stringResource(R.string.search_hint),
-                        style = Prinyal.type.itemTitle,
-                        color = Prinyal.colors.inkFaint,
-                    )
-                }
-                inner()
-            },
-        )
-        MetaText(
+                .height(Sizes.searchField)
+                .clip(Radius.field)
+                .background(Prinyal.colors.surface)
+                .padding(horizontal = Space.s14),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            androidx.compose.foundation.text.BasicTextField(
+                value = query,
+                onValueChange = onQuery,
+                textStyle = Prinyal.type.itemTitle.copy(color = Prinyal.colors.ink),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(Prinyal.colors.accentSelf),
+                singleLine = true,
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(focus),
+                decorationBox = { inner ->
+                    if (query.isEmpty()) {
+                        Text(
+                            stringResource(R.string.search_hint),
+                            style = Prinyal.type.itemTitle,
+                            color = Prinyal.colors.inkFaint,
+                        )
+                    }
+                    inner()
+                },
+            )
+        }
+        TertiaryButton(
             text = stringResource(R.string.search_cancel),
+            onClick = onCancel,
             color = Prinyal.colors.inkMuted,
-            modifier = Modifier.tap(onClick = onCancel),
         )
     }
     androidx.compose.runtime.LaunchedEffect(Unit) { focus.requestFocus() }

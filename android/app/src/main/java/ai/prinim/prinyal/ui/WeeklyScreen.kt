@@ -98,7 +98,7 @@ fun WeeklyScreen(vm: AppViewModel, onOpenDays: () -> Unit = {}) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .background(Prinyal.colors.wellSurface, Radius.control)
+                .background(Prinyal.colors.surface, Radius.cardLarge)
                 .padding(Space.m),
             verticalArrangement = Arrangement.spacedBy(Space.sm),
         ) {
@@ -181,10 +181,11 @@ private fun factText(fact: WeeklyFacts.Fact): String = when (fact) {
 @Composable
 private fun Done(count: Int) {
     Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
+        // Пара «подпись — значение» (ТЗ §5): подпись служебная, значит моно.
         Text(
             text = stringResource(R.string.week_metric_done),
-            style = Prinyal.type.body,
-            color = Prinyal.colors.inkMuted,
+            style = Prinyal.type.meta,
+            color = Prinyal.colors.inkFaint,
         )
         Text(
             text = count.toString(),
@@ -255,7 +256,7 @@ private fun StructureOffer(vm: AppViewModel, offer: StructureRepair.Offer) {
     Column(
         Modifier
             .fillMaxWidth()
-            .background(Prinyal.colors.wellSurface, Radius.control)
+            .background(Prinyal.colors.surface, Radius.cardLarge)
             .padding(Space.m),
         verticalArrangement = Arrangement.spacedBy(Space.sm),
     ) {
@@ -270,7 +271,7 @@ private fun StructureOffer(vm: AppViewModel, offer: StructureRepair.Offer) {
             cursorBrush = SolidColor(Prinyal.colors.accentSelf),
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Prinyal.colors.paper, Radius.control)
+                .background(Prinyal.colors.paper, Radius.card)
                 .padding(horizontal = Space.sm, vertical = Space.s),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
@@ -308,7 +309,7 @@ private fun WeekRecapBlock(
     Column(
         Modifier
             .fillMaxWidth()
-            .background(Prinyal.colors.wellSurface, Radius.control)
+            .background(Prinyal.colors.surface, Radius.cardLarge)
             .padding(Space.m),
         verticalArrangement = Arrangement.spacedBy(Space.sm),
     ) {

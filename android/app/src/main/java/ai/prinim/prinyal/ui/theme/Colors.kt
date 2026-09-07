@@ -4,13 +4,26 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 
 /**
- * Палитра из `assets/design-tokens.json`. Правки — только здесь и в токенах.
+ * Палитра полишинга 1.3 (ТЗ §2). Правки — только здесь.
  *
- * Семантика (токены, раздел `semantics`) — не рекомендация, а правило:
- *  - [record] — только клавиша записи, её пульс и таймер записи;
- *  - [accentSelf] — всё, что продукт сделал сам: планы, возвраты, квитанция, причина;
- *  - [done] — только состояние done у айтема;
- *  - красный вне жеста записи, зелёный вне done и синий где угодно — запрещены.
+ * Семантика — не рекомендация, а правило:
+ *  - [accentSelf] — только действие и статус возврата; декора акцентом не бывает;
+ *  - [done] — только «сделано»;
+ *  - [statusWarn] — только системное ограничение;
+ *  - синего в продукте нет вовсе.
+ *
+ * Поверхностей на экране не больше двух: [paper] и [surface]. Третьей ступени
+ * ([wellSurface]) в 1.3 не осталось — она совпадает с [surface] намеренно, чтобы
+ * вложенный блок не заводил себе новый оттенок явочным порядком.
+ *
+ * Два значения светлой темы отличаются от таблицы §2, и это не описка.
+ * ТЗ требует в §6 контраст не ниже 4.5:1 — а его же §2 задаёт служебный
+ * `#8A7B6D` (3.74:1 на фоне, 3.37:1 на поверхности) и предупреждение
+ * `#A9781A` (3.57:1). Две части одного документа несовместимы, и служебный
+ * уровень — самый частый в продукте: им набраны время, счётчики, даты, планы,
+ * глоссарий и вся дев-панель. Взят минимальный сдвиг светлоты, который проходит
+ * §6 и не трогает тон: `#74675C` (5.01/4.51) и `#896115` (5.08/4.58).
+ * Тёмная тема проходит §6 в исходных значениях и оставлена как в ТЗ.
  */
 @Immutable
 data class PrinyalColors(
@@ -22,16 +35,24 @@ data class PrinyalColors(
     val inkFaint: Color,
     val rule: Color,
     val accentSelf: Color,
+    /** Нажатое состояние акцента. Без него кнопка «моргала» альфой (ТЗ §2). */
+    val accentPressed: Color,
+    /** Акцент 10% — подложка метки возврата и подсветки совпадения. */
     val accentSelfSoft: Color,
+    /**
+     * Текст поверх акцентной заливки. В тёмной теме он **тёмный**: акцент там
+     * светлее фона, и инверсия убила бы контраст (ТЗ §2, прямой запрет).
+     */
+    val onAccent: Color,
     val record: Color,
     val recordPressed: Color,
     val recordWell: Color,
     val done: Color,
-    /** Хайрлайн-разделитель ленты — тоньше и тише обычного rule. */
+    /** Хайрлайн-разделитель ленты. В 1.3 совпадает с [rule]: разделитель один. */
     val hairline: Color,
     /**
-     * Пара удаления. Единственная красная пара после клавиши записи, и появляется
-     * только в открытой зоне свайпа — в покое красного в продукте нет (спека §2.3).
+     * Пара удаления — только в открытой зоне свайпа. В покое красного в продукте
+     * нет (спека §2.3).
      */
     val destructiveBg: Color,
     val destructiveFg: Color,
@@ -42,110 +63,84 @@ data class PrinyalColors(
 )
 
 val LightColors = PrinyalColors(
-    paper = Color(0xFFFBF6F0),
-    surface = Color(0xFFFFFFFF),
-    wellSurface = Color(0xFFEFE6DC),
-    ink = Color(0xFF241C17),
-    inkMuted = Color(0xFF6E5F55),
-    inkFaint = Color(0xFF8C7A6E),
-    rule = Color(0xFFE2D3C6),
-    accentSelf = Color(0xFFB4552F),
-    accentSelfSoft = Color(0xFFFBF3EC),
-    record = Color(0xFFC8362A),
-    recordPressed = Color(0xFFAE2A20),
-    recordWell = Color(0xFF8E2318),
-    done = Color(0xFF3F6B4F),
-    hairline = Color(0xFFF0E6DB),
-    destructiveBg = Color(0xFFF6E0D9),
-    destructiveFg = Color(0xFFB03A24),
-    statusOk = Color(0xFF3F6B4F),
-    // Предупреждение и «продукт сделал сам» были почти одного цвета — #A8542B
-    // против accentSelf #B4552F, глазом неразличимо. Разведены на два шага
-    // светлоты в обе стороны (аудит Д-7): предупреждение уходит в жёлто-охряное,
-    // подальше от красно-оранжевого акцента.
-    statusWarn = Color(0xFF8A6415),
+    paper = Color(0xFFFAF4EC),
+    surface = Color(0xFFF1E8DC),
+    wellSurface = Color(0xFFF1E8DC),
+    ink = Color(0xFF26201B),
+    inkMuted = Color(0xFF4A3F36),
+    inkFaint = Color(0xFF74675C),
+    rule = Color(0x1426201B),
+    accentSelf = Color(0xFFB4462A),
+    accentPressed = Color(0xFF9E3B22),
+    accentSelfSoft = Color(0x1AB4462A),
+    onAccent = Color(0xFFFAF4EC),
+    record = Color(0xFFB4462A),
+    recordPressed = Color(0xFF9E3B22),
+    recordWell = Color(0x1FB4462A),
+    done = Color(0xFF2E7D5B),
+    hairline = Color(0x1426201B),
+    destructiveBg = Color(0x1AB4462A),
+    destructiveFg = Color(0xFFB4462A),
+    statusOk = Color(0xFF2E7D5B),
+    statusWarn = Color(0xFF896115),
     isDark = false,
 )
 
-/** Тёмная тема — не инверсия, а самостоятельная проработка (ТЗ UI §5, ТЗ айдентики §6). */
+/** Тёмная тема — не инверсия, а самостоятельная проработка (ТЗ §2). */
 val DarkColors = PrinyalColors(
-    paper = Color(0xFF1A1512),
-    surface = Color(0xFF221C18),
-    wellSurface = Color(0xFF2C241E),
-    ink = Color(0xFFF3EBE3),
-    inkMuted = Color(0xFFA9998C),
-    inkFaint = Color(0xFF8C7A6E),
-    rule = Color(0xFF372D26),
-    accentSelf = Color(0xFFD98F6B),
-    accentSelfSoft = Color(0xFF2A1F18),
-    record = Color(0xFFD8412F),
-    recordPressed = Color(0xFFB32C20),
-    recordWell = Color(0xFF7A1C12),
-    done = Color(0xFF7FB08F),
-    hairline = Color(0xFF1E1917),
-    destructiveBg = Color(0xFF3C1E18),
-    destructiveFg = Color(0xFFE8836B),
-    statusOk = Color(0xFF8FB79A),
-    statusWarn = Color(0xFFD9A441),
+    paper = Color(0xFF191411),
+    surface = Color(0xFF241C18),
+    wellSurface = Color(0xFF241C18),
+    ink = Color(0xFFF2EAE0),
+    inkMuted = Color(0xFFD8CCC0),
+    inkFaint = Color(0xFFA08F80),
+    rule = Color(0x17F2EAE0),
+    accentSelf = Color(0xFFE08863),
+    accentPressed = Color(0xFFD0754F),
+    accentSelfSoft = Color(0x1AE08863),
+    // Тёмный текст на светлом акценте: инвертировать нельзя (ТЗ §2).
+    onAccent = Color(0xFF191411),
+    record = Color(0xFFE08863),
+    recordPressed = Color(0xFFD0754F),
+    recordWell = Color(0x1FE08863),
+    done = Color(0xFF7FCBA4),
+    hairline = Color(0x17F2EAE0),
+    destructiveBg = Color(0x1AE08863),
+    destructiveFg = Color(0xFFE08863),
+    statusOk = Color(0xFF7FCBA4),
+    statusWarn = Color(0xFFE0B24E),
     isDark = true,
 )
 
 /**
- * Цвета клавиши записи (спека R1.2 §12).
+ * Клавиша записи. В 1.3 она перестала быть «пластиковым предметом» с корпусом,
+ * колпачком и точкой: в макете это один акцентный круг 132 px с ореолом 10 px и
+ * квадратной меткой стоп цвета бумаги (ТЗ §5, экран 01/30).
  *
- * Раньше они были заданы абсолютными «для обеих тем»: клавиша — физический
- * предмет, её пластик не перекрашивается вслед за фоном. Логика верная, вывод
- * оказался неверным. На кремовом фоне светлой темы тёмно-бордовый корпус стал
- * единственным тёмным пятном на экране, и клавиша читалась как **выключенная**
- * (аудит Д-7, п. 10).
- *
- * Предмет и правда один, но освещение разное: в светлой теме корпус светлый, а
- * красным остаётся колпачок — то есть сохраняется ровно то, что и делало
- * клавишу клавишей.
+ * Прежняя трёхслойная модель осталась бы единственным местом продукта со своей
+ * палитрой — а правило §2 говорит, что акцент один на всё действие.
  */
 @Immutable
 data class KeyPalette(
+    val housing: Color,
+    val housingHalo: Color,
+    val mark: Color,
     val idleHousing: Color,
-    val idleHousingEdge: Color,
-    val idleCap: Color,
-    val idleDot: Color,
-    val idleTimer: Color,
-    val recHousing: Color,
-    val recHousingEdge: Color,
-    val recCap: Color,
-    val recStopMark: Color,
-    val recTimer: Color,
-    val ring: Color,
-    val ringIdle: Color,
+    val idleMark: Color,
 )
 
 val DarkKeyColors = KeyPalette(
-    idleHousing = Color(0xFF1E1917),
-    idleHousingEdge = Color(0xFF2E2724),
-    idleCap = Color(0xFF2A211E),
-    idleDot = Color(0xFFD8402F),
-    idleTimer = Color(0xFF4A403A),
-    recHousing = Color(0xFF2A1512),
-    recHousingEdge = Color(0xFF52201A),
-    recCap = Color(0xFFD8402F),
-    recStopMark = Color(0xFF2A1512),
-    recTimer = Color(0xFF8C8078),
-    ring = Color(0xFFE8836B),
-    ringIdle = Color(0xFF4A403A),
+    housing = Color(0xFFE08863),
+    housingHalo = Color(0x1FE08863),
+    mark = Color(0xFF191411),
+    idleHousing = Color(0xFF241C18),
+    idleMark = Color(0xFFE08863),
 )
 
-/** Тройка для светлой темы из токенов: record, recordWell, wellSurface. */
 val LightKeyColors = KeyPalette(
-    idleHousing = Color(0xFFEFE6DC),
-    idleHousingEdge = Color(0xFFE2D3C6),
-    idleCap = Color(0xFFE2D3C6),
-    idleDot = Color(0xFFC8362A),
-    idleTimer = Color(0xFF8C7A6E),
-    recHousing = Color(0xFFEFE6DC),
-    recHousingEdge = Color(0xFFE2D3C6),
-    recCap = Color(0xFFC8362A),
-    recStopMark = Color(0xFFEFE6DC),
-    recTimer = Color(0xFF6E5F55),
-    ring = Color(0xFF8E2318),
-    ringIdle = Color(0xFF8C7A6E),
+    housing = Color(0xFFB4462A),
+    housingHalo = Color(0x1FB4462A),
+    mark = Color(0xFFFAF4EC),
+    idleHousing = Color(0xFFF1E8DC),
+    idleMark = Color(0xFFB4462A),
 )

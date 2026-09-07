@@ -10,7 +10,14 @@ import ai.prinim.prinyal.domain.WeeklySummary
 import ai.prinim.prinyal.returns.ReturnScheduler
 import ai.prinim.prinyal.returns.ReturnDiag
 import ai.prinim.prinyal.ui.components.SwipeRevealRow
+import ai.prinim.prinyal.ui.components.BadgeTone
+import ai.prinim.prinyal.ui.components.GroupHeader
+import ai.prinim.prinyal.ui.components.PrimaryButton
+import ai.prinim.prinyal.ui.components.PrinyalSwitch
+import ai.prinim.prinyal.ui.components.StatusBadge
+import ai.prinim.prinyal.ui.components.SurfaceCard
 import ai.prinim.prinyal.ui.theme.MetaText
+import ai.prinim.prinyal.ui.theme.Sizes
 import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.tap
 import ai.prinim.prinyal.ui.theme.Radius
@@ -26,14 +33,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -107,8 +113,10 @@ fun SettingsScreen(vm: AppViewModel) {
                 WindowRow(stringResource(R.string.set_bedtime), bedtime) {
                     editingBedtime = true
                 }
-                MetaText(
-                    stringResource(R.string.set_bedtime_hint),
+                // Пояснение — голос продукта: курсив, не моно (ТЗ §3).
+                Text(
+                    text = stringResource(R.string.set_bedtime_hint),
+                    style = Prinyal.type.voiceSmall,
                     color = Prinyal.colors.inkFaint,
                 )
             }
@@ -126,7 +134,7 @@ fun SettingsScreen(vm: AppViewModel) {
                 PatienceSegments(current = patience, onSelect = { vm.setSilencePatience(it) })
                 Text(
                     text = stringResource(R.string.set_silence_note),
-                    style = Prinyal.type.body,
+                    style = Prinyal.type.voice,
                     color = Prinyal.colors.inkMuted,
                 )
             }
@@ -212,13 +220,13 @@ fun SettingsScreen(vm: AppViewModel) {
                         },
                     ) {
                         Row(
-                            Modifier.fillMaxWidth().padding(vertical = Space.s),
+                            Modifier.fillMaxWidth().height(Sizes.rowGlossary),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
                                 text = "${rule.fromPhrase} → ${rule.toPhrase}",
-                                style = Prinyal.type.body,
+                                style = Prinyal.type.itemTitle,
                                 color = Prinyal.colors.ink,
                                 modifier = Modifier.weight(1f),
                             )
@@ -299,7 +307,7 @@ fun SettingsScreen(vm: AppViewModel) {
                 if (!granted) {
                     Text(
                         text = stringResource(R.string.settings_exact_alarm_why),
-                        style = Prinyal.type.body,
+                        style = Prinyal.type.voiceSmall,
                         color = Prinyal.colors.inkMuted,
                     )
                 }
@@ -329,20 +337,42 @@ fun SettingsScreen(vm: AppViewModel) {
                         style = Prinyal.type.body,
                         color = Prinyal.colors.ink,
                     )
-                    MetaText(
+                    StatusBadge(
                         text = stringResource(
                             if (ignoring) R.string.settings_battery_ok
                             else R.string.settings_battery_bad
                         ),
-                        color = if (ignoring) Prinyal.colors.statusOk else Prinyal.colors.statusWarn,
+                        tone = if (ignoring) BadgeTone.Done else BadgeTone.Warn,
                     )
                 }
                 if (!ignoring) {
-                    Text(
-                        text = stringResource(R.string.settings_battery_why),
-                        style = Prinyal.type.body,
-                        color = Prinyal.colors.inkMuted,
-                    )
+                    // Плашка с кнопкой: пояснение отдельным абзацем человек
+                    // прочитывал как справку и не понимал, что от него ждут
+                    // действия (ТЗ §5, экраны 11–12).
+                    SurfaceCard {
+                        Text(
+                            text = stringResource(R.string.settings_battery_why),
+                            style = Prinyal.type.voiceSmall,
+                            color = Prinyal.colors.inkMuted,
+                        )
+                        Box(Modifier.height(Space.sm))
+                        PrimaryButton(
+                            text = stringResource(R.string.settings_battery_action),
+                            onClick = {
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(
+                                            AndroidSettings
+                                                .ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                                            android.net.Uri.parse(
+                                                "package:" + context.packageName,
+                                            ),
+                                        )
+                                    )
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -389,11 +419,11 @@ private fun WindowRow(label: String, time: LocalTime, onClick: () -> Unit) {
         Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .heightIn(min = 44.dp),
+            .height(Sizes.rowSetting),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = Prinyal.type.body, color = Prinyal.colors.ink)
+        Text(label, style = Prinyal.type.listRow, color = Prinyal.colors.ink)
         Text(
             text = "%02d:%02d".format(time.hour, time.minute),
             style = Prinyal.type.meta.copy(fontSize = 16.sp),
@@ -537,18 +567,23 @@ private fun CrashBlock(vm: AppViewModel) {
             MetaText(stringResource(R.string.set_dev_crashes_empty), color = Prinyal.colors.inkFaint)
             return@Column
         }
-        crashes.forEach { record ->
-            MetaText(
-                text = (record.at?.let { Dates.dayTime(it.toEpochMilli()) } ?: "—") +
-                    " · " + record.what.substringAfterLast('.').take(60),
-                color = Prinyal.colors.statusWarn,
-            )
-            // Где именно — первая наша строка трейса: чужие кадры не помогают.
-            record.where.takeIf { it.isNotBlank() }?.let {
-                MetaText(it.take(80), color = Prinyal.colors.inkFaint)
+        // Один моно-блок, а не россыпь строк: трейс — это лог, и выглядеть он
+        // должен логом. До 1.3 строки падений шли вперемешку с расходом и
+        // kill-критериями, и раздел читался как сплошная простыня (ТЗ §5).
+        SurfaceCard {
+            crashes.forEach { record ->
+                MetaText(
+                    text = (record.at?.let { Dates.dayTime(it.toEpochMilli()) } ?: "—") +
+                        " · " + record.what.substringAfterLast('.').take(60),
+                    color = Prinyal.colors.statusWarn,
+                )
+                // Где именно — первая наша строка трейса: чужие кадры не помогают.
+                record.where.takeIf { it.isNotBlank() }?.let {
+                    MetaText(it.take(80), color = Prinyal.colors.inkFaint)
+                }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
             Text(
                 text = stringResource(R.string.set_dev_crashes_share),
                 style = Prinyal.type.label,
@@ -770,14 +805,7 @@ private fun DeveloperSection(vm: AppViewModel, threshold: Int) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 MetaText(stringResource(R.string.set_parse_toggle))
-                Switch(
-                    checked = llmEnabled,
-                    onCheckedChange = { vm.setLlmEnabled(it) },
-                    colors = SwitchDefaults.colors(
-                        checkedTrackColor = Prinyal.colors.accentSelf,
-                        checkedThumbColor = Prinyal.colors.surface,
-                    ),
-                )
+                PrinyalSwitch(checked = llmEnabled, onChange = { vm.setLlmEnabled(it) })
             }
 
             CrashBlock(vm)
@@ -820,8 +848,11 @@ private fun DeveloperSection(vm: AppViewModel, threshold: Int) {
 
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Space.sm)) {
-        MetaText(title, color = Prinyal.colors.inkFaint)
+    // Заголовок группы вместо служебной строки: моно 12 капсом с трекингом и
+    // разделителем сверху (ТЗ §4). До 1.3 «Окна дня» и «Запись» набирались тем
+    // же кеглем, что и пояснения под ними, — группы не читались как группы.
+    Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
+        GroupHeader(text = title)
         content()
     }
 }
