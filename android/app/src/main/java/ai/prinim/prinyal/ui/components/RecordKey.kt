@@ -9,8 +9,14 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,29 +27,30 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import kotlin.math.pow
+import kotlin.math.absoluteValue
+import kotlin.math.sin
 
 /**
- * Клавиша записи — главный носитель бренда: она же иконка, она же виджет 1×1
- * (ТЗ айдентики §5, п. 1). Три состояния по спеке R1.2 §12:
+ * Клавиша записи (полишинг 1.3, ТЗ §5, экран 01/30).
  *
- *  - **idle** — «заряд есть, но не идёт»: корпус и колпачок гаснут до цвета
- *    поверхности, красной остаётся только точка. Клавиша = кнопка «начать».
- *  - **запись** — колпачок залит красным, точка стала квадратом: это и есть знак
- *    «стоп», без галочек и микрофонов. Клавиша = кнопка «стоп».
- *  - **нажатие** — колпачок 84 → 78 и вниз на 4 dp, тень схлопывается: клавиша
- *    физически продавлена.
+ * До 1.3 клавиша была «пластиковым предметом»: корпус с кантом, колпачок,
+ * тень под ним, точка в центре и кольцо-амплитуда вокруг. Модель была
+ * последовательной, но держалась на собственной палитре из двенадцати цветов —
+ * а §2 говорит, что акцент в продукте один и служит действию. Клавиша осталась
+ * единственным местом, где это правило не действовало.
  *
- * Микрофон стартует на **отпускании**, поэтому клавиша сама разводит press/release,
- * а не отдаёт всё в `clickable`.
+ * Теперь это одно акцентное поле 132 px с ореолом 10 px и меткой 40 px цвета
+ * бумаги. Знак «стоп» никуда не делся — он и есть метка; в покое та же метка
+ * стягивается в точку и красит себя акцентом на поверхности.
  *
- * Кольцо-амплитуда (§13, вариант Б) рисуется здесь же: одна фигура обслуживает и
- * «я тебя слышу», и обратный отсчёт тишины — меняются только цвет и радиус.
+ * Амплитуда переехала в [LevelBars] над клавишей: кольцо вокруг кнопки
+ * дублировало её же границу и читалось как обводка, а не как «я тебя слышу».
+ *
+ * Микрофон стартует на **отпускании**, поэтому клавиша сама разводит
+ * press/release, а не отдаёт всё в `clickable`.
  */
 @Composable
 fun RecordKey(
@@ -51,87 +58,63 @@ fun RecordKey(
     recording: Boolean = false,
     /** Сглаженная амплитуда 0..1 — считается в [rememberAmplitude]. */
     level: Float = 0f,
-    /** Идёт отсчёт до авто-стопа: кольцо остывает и стягивается. */
+    /** Идёт отсчёт до авто-стопа: ореол гаснет. */
     silence: Boolean = false,
     onPress: () -> Unit = {},
     onRelease: () -> Unit = {},
 ) {
     var pressed by remember { mutableStateOf(false) }
 
-    val capScale by animateFloatAsState(
-        targetValue = if (pressed) KeyMetrics.capPressed / KeyMetrics.cap else 1f,
-        animationSpec = if (pressed) {
-            tween(Motion.KeyPress.durationMs, easing = Motion.KeyPress.easing)
-        } else {
-            tween(Motion.KeyRelease.durationMs, easing = Motion.KeyRelease.easing)
-        },
-        label = "cap",
-    )
-    val capDrop by animateFloatAsState(
-        targetValue = if (pressed) KeyMetrics.capDrop.value else 0f,
-        animationSpec = if (pressed) {
-            tween(Motion.KeyPress.durationMs, easing = Motion.KeyPress.easing)
-        } else {
-            tween(Motion.KeyRelease.durationMs, easing = Motion.KeyRelease.easing)
-        },
-        label = "drop",
+    val press = if (pressed) {
+        tween<Float>(Motion.KeyPress.durationMs, easing = Motion.KeyPress.easing)
+    } else {
+        tween<Float>(Motion.KeyRelease.durationMs, easing = Motion.KeyRelease.easing)
+    }
+    val scale by animateFloatAsState(if (pressed) PRESS_SCALE else 1f, press, label = "scale")
+    val drop by animateFloatAsState(
+        if (pressed) KeyMetrics.capDrop.value else 0f, press, label = "drop",
     )
 
-    // Смена состояния: цвета едут одним пресетом (§12).
     val shift = tween<androidx.compose.ui.graphics.Color>(
         Motion.StateShift.durationMs, easing = Motion.StateShift.easing,
     )
     val housing by animateColorAsState(
-        if (recording) Prinyal.key.recHousing else Prinyal.key.idleHousing, shift, label = "housing",
+        when {
+            !recording -> Prinyal.key.idleHousing
+            pressed -> Prinyal.colors.accentPressed
+            else -> Prinyal.key.housing
+        },
+        shift, label = "housing",
     )
-    val housingEdge by animateColorAsState(
-        if (recording) Prinyal.key.recHousingEdge else Prinyal.key.idleHousingEdge, shift, label = "edge",
+    val mark by animateColorAsState(
+        if (recording) Prinyal.key.mark else Prinyal.key.idleMark, shift, label = "mark",
     )
-    val cap by animateColorAsState(
-        if (recording) Prinyal.key.recCap else Prinyal.key.idleCap, shift, label = "capColor",
-    )
-    // Центр: круг-точка в idle → квадрат-«стоп» в записи. Форму ведём числом,
-    // чтобы переход был не подменой, а морфингом скругления.
+    // Метка: точка в покое → квадрат «стоп» в записи. Ведём числом, чтобы переход
+    // был морфингом скругления, а не подменой фигуры.
     val stopness by animateFloatAsState(
         targetValue = if (recording) 1f else 0f,
         animationSpec = tween(Motion.StateShift.durationMs, easing = Motion.StateShift.easing),
         label = "stopness",
     )
-    val ringPresence by animateFloatAsState(
-        targetValue = if (recording) 1f else 0f,
-        animationSpec = tween(
-            Motion.StateShift.durationMs,
-            delayMillis = if (recording) Motion.StateShiftRingDelayMs else 0,
-            easing = Motion.StateShift.easing,
-        ),
-        label = "ring",
-    )
-    val ringColor by animateColorAsState(
-        if (silence) Prinyal.key.ringIdle else Prinyal.key.ring, shift, label = "ringColor",
+    val haloAlpha by animateFloatAsState(
+        targetValue = when {
+            !recording -> 0f
+            silence -> 0.35f
+            else -> 1f
+        },
+        animationSpec = tween(Motion.StateShift.durationMs, easing = Motion.StateShift.easing),
+        label = "halo",
     )
 
-    // Во время отсчёта тишины кольцо стягивается к корпусу и не дышит.
-    val amplitude = if (silence) 0f else level
-    // Показатель 1.25, а не 2 из спеки: квадрат был нужен, чтобы шорох не мерцал,
-    // но эту работу уже делает логарифмическая нормировка — тихая комната падает
-    // в ноль до кольца. Квадрат поверх неё просто съедал ход.
-    val shaped = amplitude.pow(RING_EXPONENT)
-    val ringSide = if (silence) SILENCE_SIDE else RING_SIDE + RING_SIDE_GAIN * shaped
-    val ringCorner = RING_CORNER + RING_CORNER_GAIN * shaped
-    val ringWidth = RING_WIDTH + RING_WIDTH_GAIN * amplitude
-    val ringAlpha = if (silence) 0.5f else RING_ALPHA + RING_ALPHA_GAIN * amplitude
-
-    // Композишн-локалы читаются до Canvas: внутри DrawScope их уже нет.
-    val shadowColor = Prinyal.key.idleHousing
-    val stopMark = Prinyal.key.recStopMark
-    val idleDot = Prinyal.key.idleDot
+    val halo = Prinyal.key.housingHalo
+    val side = KeyMetrics.housing + KeyMetrics.halo * 2
 
     Box(
         modifier
-            .size(RING_SIDE.dp + RING_SIDE_GAIN.dp + 12.dp)
+            .size(side)
             .pointerInput(Unit) {
                 detectTapGestures(
-                    onPress = { offset ->
+                    onPress = {
                         pressed = true
                         onPress()
                         tryAwaitRelease()
@@ -144,104 +127,107 @@ fun RecordKey(
             },
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.size(RING_SIDE.dp + RING_SIDE_GAIN.dp + 12.dp)) {
+        Canvas(Modifier.size(side)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val housingPx = KeyMetrics.housing.toPx()
-            val capPx = KeyMetrics.cap.toPx() * capScale
-            val dropPx = capDrop.dp.toPx()
+            val dropPx = drop.dp.toPx()
+            val bodyPx = KeyMetrics.housing.toPx() * scale
+            val bodyRadius = KeyMetrics.housingRadius.toPx() * scale
 
-            // Кольцо-амплитуда: одна фигура, не волна и не эквалайзер (§13).
-            if (ringPresence > 0.01f) {
-                val sidePx = ringSide.dp.toPx() * (0.92f + 0.08f * ringPresence)
-                val strokePx = ringWidth.dp.toPx()
+            // Ореол 10 px — не тень, а поле вокруг клавиши: он показывает, что
+            // клавиша «горит», и гаснет на отсчёте тишины.
+            if (haloAlpha > 0.01f) {
+                val haloPx = bodyPx + KeyMetrics.halo.toPx() * 2
                 drawRoundRect(
-                    color = ringColor.copy(alpha = ringAlpha * ringPresence),
-                    topLeft = Offset(center.x - sidePx / 2f, center.y - sidePx / 2f),
-                    size = Size(sidePx, sidePx),
-                    cornerRadius = CornerRadius(ringCorner.dp.toPx()),
-                    style = Stroke(width = strokePx),
+                    color = halo.copy(alpha = halo.alpha * haloAlpha),
+                    topLeft = Offset(center.x - haloPx / 2f, center.y - haloPx / 2f + dropPx),
+                    size = Size(haloPx, haloPx),
+                    cornerRadius = CornerRadius(bodyRadius + KeyMetrics.halo.toPx()),
                 )
             }
 
-            // Корпус: кант сверху, тело ниже.
-            val housingTopLeft = Offset(center.x - housingPx / 2f, center.y - housingPx / 2f)
             drawRoundRect(
-                brush = Brush.verticalGradient(
-                    listOf(housingEdge, housing),
-                    startY = housingTopLeft.y,
-                    endY = housingTopLeft.y + housingPx,
-                ),
-                topLeft = housingTopLeft,
-                size = Size(housingPx, housingPx),
-                cornerRadius = CornerRadius(housingPx * 0.24f),
+                color = housing,
+                topLeft = Offset(center.x - bodyPx / 2f, center.y - bodyPx / 2f + dropPx),
+                size = Size(bodyPx, bodyPx),
+                cornerRadius = CornerRadius(bodyRadius),
             )
 
-            // Тень под колпачком схлопывается при нажатии.
-            val shadowPx = ((if (recording) 4f else 3f) * (1f - capScale.let { (1f - it) * 8f }))
-                .coerceAtLeast(0f).dp.toPx()
-            if (shadowPx > 0.5f) {
-                drawRoundRect(
-                    color = shadowColor.copy(alpha = 0.55f),
-                    topLeft = Offset(
-                        center.x - capPx / 2f,
-                        center.y - capPx / 2f + shadowPx + dropPx,
-                    ),
-                    size = Size(capPx, capPx),
-                    cornerRadius = CornerRadius(KeyMetrics.capRadius.toPx()),
-                )
-            }
-
-            // Колпачок — скруглённый квадрат, а не круг (аудит Д-7, п. 11).
-            //
-            // С кругом внутри квадратного корпуса объект перестаёт быть
-            // клавишей и становится кнопкой диктофона, а вся пластика нажатия
-            // (84 → 78, ход вниз 4 dp) построена именно на клавише.
+            // Метка: точка (покой) ↔ квадрат «стоп» (запись).
+            val full = KeyMetrics.mark.toPx() * scale
+            val dot = IDLE_MARK.dp.toPx() * scale
+            val markPx = dot + (full - dot) * stopness
             drawRoundRect(
-                color = cap,
-                topLeft = Offset(center.x - capPx / 2f, center.y - capPx / 2f + dropPx),
-                size = Size(capPx, capPx),
-                cornerRadius = CornerRadius(KeyMetrics.capRadius.toPx()),
-            )
-
-            // Центр: точка (idle) ↔ квадрат «стоп» (запись).
-            val markPx = KeyMetrics.dot.toPx()
-            val markColor = if (stopness > 0.5f) stopMark else idleDot
-            drawRoundRect(
-                color = markColor,
-                topLeft = Offset(
-                    center.x - markPx / 2f,
-                    center.y - markPx / 2f + dropPx,
-                ),
+                color = mark,
+                topLeft = Offset(center.x - markPx / 2f, center.y - markPx / 2f + dropPx),
                 size = Size(markPx, markPx),
-                // Скругление едет от круга (r = половина стороны) к квадрату r5.
                 cornerRadius = CornerRadius(
-                    (markPx / 2f) * (1f - stopness) + STOP_RADIUS.dp.toPx() * stopness,
+                    (markPx / 2f) * (1f - stopness) +
+                        KeyMetrics.markRadius.toPx() * stopness,
                 ),
             )
         }
     }
 }
 
-// Кольцо-амплитуда (токены key.ring)
-private const val RING_SIDE = 120f
-private const val RING_SIDE_GAIN = 44f
-private const val RING_CORNER = 36f
-private const val RING_CORNER_GAIN = 10f
-private const val RING_WIDTH = 2f
-private const val RING_WIDTH_GAIN = 2.5f
-private const val RING_EXPONENT = 1.25f
-private const val RING_ALPHA = 0.35f
-private const val RING_ALPHA_GAIN = 0.65f
-private const val SILENCE_SIDE = 126f
-private const val STOP_RADIUS = 5f
-
-@Preview(showBackground = true, backgroundColor = 0xFF1A1512, widthDp = 220, heightDp = 220)
+/**
+ * Индикатор уровня над клавишей (ТЗ §5, экран 01). Восемь столбиков 4 px в поле
+ * высотой 44: фигура показывает, что продукт слышит, и не претендует на то,
+ * чтобы быть осциллографом — форма волны здесь ничего не сообщает.
+ *
+ * Место занято всегда: в покое столбики стоят на минимуме. Пустота на этом
+ * месте читалась бы как «микрофон отвалился».
+ */
 @Composable
-private fun KeyIdle() {
-    PrinyalTheme(dark = true) { Box(Modifier.size(220.dp), Alignment.Center) { RecordKey() } }
+fun LevelBars(
+    level: Float,
+    modifier: Modifier = Modifier,
+    active: Boolean = true,
+) {
+    val shown by animateFloatAsState(
+        targetValue = if (active) level.coerceIn(0f, 1f) else 0f,
+        animationSpec = tween(Motion.StateShift.durationMs, easing = Motion.StateShift.easing),
+        label = "level",
+    )
+    val accent = Prinyal.colors.accentSelf
+    Row(
+        modifier.height(KeyMetrics.levelHeight),
+        horizontalArrangement = Arrangement.spacedBy(BAR_GAP.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(BARS) { i ->
+            // Профиль столбиков фиксированный: середина выше краёв. Случайность
+            // здесь выглядела бы живее, но каждая перерисовка дёргала бы фигуру.
+            val shape = PROFILE[i]
+            val h = BAR_MIN + (KeyMetrics.levelHeight.value - BAR_MIN) * shape * shown
+            Box(
+                Modifier
+                    .width(KeyMetrics.levelBar)
+                    .height(h.dp)
+                    .background(
+                        accent.copy(alpha = 0.35f + 0.65f * shape * shown),
+                        RoundedCornerShape(KeyMetrics.levelBar / 2),
+                    )
+            )
+        }
+    }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF1A1512, widthDp = 220, heightDp = 220)
+private const val PRESS_SCALE = 0.97f
+private const val IDLE_MARK = 22f
+private const val BARS = 8
+private const val BAR_GAP = 5f
+private const val BAR_MIN = 12f
+
+/** Симметричный профиль: края тише центра. */
+private val PROFILE = floatArrayOf(0.30f, 0.58f, 0.92f, 0.50f, 0.74f, 0.26f, 0.64f, 0.40f)
+
+@Preview(showBackground = true, backgroundColor = 0xFFFAF4EC, widthDp = 220, heightDp = 220)
+@Composable
+private fun KeyIdle() {
+    PrinyalTheme(dark = false) { Box(Modifier.size(220.dp), Alignment.Center) { RecordKey() } }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF191411, widthDp = 220, heightDp = 220)
 @Composable
 private fun KeyRecording() {
     PrinyalTheme(dark = true) {
@@ -249,7 +235,7 @@ private fun KeyRecording() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF1A1512, widthDp = 220, heightDp = 220)
+@Preview(showBackground = true, backgroundColor = 0xFF191411, widthDp = 220, heightDp = 220)
 @Composable
 private fun KeySilence() {
     PrinyalTheme(dark = true) {

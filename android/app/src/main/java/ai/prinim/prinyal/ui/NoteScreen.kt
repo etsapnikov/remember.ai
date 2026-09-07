@@ -15,6 +15,7 @@ import ai.prinim.prinyal.data.TopicEntity
 import ai.prinim.prinyal.data.TopicSource
 import ai.prinim.prinyal.data.Window
 import ai.prinim.prinyal.domain.Phrases
+import ai.prinim.prinyal.ui.components.GroupHeader
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.tap
@@ -24,6 +25,7 @@ import ai.prinim.prinyal.ui.theme.Space
 import android.media.MediaPlayer
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -51,6 +53,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -314,6 +317,30 @@ fun NoteScreen(
             if (items.isNotEmpty()) {
                 item { SectionTitle(stringResource(R.string.note_items)) }
                 items(items, key = { it.id }) { item ->
+                    // Раскрытый пункт подсвечивается поверхностью с обводкой
+                    // акцента (ТЗ §5, экраны 20/41): до 1.3 раскрытие ничем не
+                    // отличалось от соседних пунктов, и «Поправить» с «Закрыть»
+                    // читались как действия всей записи, а не одного пункта.
+                    val expanded = opened?.id == item.id
+                    Column(
+                        Modifier
+                            .padding(
+                                horizontal = if (expanded) Space.sm else 0.dp,
+                                vertical = if (expanded) Space.xs else 0.dp,
+                            )
+                            .clip(Radius.card)
+                            .then(
+                                if (expanded) {
+                                    Modifier
+                                        .background(Prinyal.colors.surface)
+                                        .border(
+                                            1.dp,
+                                            Prinyal.colors.accentSelf.copy(alpha = 0.35f),
+                                            Radius.card,
+                                        )
+                                } else Modifier
+                            )
+                    ) {
                     ItemCard(
                         item = item,
                         onDone = { vm.markDone(item.id) },
@@ -375,6 +402,7 @@ fun NoteScreen(
                         )
                         }
                     }
+                    }
                 }
             } else if (status == NoteStatus.RECORDED || status == NoteStatus.QUEUED ||
                 status == NoteStatus.SENT
@@ -422,9 +450,11 @@ fun NoteScreen(
                         // а до него — складывалось в столбик из букв. Ряд из
                         // подписи и трёх слов в 411 dp не помещается, и
                         // подбирать отступы здесь значит ждать четвёртого.
-                        MetaText(
-                            stringResource(R.string.note_transcript),
-                            color = Prinyal.colors.inkFaint,
+                        // Тот же заголовок группы, что и «Что понял» выше:
+                        // два раздела карточки обязаны выглядеть одинаково.
+                        GroupHeader(
+                            text = stringResource(R.string.note_transcript),
+                            divider = false,
                         )
                         // Ряд не равный (макеты 10d): «Дописать» и «Поправить»
                         // добавляют и набраны акцентом, «Разобрать заново»
@@ -635,7 +665,10 @@ fun NoteScreen(
 
 @Composable
 private fun SectionTitle(text: String) {
-    MetaText(text, color = Prinyal.colors.inkFaint, modifier = Modifier.padding(top = Space.s))
+    // «Что понял» и «Что услышал» — заголовки групп (ТЗ §5, экраны 18–21):
+    // моно капсом с разделителем. Тем же кеглем, что и пояснения вокруг, они
+    // не отделяли разделы, а участвовали в них.
+    GroupHeader(text = text, modifier = Modifier.padding(top = Space.s))
 }
 
 /** Пункт в карточке: без глифа (вариант А), с планом и действиями. */
@@ -773,7 +806,7 @@ private fun TranscriptEditing(
             }
         }
 
-        MetaText(stringResource(R.string.note_transcript), color = Prinyal.colors.inkFaint)
+        GroupHeader(text = stringResource(R.string.note_transcript))
 
         // weight(1f) даёт полю конечную высоту — и только тогда BasicTextField
         // прокручивает текст внутри себя и держит курсор в видимой части.

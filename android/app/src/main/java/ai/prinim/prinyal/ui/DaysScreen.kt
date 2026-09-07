@@ -3,7 +3,9 @@ package ai.prinim.prinyal.ui
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.data.DayEntity
 import ai.prinim.prinyal.domain.Dates
+import ai.prinim.prinyal.ui.components.Divider
 import ai.prinim.prinyal.ui.theme.MetaText
+import ai.prinim.prinyal.ui.theme.Sizes
 import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.Radius
 import ai.prinim.prinyal.ui.theme.Space
@@ -102,23 +104,25 @@ private fun DayRow(
     onEdit: (String) -> Unit,
     onRetell: () -> Unit,
 ) {
+    Column(Modifier.fillMaxWidth()) {
+    // Каждый день отделён линией (ТЗ §5, экраны 08/36): до 1.3 сутки делил
+    // только отступ 24, и на длинных впечатлениях граница дня пропадала.
+    Divider()
     Column(
         Modifier
             .fillMaxWidth()
             .tap(onClick = onToggle)
             .padding(horizontal = Space.screen)
-            .padding(bottom = Space.ml),
+            .padding(top = Space.s14, bottom = Space.m),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(Space.m)) {
-            // Дата колонкой 52: столбец держит даты в линию, и список
+            // Дата колонкой 56: столбец держит даты в линию, и список
             // читается сверху вниз, как оглавление.
             MetaText(
                 text = Dates.day(LocalDate.parse(day.date)),
                 color = Prinyal.colors.inkFaint,
-                // 64, а не 52: моноширинные «21 авг» в 52 не влезли и дата
-                // сложилась в два этажа — столбец перестал быть столбцом.
                 maxLines = 1,
-                modifier = Modifier.width(64.dp),
+                modifier = Modifier.width(Sizes.dayDateColumn),
             )
             Text(
                 // Впечатление не обрезается ни на какой длине (12d): пик дня
@@ -219,6 +223,7 @@ private fun DayRow(
             }
         }
         }
+    }
     }
 }
 

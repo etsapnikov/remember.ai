@@ -10,7 +10,11 @@ import ai.prinim.prinyal.ui.components.TypeGlyph
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.tap
+import ai.prinim.prinyal.ui.components.Divider
+import ai.prinim.prinyal.ui.components.SheetButton
+import ai.prinim.prinyal.ui.components.TertiaryButton
 import ai.prinim.prinyal.ui.theme.Radius
+import ai.prinim.prinyal.ui.theme.Sizes
 import ai.prinim.prinyal.ui.theme.Space
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,6 +25,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,6 +42,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -96,9 +102,13 @@ fun EditItemSheet(
         Column(
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Space.screen)
-                .padding(bottom = Space.xxl),
-            verticalArrangement = Arrangement.spacedBy(Space.ml),
+                .padding(
+                    start = Space.screen,
+                    end = Space.screen,
+                    top = Space.sm,
+                    bottom = Space.ml,
+                ),
+            verticalArrangement = Arrangement.spacedBy(Space.s18),
         ) {
             MetaText(stringResource(R.string.edit_text))
             BasicTextField(
@@ -126,14 +136,14 @@ fun EditItemSheet(
                             TypeGlyph(
                                 candidate,
                                 size = 16.dp,
-                                color = if (candidate == type) Prinyal.colors.accentSelf
+                                color = if (candidate == type) Prinyal.colors.onAccent
                                 else Prinyal.colors.inkMuted,
                             )
                             Text(
                                 text = Phrases.typeLabel(context, candidate),
                                 style = Prinyal.type.label,
-                                color = if (candidate == type) Prinyal.colors.accentSelf
-                                else Prinyal.colors.inkMuted,
+                                color = if (candidate == type) Prinyal.colors.onAccent
+                                else Prinyal.colors.ink,
                             )
                         }
                     }
@@ -153,8 +163,8 @@ fun EditItemSheet(
                         Text(
                             text = Phrases.windowLabel(context, candidate),
                             style = Prinyal.type.label,
-                            color = if (!noSchedule && candidate == window) Prinyal.colors.accentSelf
-                            else Prinyal.colors.inkMuted,
+                            color = if (!noSchedule && candidate == window) Prinyal.colors.onAccent
+                            else Prinyal.colors.ink,
                         )
                     }
                 }
@@ -162,7 +172,7 @@ fun EditItemSheet(
                     Text(
                         text = stringResource(R.string.window_none),
                         style = Prinyal.type.label,
-                        color = if (noSchedule) Prinyal.colors.accentSelf else Prinyal.colors.inkMuted,
+                        color = if (noSchedule) Prinyal.colors.onAccent else Prinyal.colors.ink,
                     )
                 }
 
@@ -174,7 +184,7 @@ fun EditItemSheet(
                         text = exactAt?.let { DAY.format(java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault())) }
                             ?: stringResource(R.string.edit_pick_date),
                         style = Prinyal.type.label,
-                        color = if (exactAt != null) Prinyal.colors.accentSelf else Prinyal.colors.inkMuted,
+                        color = if (exactAt != null) Prinyal.colors.onAccent else Prinyal.colors.ink,
                     )
                 }
             }
@@ -229,45 +239,36 @@ fun EditItemSheet(
             // текстом, деструктивное — отдельной строкой за хайрлайном, чтобы жесты
             // «сохранить» и «похоронить» нельзя было перепутать вслепую.
             Row(
-                horizontalArrangement = Arrangement.spacedBy(Space.ml),
+                horizontalArrangement = Arrangement.spacedBy(Space.s),
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
             ) {
-                androidx.compose.foundation.layout.Box(
-                    Modifier
-                        .background(Prinyal.colors.accentSelf, Radius.pill)
-                        .tap {
-                            onSave(
-                                text.text,
-                                type,
-                                if (noSchedule || exactAt != null) null else window,
-                                if (noSchedule) null else exactAt,
-                                noSchedule,
-                            )
-                        }
-                        .padding(horizontal = Space.ml, vertical = Space.sm),
-                ) {
-                    Text(
-                        text = stringResource(R.string.edit_save),
-                        style = Prinyal.type.label,
-                        color = Prinyal.colors.paper,
-                    )
-                }
-                Text(
+                SheetButton(
+                    text = stringResource(R.string.edit_save),
+                    onClick = {
+                        onSave(
+                            text.text,
+                            type,
+                            if (noSchedule || exactAt != null) null else window,
+                            if (noSchedule) null else exactAt,
+                            noSchedule,
+                        )
+                    },
+                )
+                TertiaryButton(
                     text = stringResource(R.string.edit_cancel),
-                    style = Prinyal.type.label,
+                    onClick = onDismiss,
                     color = Prinyal.colors.inkMuted,
-                    modifier = Modifier.tap(onClick = onDismiss),
                 )
             }
 
-            androidx.compose.material3.HorizontalDivider(
-                thickness = 1.dp,
-                color = Prinyal.colors.hairline,
-            )
-            MetaText(
+            Divider()
+            // Похоронить — отдельной строкой моно за разделителем: жесты
+            // «сохранить» и «похоронить» нельзя перепутать вслепую.
+            TertiaryButton(
                 text = stringResource(R.string.item_bury),
+                onClick = onBury,
                 color = Prinyal.colors.inkMuted,
-                modifier = Modifier.tap(onClick = onBury),
+                mono = true,
             )
         }
     }
@@ -275,21 +276,24 @@ fun EditItemSheet(
 
 @Composable
 private fun Chip(selected: Boolean, onClick: () -> Unit, content: @Composable () -> Unit) {
+    // 44 с радиусом 22 и акцентной заливкой у выбранного (ТЗ §4). Обводка
+    // ушла: выбранный чип отличался от невыбранного цветом рамки в один
+    // пиксель — на снимке 21 разницу видно только рядом с соседом.
     androidx.compose.foundation.layout.Box(
         Modifier
-            .background(
-                if (selected) Prinyal.colors.accentSelfSoft else Prinyal.colors.paper,
-                Radius.pill,
-            )
-            .border(
-                1.dp,
-                if (selected) Prinyal.colors.accentSelf else Prinyal.colors.rule,
-                Radius.pill,
-            )
+            .height(Sizes.sheetChip)
+            .clip(Radius.chipTall)
+            .background(if (selected) Prinyal.colors.accentSelf else Prinyal.colors.paper)
             .clickable(onClick = onClick)
-            .padding(horizontal = Space.sm, vertical = Space.s),
+            .padding(horizontal = Space.m),
+        contentAlignment = androidx.compose.ui.Alignment.Center,
     ) {
-        content()
+        androidx.compose.runtime.CompositionLocalProvider(
+            androidx.compose.material3.LocalContentColor provides
+                if (selected) Prinyal.colors.onAccent else Prinyal.colors.ink,
+        ) {
+            content()
+        }
     }
 }
 
