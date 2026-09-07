@@ -22,9 +22,8 @@ object ModelStore {
         GigaAmOnDevice.ENCODER,
         GigaAmOnDevice.DECODER,
         GigaAmOnDevice.JOINT,
+        GigaAmOnDevice.VOCAB,
     )
-
-    fun ready(context: Context): Boolean = GigaAmOnDevice.modelsPresent(dir(context))
 
     fun dir(context: Context): File = File(context.filesDir, "models").apply { mkdirs() }
 
@@ -35,8 +34,13 @@ object ModelStore {
      */
     suspend fun install(context: Context): Boolean = withContext(Dispatchers.IO) {
         val target = dir(context)
-        if (GigaAmOnDevice.modelsPresent(target)) return@withContext true
 
+        // Сверяем размеры на каждом запуске, а не выходим по «файлы на месте».
+        //
+        // Смена модели (v2 → v3 в 1.3) меняет и веса, и словарь, но имена файлов
+        // те же. Ранний выход по наличию оставил бы на телефоне старый энкодер
+        // рядом с новым словарём — распознавание молча поехало бы, а выглядело
+        // как рабочее. Проверка стоит четырёх обращений к заголовку архива.
         val assets = context.assets
         try {
             FILES.forEach { name ->

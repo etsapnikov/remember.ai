@@ -17,18 +17,25 @@ import java.nio.ByteOrder
  * распознавания случилась бы на телефоне, где ошибка выглядит как «оно просто
  * плохо слышит», а не как конкретный баг в декоде или признаках.
  *
- * Веса лежат вне репозитория (338 МБ). Нет весов — тест пропускается, а не врёт
+ * Веса лежат вне репозитория (310 МБ). Нет весов — тест пропускается, а не врёт
  * зелёным.
  */
 class GigaAmOnDeviceTest {
 
     private val models = File(
         System.getenv("PRINYAL_MODELS")
-            ?: "/Users/etsapnikov/Documents/prinyal/backend/models/android"
+            ?: "/Users/etsapnikov/Documents/prinyal/backend/models/gigaam-v3"
     )
 
-    /** Эталон: то же, что выдают torch и Python-ONNX на этом клипе. */
-    private val expected = "купить капле соню к лору записать и мужу сказать что суббота занята"
+    /**
+     * Эталон: то же, что выдаёт Python-ONNX на этом клипе с теми же весами.
+     *
+     * До 1.3 здесь стояло «купить капле соню к лору записать и мужу сказать что
+     * суббота занята» — без знаков, без заглавных и с «капле» вместо «капли».
+     * Разница в эталоне и есть смысл перехода на v3.
+     */
+    private val expected =
+        "Купить капли, Соню к Лору записать и мужу сказать, что суббота занята."
 
     private fun speech(): FloatArray {
         val stream = javaClass.classLoader!!.getResourceAsStream("speech_ru.wav")
@@ -69,11 +76,28 @@ class GigaAmOnDeviceTest {
 
     @Test
     fun `словарь совпадает с конфигом модели`() {
-        // 33 метки: пробел и 32 буквы. blank идёт следом — сдвиг здесь означает,
-        // что декод будет молча выдавать не те символы.
-        assertEquals(33, GigaAmOnDevice.LABELS.size)
-        assertEquals(GigaAmOnDevice.LABELS.size, GigaAmOnDevice.BLANK)
-        assertEquals(" ", GigaAmOnDevice.LABELS.first())
-        assertEquals("я", GigaAmOnDevice.LABELS.last())
+        assumeTrue(GigaAmOnDevice.modelsPresent(models))
+        val vocab = GigaAmOnDevice.readVocab(File(models, GigaAmOnDevice.VOCAB))
+
+        // 1025 кусков — `num_classes` из v3_e2e_rnnt.yaml. Сдвиг здесь означает,
+        // что декод будет молча выдавать не те куски.
+        assertEquals(1025, vocab.size)
+        assertEquals(1024, vocab.indexOf(GigaAmOnDevice.BLANK_TOKEN))
+    }
+
+    @Test
+    fun `в словаре есть латиница — ради неё и меняли модель`() {
+        assumeTrue(GigaAmOnDevice.modelsPresent(models))
+        val vocab = GigaAmOnDevice.readVocab(File(models, GigaAmOnDevice.VOCAB))
+
+        // У прежней v2 алфавит был русский, и английское слово она записывала
+        // кириллицей на слух. Пропадёт латиница из словаря — вернётся «джоп
+        // дискрипшен», причём тихо: текст будет выглядеть распознанным.
+        val latin = vocab.count { piece -> piece.any { it in 'a'..'z' || it in 'A'..'Z' } }
+        assertTrue("латинских кусков $latin", latin > 50)
+
+        // Пунктуация оттуда же: до v3 транскрипт приходил вовсе без знаков.
+        assertTrue(vocab.contains(","))
+        assertTrue(vocab.contains("."))
     }
 }

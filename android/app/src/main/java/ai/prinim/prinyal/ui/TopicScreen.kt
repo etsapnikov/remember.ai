@@ -5,6 +5,7 @@ import ai.prinim.prinyal.domain.Dates
 import ai.prinim.prinyal.data.ItemState
 import ai.prinim.prinyal.data.ItemType
 import ai.prinim.prinyal.data.NoteWithItems
+import ai.prinim.prinyal.ui.components.SecondaryButton
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.Touch
@@ -246,18 +247,19 @@ private fun PackButton(
 ) {
     val name = title
     Column {
+        // Вторичная кнопка в своей строке над списком (ТЗ §5, экраны 07/35).
+        // Акцентным словом это читалось как ссылка внутри контента — на снимке
+        // 07 «Собрать контекст» стоит вплотную к первой заметке раздела.
         Row(
             Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Space.screen)
-                .padding(top = Space.xs, bottom = Space.sm),
+                .padding(top = Space.s, bottom = Space.m),
         ) {
-            MetaText(
+            SecondaryButton(
                 text = stringResource(R.string.pack_build),
-                color = Prinyal.colors.accentSelf,
-                // Кнопка больше не собирает молча: открывает выбор записей
-                // (Д-28). Раньше отсюда уходил весь раздел целиком.
-                modifier = Modifier.tap { onPickPack(topicId, name) },
+                // Кнопка не собирает молча: открывает выбор записей (Д-28).
+                onClick = { onPickPack(topicId, name) },
             )
         }
         // Черта отделяет действие от списка: без неё «Собрать контекст»

@@ -1,44 +1,44 @@
 {
  "id": "list-groceries",
- "prompt_version": "10",
- "recorded_at": "2026-08-24T17:03:54",
- "took_s": 3.6,
+ "prompt_version": "11",
+ "recorded_at": "2026-08-25T21:40:39",
+ "took_s": 4.1,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2776,
+  "prompt_tokens": 2788,
   "completion_tokens": 507,
-  "total_tokens": 3283,
+  "total_tokens": 3295,
   "prompt_tokens_details": {
    "cached_tokens": 2688
   },
   "prompt_cache_hit_tokens": 2688,
-  "prompt_cache_miss_tokens": 88
+  "prompt_cache_miss_tokens": 100
  },
  "response": {
-  "id": "119eb24f-cbe2-4ce4-8d30-45e866961ff1",
+  "id": "19815432-140b-4bbc-9534-1741f4a019eb",
   "object": "chat.completion",
-  "created": 1787580232,
+  "created": 1787683236,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Покупки\",\n  \"entities\": [\"Соня\"],\n  \"person_facts\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"buy\",\n      \"text\": \"молоко\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"молока взять\"\n    },\n    {\n      \"type\": \"buy\",\n      \"text\": \"хлеб чёрный\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"хлеб чёрный\"\n    },\n    {\n      \"type\": \"buy\",\n      \"text\": \"яйца десяток\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"яйца десяток\"\n    },\n    {\n      \"type\": \"buy\",\n      \"text\": \"яблоки для Сони\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"соня просила яблок\"\n    },\n    {\n      \"type\": \"do\",\n      \"text\": \"забрать посылку\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"по дороге забрать посылку\"\n    },\n    {\n      \"type\": \"do\",\n      \"text\": \"зайти в химчистку\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"в химчистку зайти\"\n    }\n  ]\n}"
+     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Дом\",\n  \"entities\": [\"Соня\"],\n  \"person_facts\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"buy\",\n      \"text\": \"молока\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"молока\"\n    },\n    {\n      \"type\": \"buy\",\n      \"text\": \"хлеб чёрный\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"хлеб чёрный\"\n    },\n    {\n      \"type\": \"buy\",\n      \"text\": \"яйца десяток\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"яйца десяток\"\n    },\n    {\n      \"type\": \"buy\",\n      \"text\": \"яблоки для Сони\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"соня просила яблок\"\n    },\n    {\n      \"type\": \"do\",\n      \"text\": \"забрать посылку по дороге\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"по дороге забрать посылку\"\n    },\n    {\n      \"type\": \"do\",\n      \"text\": \"зайти в химчистку\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"в химчистку зайти\"\n    }\n  ]\n}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2776,
+   "prompt_tokens": 2788,
    "completion_tokens": 507,
-   "total_tokens": 3283,
+   "total_tokens": 3295,
    "prompt_tokens_details": {
     "cached_tokens": 2688
    },
    "prompt_cache_hit_tokens": 2688,
-   "prompt_cache_miss_tokens": 88
+   "prompt_cache_miss_tokens": 100
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

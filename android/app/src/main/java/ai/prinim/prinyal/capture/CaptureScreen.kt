@@ -1,16 +1,22 @@
 package ai.prinim.prinyal.capture
 
 import ai.prinim.prinyal.R
+import ai.prinim.prinyal.ui.components.LevelBars
+import ai.prinim.prinyal.ui.components.PrimaryButton
 import ai.prinim.prinyal.ui.components.RecordKey
 import ai.prinim.prinyal.ui.components.rememberAmplitude
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Motion
 import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.PrinyalTheme
+import ai.prinim.prinyal.ui.theme.Radius
+import ai.prinim.prinyal.ui.theme.Sizes
 import ai.prinim.prinyal.ui.theme.Space
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,10 +39,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 
 /**
  * Состояние экрана захвата. Простые observable-поля вместо ViewModel: activity живёт
@@ -228,9 +237,16 @@ private fun Recording(
         Text(
             text = formatElapsed(state.elapsedMs),
             style = Prinyal.type.timer,
-            color = if (state.recording) Prinyal.key.recTimer else Prinyal.key.idleTimer,
+            color = if (state.recording) Prinyal.colors.ink else Prinyal.colors.inkFaint,
         )
-        Box(Modifier.height(Space.ml))
+        Box(Modifier.height(Space.m))
+
+        // Индикатор уровня между таймером и клавишей (ТЗ §5, экран 01).
+        LevelBars(
+            level = if (state.recording) state.level else 0f,
+            active = state.recording && state.silenceLeftMs <= 0,
+        )
+        Box(Modifier.height(Space.m))
 
         // Клавиша — и есть кнопка: стоп во время записи, старт в idle.
         // Микрофон стартует на отпускании (§12), поэтому press/release разведены.
@@ -244,7 +260,10 @@ private fun Recording(
 
         Box(Modifier.height(Space.l))
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Space.xs + 2.dp),
+        ) {
             // Отсчёт до авто-стопа вытесняет обычную подпись: сейчас важнее он.
             if (state.silenceLeftMs > 0) {
                 HintLine(
@@ -264,10 +283,10 @@ private fun Recording(
 
             // Подсказки жестов (§8): гаснут по счётчикам применений.
             if (state.recording && state.showCancelHint) {
-                HintLine(stringResource(R.string.capture_cancel_hint))
+                HintSecondary(stringResource(R.string.capture_cancel_hint))
             }
             if (state.showUpHint && hasNotes) {
-                HintLine(stringResource(R.string.capture_hint_up))
+                HintSecondary(stringResource(R.string.capture_hint_up))
             }
         }
 
@@ -279,7 +298,18 @@ private fun Recording(
 private fun HintLine(text: String) {
     Text(
         text = text,
-        style = Prinyal.type.body,
+        style = Prinyal.type.hint,
+        color = Prinyal.colors.ink,
+        textAlign = TextAlign.Center,
+    )
+}
+
+/** Вторая строка пары: тише и мельче первой (ТЗ §5, экран 01). */
+@Composable
+private fun HintSecondary(text: String) {
+    Text(
+        text = text,
+        style = Prinyal.type.hintSecondary,
         color = Prinyal.colors.inkFaint,
         textAlign = TextAlign.Center,
     )
@@ -291,20 +321,34 @@ private fun PermissionRequest(onGrant: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(Space.screen),
     ) {
+        // Иконка на поверхности: экран отказа перестал быть голым абзацем
+        // посреди пустоты (ТЗ §5, экран 22).
+        Box(
+            Modifier
+                .size(64.dp)
+                .clip(Radius.card)
+                .background(Prinyal.colors.surface),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                Modifier
+                    .size(width = 14.dp, height = 26.dp)
+                    .border(2.dp, Prinyal.colors.inkFaint, RoundedCornerShape(7.dp))
+            )
+        }
+        Box(Modifier.height(Space.ml))
         Text(
             text = stringResource(R.string.capture_no_mic),
-            style = Prinyal.type.body,
+            style = Prinyal.type.micTitle,
             color = Prinyal.colors.ink,
             textAlign = TextAlign.Center,
         )
-        Box(Modifier.height(Space.l))
-        Text(
+        Box(Modifier.height(Space.ml))
+        PrimaryButton(
             text = stringResource(R.string.capture_mic_grant),
-            style = Prinyal.type.label,
-            color = Prinyal.colors.accentSelf,
-            modifier = Modifier
-                .clickable(onClick = onGrant)
-                .padding(Space.sm),
+            onClick = onGrant,
+            height = Sizes.buttonAllow,
+            shape = Radius.pill,
         )
     }
 }

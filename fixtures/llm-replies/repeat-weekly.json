@@ -1,44 +1,44 @@
 {
  "id": "repeat-weekly",
- "prompt_version": "10",
- "recorded_at": "2026-08-24T17:04:04",
- "took_s": 2.3,
+ "prompt_version": "11",
+ "recorded_at": "2026-08-25T21:40:50",
+ "took_s": 2.8,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2750,
-  "completion_tokens": 118,
-  "total_tokens": 2868,
+  "prompt_tokens": 2762,
+  "completion_tokens": 140,
+  "total_tokens": 2902,
   "prompt_tokens_details": {
    "cached_tokens": 2688
   },
   "prompt_cache_hit_tokens": 2688,
-  "prompt_cache_miss_tokens": 62
+  "prompt_cache_miss_tokens": 74
  },
  "response": {
-  "id": "84f4c25e-8fa3-4531-9f8f-9fcde3037664",
+  "id": "bf6c2cfe-7c24-41d7-9e74-78d32a24da1b",
   "object": "chat.completion",
-  "created": 1787580244,
+  "created": 1787683248,
   "model": "deepseek-v4-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\"note_kind\": \"tasks\", \"topic\": \"Работа\", \"entities\": [], \"person_facts\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"do\", \"text\": \"выкладывать отчёт по неделе\", \"who\": null, \"due_kind\": \"window\", \"window\": \"morning\", \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"выкладывать отчёт по неделе\", \"repeat\": \"weekly:mon\"}]}"
+     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Работа\",\n  \"entities\": [],\n  \"person_facts\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"выкладывать отчёт по неделе\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"morning\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"выкладывать отчёт по неделе\",\n      \"repeat\": \"weekly:mon\"\n    }\n  ]\n}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2750,
-   "completion_tokens": 118,
-   "total_tokens": 2868,
+   "prompt_tokens": 2762,
+   "completion_tokens": 140,
+   "total_tokens": 2902,
    "prompt_tokens_details": {
     "cached_tokens": 2688
    },
    "prompt_cache_hit_tokens": 2688,
-   "prompt_cache_miss_tokens": 62
+   "prompt_cache_miss_tokens": 74
   },
   "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
  }

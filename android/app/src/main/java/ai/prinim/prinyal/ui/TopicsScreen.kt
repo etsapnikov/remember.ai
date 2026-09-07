@@ -2,7 +2,9 @@ package ai.prinim.prinyal.ui
 
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.data.TopicOverview
+import ai.prinim.prinyal.ui.components.ListRow
 import ai.prinim.prinyal.ui.theme.MetaText
+import ai.prinim.prinyal.ui.theme.Sizes
 import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.Space
 import androidx.compose.foundation.clickable
@@ -73,9 +75,9 @@ fun TopicsScreen(
     }
 
     LazyColumn(
-        contentPadding = PaddingValues(
-            start = Space.screen, end = Space.screen, top = Space.s, bottom = Space.xxl,
-        ),
+        // Боковые поля несёт строка, а не список: иначе они складывались с
+        // полями ListRow в 40, и разделитель обрывался за 20 dp до края.
+        contentPadding = PaddingValues(top = Space.s, bottom = Space.xxl),
         modifier = Modifier.fillMaxSize(),
     ) {
         // Выборки — наверху, до разделов (Д-26): их всегда две-три, а разделов
@@ -153,39 +155,25 @@ private fun TopicRow(
     muted: Boolean = false,
     onClick: () -> Unit,
 ) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = Space.sm),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = name,
-            style = Prinyal.type.itemTitle,
-            color = if (muted) Prinyal.colors.inkMuted else Prinyal.colors.ink,
-            // Имя раздела человек задаёт сам, и оно бывает длинным. В ряду со
-            // SpaceBetween текст без ограничения ширины не переносится, а
-            // наезжает на счётчик: ряд сжимает, а не переносит.
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false),
-        )
-        val notesText = unit ?: pluralStringResource(R.plurals.topics_notes, notes, notes)
-        MetaText(
-            // «Живых» — про невыполненные пункты: слово уже есть в речи продукта
-            // про возвраты, второго термина заводить незачем.
-            // Ноль живых — это «всё закрыто», а не отсутствие данных: раньше
-            // сегмент просто пропадал, и строка выглядела недосчитанной.
-            text = if (!countsLive) {
-                notesText
-            } else if (liveItems > 0) {
-                "$notesText · ${pluralStringResource(R.plurals.topics_live, liveItems, liveItems)}"
-            } else {
-                "$notesText · ${stringResource(R.string.topics_all_closed)}"
-            },
-            color = Prinyal.colors.inkFaint,
-        )
-    }
+    val notesText = unit ?: pluralStringResource(R.plurals.topics_notes, notes, notes)
+    ListRow(
+        title = name,
+        // «Живых» — про невыполненные пункты: слово уже есть в речи продукта
+        // про возвраты, второго термина заводить незачем. Ноль живых — это
+        // «всё закрыто», а не отсутствие данных: раньше сегмент просто пропадал,
+        // и строка выглядела недосчитанной.
+        counter = if (!countsLive) {
+            notesText
+        } else if (liveItems > 0) {
+            "$notesText · ${pluralStringResource(R.plurals.topics_live, liveItems, liveItems)}"
+        } else {
+            "$notesText · ${stringResource(R.string.topics_all_closed)}"
+        },
+        // Раздел — 68, человек — 58 (ТЗ §4). До 1.3 обе строки считали высоту
+        // от собственного текста, и «Люди» с «Отдых» на одном экране стояли
+        // на разной высоте при одинаковой роли.
+        height = if (unit != null) Sizes.rowPerson else Sizes.rowTopic,
+        titleColor = if (muted) Prinyal.colors.inkFaint else Prinyal.colors.ink,
+        onClick = onClick,
+    )
 }

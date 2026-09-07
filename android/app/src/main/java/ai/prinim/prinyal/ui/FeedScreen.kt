@@ -13,6 +13,14 @@ import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.Touch
 import ai.prinim.prinyal.ui.theme.tap
+import ai.prinim.prinyal.ui.components.BadgeTone
+import ai.prinim.prinyal.ui.components.Divider
+import ai.prinim.prinyal.ui.components.EmptyState
+import ai.prinim.prinyal.ui.components.StatusBadge
+import ai.prinim.prinyal.ui.components.FilterRow
+import ai.prinim.prinyal.ui.components.GroupHeader
+import ai.prinim.prinyal.ui.components.SurfaceCard
+import ai.prinim.prinyal.ui.theme.Sizes
 import ai.prinim.prinyal.ui.theme.Space
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -198,24 +206,30 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
             // выяснять, не один ли это человек.
             ask?.let { person ->
                 item(key = "ask-${person.id}") {
-                    AskCard(
-                        name = person.name,
-                        onTell = { vm.tellAbout(context, person.name, person.id) },
-                        onDecline = { vm.declinePerson(person.id) },
-                    )
-                    Hairline()
+                    Box(Modifier.padding(horizontal = Space.screen, vertical = Space.s)) {
+                        SurfaceCard {
+                            AskCard(
+                                name = person.name,
+                                onTell = { vm.tellAbout(context, person.name, person.id) },
+                                onDecline = { vm.declinePerson(person.id) },
+                            )
+                        }
+                    }
                 }
             }
             if (ask == null) {
                 merge?.let { (first, second) ->
                     item(key = "merge-${first.id}") {
-                        MergeAskCard(
-                            first = first.name,
-                            second = second.name,
-                            onSame = { vm.mergePeople(second, first) },
-                            onApart = { vm.keepApart(first, second) },
-                        )
-                        Hairline()
+                        Box(Modifier.padding(horizontal = Space.screen, vertical = Space.s)) {
+                            SurfaceCard {
+                                MergeAskCard(
+                                    first = first.name,
+                                    second = second.name,
+                                    onSame = { vm.mergePeople(second, first) },
+                                    onApart = { vm.keepApart(first, second) },
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -287,11 +301,16 @@ fun FeedScreen(vm: AppViewModel, onOpenNote: (String) -> Unit) {
 }
 
 /**
- * Пять слов фильтра (Д-25).
+ * Строка фильтров (ТЗ §4).
  *
- * Слова, а не чипы: пять слов влезают в строку целиком, а обводка и счётчики
- * сделали бы из них органы управления. Механика ровно та же, что у трёх
- * поверхностей в шапке, — человеку нечего изучать заново.
+ * До 1.3 это были пять слов, растянутых `SpaceBetween`: чипы отвергли ровно
+ * потому, что пять слов «влезают в строку целиком». На живом телефоне они не
+ * влезли — на снимке 02 «похоронено» стоит вплотную к правому краю, а шаг
+ * между словами гуляет от 20 до 44 в зависимости от длины соседа.
+ *
+ * Решение 1.3 обратное и честное: чипы фиксированной высоты с шагом 8, а
+ * строка прокручивается. Пять фильтров в 393 px не помещаются — и притворяться,
+ * что помещаются, дороже, чем прокрутка.
  */
 @Composable
 private fun FilterRow(current: FeedView.Filter, onPick: (FeedView.Filter) -> Unit) {
@@ -302,39 +321,11 @@ private fun FilterRow(current: FeedView.Filter, onPick: (FeedView.Filter) -> Uni
         FeedView.Filter.DONE to R.string.filter_done,
         FeedView.Filter.BURIED to R.string.filter_buried,
     )
-    // Пять слов обязаны влезть в строку целиком: скролла и обрезки здесь нет
-    // по решению дизайнера. После того как кегль вырос, а у слов появилась
-    // зона нажатия, фиксированный шаг между ними перестал помещаться —
-    // «похоронено» вывалилось в вертикальный столбик по букве. Поэтому шаг
-    // задаёт не константа, а сама строка: SpaceBetween раскладывает слова по
-    // ширине, а зазор между ними даёт отступ зоны нажатия.
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Space.screen - Touch.PAD_DP.dp)
-            .padding(bottom = Space.xs),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        words.forEach { (filter, label) ->
-            val active = filter == current
-            Text(
-                text = stringResource(label),
-                // Golos, а не моно: так сказано в макете («пять слов Golos 14»),
-                // и так они помещаются. Моноширинный набор шире почти вдвое —
-                // после того как кегль вырос, «похоронено» стало обрезаться
-                // краем экрана, а на телефоне владельца строка вообще не
-                // помещалась: у него экран уже, чем у эмулятора.
-                style = Prinyal.type.body.copy(fontSize = 15.sp),
-                color = if (active) Prinyal.colors.ink else Prinyal.colors.inkFaint,
-                fontWeight = if (active) FontWeight.Medium else FontWeight.Normal,
-                // Слово не переносится ни при каких обстоятельствах: перенос по
-                // буквам читается как поломка, а не как узкий экран.
-                maxLines = 1,
-                softWrap = false,
-                modifier = Modifier.tap { onPick(filter) },
-            )
-        }
-    }
+    FilterRow(
+        options = words.map { stringResource(it.second) },
+        selectedIndex = words.indexOfFirst { it.first == current }.coerceAtLeast(0),
+        onSelect = { onPick(words[it].first) },
+    )
 }
 
 /** Пустой результат фильтра — что именно пусто, без кнопок (Д-25). */
@@ -346,23 +337,11 @@ private fun FilteredEmpty(filter: FeedView.Filter) {
         FeedView.Filter.DONE -> R.string.filter_empty_done
         else -> R.string.filter_empty_buried
     }
-    Column(
-        Modifier
-            .fillMaxSize()
-            .padding(horizontal = Space.screen, vertical = Space.xl),
-        verticalArrangement = Arrangement.spacedBy(Space.s),
-    ) {
-        Text(
-            text = stringResource(R.string.topic_empty_title),
-            style = Prinyal.type.itemTitle,
-            color = Prinyal.colors.ink,
-        )
-        Text(
-            text = stringResource(body),
-            style = Prinyal.type.voice,
-            color = Prinyal.colors.inkMuted,
-        )
-    }
+    EmptyState(
+        title = stringResource(R.string.topic_empty_title),
+        explain = stringResource(body),
+        modifier = Modifier.fillMaxSize(),
+    )
 }
 
 /**
@@ -384,13 +363,10 @@ private fun DayHeader(section: FeedView.Section) {
         // Тот же элемент, что «ЗАВТРА» и «ПОЗЖЕ», — новых не заводим.
         FeedView.Section.Kind.REPEATING -> stringResource(R.string.repeat_group)
     }
-    MetaText(
+    // Группа дат — заголовком с разделителем (ТЗ §5, экраны 02/17).
+    GroupHeader(
         text = text,
-        color = Prinyal.colors.inkFaint,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Space.screen)
-            .padding(top = Space.ml, bottom = Space.s),
+        modifier = Modifier.padding(horizontal = Space.screen, vertical = Space.s),
     )
 }
 
@@ -399,15 +375,6 @@ private fun DayHeader(section: FeedView.Section) {
 private fun deleteLabel(itemCount: Int): String =
     if (itemCount == 0) stringResource(R.string.note_delete)
     else pluralStringResource(R.plurals.note_delete_items, itemCount, itemCount)
-
-@Composable
-private fun Hairline() {
-    HorizontalDivider(
-        thickness = 1.dp,
-        color = Prinyal.colors.hairline,
-        modifier = Modifier.padding(horizontal = Space.screen),
-    )
-}
 
 @Composable
 private fun JunkSweepRow(count: Int, onSweep: () -> Unit) {
@@ -481,13 +448,21 @@ private fun NoteRow(
                 ?: plain.singleOrNull()
         }
 
+    Column(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    Divider()
     Column(
         Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = Space.screen)
-            // 32 против 12: границу записи держит воздух, а не рамка.
-            .padding(bottom = Space.ml),
+            // Паддинги 14/20/16 и разделитель сверху (ТЗ §4): границу записи
+            // держит линия, а не 32 dp воздуха. Воздухом её держали ровно до
+            // тех пор, пока записей на экране было три; на живой ленте
+            // владельца из-за него помещалось полторы.
+            .padding(
+                start = Space.screen,
+                end = Space.screen,
+                top = Space.s14,
+                bottom = Space.m,
+            ),
     ) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 24.dp),
@@ -518,16 +493,16 @@ private fun NoteRow(
                 if (many) {
                     Box(
                         Modifier
-                            .width(1.dp)
+                            .width(Sizes.itemRule)
                             .fillMaxHeight()
-                            .background(Prinyal.colors.hairline)
+                            .background(Prinyal.colors.accentSelf.copy(alpha = 0.25f))
                     )
                 }
                 Column(
                     Modifier
                         .fillMaxWidth()
-                        .padding(start = if (many) Space.sm else 0.dp),
-                    verticalArrangement = Arrangement.spacedBy(Space.sm),
+                        .padding(start = if (many) Sizes.itemRuleGap else 0.dp),
+                    verticalArrangement = Arrangement.spacedBy(Space.s10),
                 ) {
                     row.shown.forEachIndexed { index, item ->
                         ItemLine(
@@ -555,18 +530,17 @@ private fun NoteRow(
         // содержания**.
         val tail = listOfNotNull(commonPlan?.takeIf { row.shown.isNotEmpty() }, rest(row))
         if (tail.isNotEmpty()) {
-            MetaText(
+            // Метка, а не цветной текст: «напомню вечером» акцентным набором
+            // читалось как ссылка (ТЗ §4). Тон по первому сегменту — политика
+            // это «продукт сделал сам», остаток просто справка.
+            val hasPlan = commonPlan != null && row.shown.isNotEmpty()
+            StatusBadge(
                 text = tail.joinToString(" · "),
-                // Цвет по первому сегменту: политика — это «продукт сделал сам»,
-                // остаток — справка. Если политики нет, строка служебная.
-                color = if (commonPlan != null && row.shown.isNotEmpty()) {
-                    Prinyal.colors.accentSelf
-                } else {
-                    Prinyal.colors.inkFaint
-                },
-                modifier = Modifier.padding(top = Space.sm),
+                tone = if (hasPlan) BadgeTone.Accent else BadgeTone.Muted,
+                modifier = Modifier.padding(top = Space.s10),
             )
         }
+    }
     }
 }
 
@@ -765,7 +739,9 @@ private fun SearchRow(
     onClick: () -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val highlight = Prinyal.colors.accentSelfSoft
+    // Совпадение подсвечивается фоном 18%, а не цветом текста (ТЗ §5):
+    // цветной набор внутри абзаца читался как ссылка.
+    val highlight = Prinyal.colors.accentSelf.copy(alpha = 0.18f)
     val note = result.entry.note
     val transcript = note.transcript.orEmpty()
 
@@ -834,8 +810,8 @@ private fun SearchHintScreen(title: Int, body: Int) {
     Column(
         Modifier
             .fillMaxSize()
-            .padding(horizontal = Space.xl)
-            .padding(top = Space.xxl),
+            .padding(horizontal = Space.screen)
+            .padding(top = Space.l),
     ) {
         Text(
             text = stringResource(title),

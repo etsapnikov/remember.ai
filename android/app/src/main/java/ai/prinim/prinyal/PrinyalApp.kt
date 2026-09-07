@@ -44,7 +44,17 @@ class PrinyalApp : Application() {
      * Не `by lazy`: ленивое поле, вычисленное до распаковки весов, навсегда
      * запомнило бы null, и распознавание не завелось бы до перезапуска процесса.
      */
-    fun asr(): GigaAmOnDevice? {
+    /** Подмена распознавания для тестов — см. [ai.prinim.prinyal.asr.SpeechToText]. */
+    @Volatile
+    private var asrOverride: ai.prinim.prinyal.asr.SpeechToText? = null
+
+    @androidx.annotation.VisibleForTesting
+    fun useAsr(engine: ai.prinim.prinyal.asr.SpeechToText) {
+        asrOverride = engine
+    }
+
+    fun asr(): ai.prinim.prinyal.asr.SpeechToText? {
+        asrOverride?.let { return it }
         asrEngine?.let { return it }
         val dir = ModelStore.dir(this)
         if (!GigaAmOnDevice.modelsPresent(dir)) return null
@@ -78,7 +88,25 @@ class PrinyalApp : Application() {
      * (отступление от PRD §2 п.3, решение владельца). Настройки могут его
      * переопределить, если ключ придётся сменить без пересборки.
      */
-    val llm: DeepSeekClient by lazy {
+    /**
+     * Подмена разбора для тестов.
+     *
+     * Без этого шва главный путь продукта непроверяем: воркер берёт разбор
+     * отсюда, а не получает его аргументом, и любой тест на путь «наговорил →
+     * появилось в ленте» уходил бы в сеть к живой модели. Тест на живой модели
+     * проверяет её настроение, стоит денег и краснеет не по нашей вине.
+     */
+    @Volatile
+    private var llmOverride: DeepSeekClient? = null
+
+    @androidx.annotation.VisibleForTesting
+    fun useLlm(client: DeepSeekClient) {
+        llmOverride = client
+    }
+
+    val llm: DeepSeekClient get() = llmOverride ?: realLlm
+
+    private val realLlm: DeepSeekClient by lazy {
         DeepSeekClient(
             apiKey = settings.deepSeekKey.ifBlank { BuildConfig.DEEPSEEK_KEY },
             // Расход токенов копится в той же аналитике, что и всё остальное:

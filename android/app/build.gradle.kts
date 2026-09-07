@@ -22,7 +22,7 @@ android {
         versionCode = (System.currentTimeMillis() / 60_000L).toInt()
         // Версия отставала на десять итераций: в сборке стояло 1.0.1, пока
         // в докам шло 1.1.х. Дальше правим её вместе со scope-документом.
-        versionName = "1.2.4"
+        versionName = "1.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Ключ DeepSeek едет в APK: версия работает без сервера (решение владельца,
@@ -71,7 +71,12 @@ android {
     androidResources {
         // Веса и так сжаты квантованием: архивирование даёт единицы процентов,
         // а распаковку замедляет заметно.
-        noCompress += "onnx"
+        //
+        // Словарь здесь же, и по другой причине: распаковка спрашивает у asset
+        // длину через `openFd`, а сжатый asset дескриптора не имеет вовсе —
+        // «probably compressed». Текстовый файл в 13 КБ архиватор сжимает
+        // охотно, и без этой строки распаковка падает целиком, вместе с весами.
+        noCompress += listOf("onnx", "txt")
     }
 
     testOptions {
@@ -126,6 +131,11 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.onnxruntime.jvm)
+    testImplementation(libs.androidx.work.testing)
+
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.runner)
 }
 
 

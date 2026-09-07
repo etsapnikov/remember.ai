@@ -609,6 +609,10 @@
     </plurals>
     <!-- Работа с записной книжкой (Р-25.2–25.4). Имя приходит из речи и с
          ошибками; дубль заводится сам; удаляется знание, а не записи. -->
+    <!-- Заголовок блока опасных действий на карточке человека (ТЗ 1.3 §5). -->
+    <string name="person_card_group">Карточка</string>
+    <!-- Кнопка на плашке «работа в фоне» (ТЗ 1.3 §5, экраны 11-12). -->
+    <string name="settings_battery_action">Разрешить</string>
     <string name="person_rename">Переименовать</string>
     <string name="person_merge">Это дубль</string>
     <string name="person_merge_pick">Кто это на самом деле</string>

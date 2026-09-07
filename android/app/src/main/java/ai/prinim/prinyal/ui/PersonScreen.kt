@@ -4,7 +4,13 @@ import ai.prinim.prinyal.R
 import ai.prinim.prinyal.data.PersonOverview
 import ai.prinim.prinyal.data.ItemState
 import ai.prinim.prinyal.domain.Dates
+import ai.prinim.prinyal.ui.components.EmptyState
+import ai.prinim.prinyal.ui.components.GroupHeader
+import ai.prinim.prinyal.ui.components.ListRow
+import ai.prinim.prinyal.ui.components.SurfaceCard
+import ai.prinim.prinyal.ui.components.TertiaryButton
 import ai.prinim.prinyal.ui.theme.MetaText
+import ai.prinim.prinyal.ui.theme.Sizes
 import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.Space
 import ai.prinim.prinyal.ui.theme.tap
@@ -52,55 +58,29 @@ fun PeopleScreen(vm: AppViewModel, onOpen: (String, String) -> Unit) {
     val people by vm.people.collectAsState()
 
     if (people.isEmpty()) {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = Space.screen, vertical = Space.xl),
-            verticalArrangement = Arrangement.spacedBy(Space.s),
-        ) {
-            Text(
-                text = stringResource(R.string.empty_people_title),
-                style = Prinyal.type.itemTitle,
-                color = Prinyal.colors.ink,
-            )
-            Text(
-                text = stringResource(R.string.empty_people_body),
-                style = Prinyal.type.voice,
-                color = Prinyal.colors.inkMuted,
-            )
-        }
+        EmptyState(
+            title = stringResource(R.string.empty_people_title),
+            explain = stringResource(R.string.empty_people_body),
+            modifier = Modifier.fillMaxSize(),
+        )
         return
     }
 
     LazyColumn(
-        contentPadding = PaddingValues(
-            start = Space.screen, end = Space.screen, top = Space.s, bottom = Space.xxl,
-        ),
+        contentPadding = PaddingValues(top = Space.s, bottom = Space.xxl),
         modifier = Modifier.fillMaxSize(),
     ) {
+        // Поля строка несёт сама: до 1.3 их давал contentPadding списка, и
+        // разделитель обрывался за 20 dp до края экрана.
         items(people, key = { it.id }) { person ->
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .tap { onOpen(person.id, person.name) }
-                    .padding(vertical = Space.sm),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = person.name,
-                    style = Prinyal.type.itemTitle,
-                    color = Prinyal.colors.ink,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false).padding(end = Space.s),
-                )
-                MetaText(
-                    text = pluralStringResource(R.plurals.person_notes, person.notes, person.notes),
-                    color = Prinyal.colors.inkFaint,
-                )
-            }
-            HorizontalDivider(thickness = 1.dp, color = Prinyal.colors.hairline)
+            ListRow(
+                title = person.name,
+                counter = pluralStringResource(
+                    R.plurals.person_notes, person.notes, person.notes,
+                ),
+                height = Sizes.rowPerson,
+                onClick = { onOpen(person.id, person.name) },
+            )
         }
     }
 }
@@ -425,34 +405,41 @@ private fun PersonActions(
             }
 
             else -> {
-                Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
-                    MetaText(
-                        text = stringResource(R.string.person_rename),
-                        color = Prinyal.colors.inkMuted,
-                        maxLines = 1,
-                        modifier = Modifier.tap { renaming = name },
-                    )
-                    if (others.isNotEmpty()) {
-                        MetaText(
-                            text = stringResource(R.string.person_merge),
+                // Один блок «Карточка» на поверхности (ТЗ §5, экраны 05/06/34).
+                //
+                // До 1.3 «Переименовать», «Это дубль» и «Удалить» висели голыми
+                // словами между шапкой и записями человека — на снимке 05 они
+                // стоят ровно посреди ленты его дел и читаются как её часть.
+                // Необратимое действие не должно выглядеть строкой контента.
+                GroupHeader(text = stringResource(R.string.person_card_group), divider = false)
+                SurfaceCard {
+                    Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                        TertiaryButton(
+                            text = stringResource(R.string.person_rename),
+                            onClick = { renaming = name },
                             color = Prinyal.colors.inkMuted,
-                            maxLines = 1,
-                            modifier = Modifier.tap { merging = true },
                         )
+                        if (others.isNotEmpty()) {
+                            TertiaryButton(
+                                text = stringResource(R.string.person_merge),
+                                onClick = { merging = true },
+                                color = Prinyal.colors.inkMuted,
+                            )
+                        }
                     }
+                    // Удаление своей строкой: оно необратимо, и в ряду с правкой
+                    // читалось бы как равное ей (полишинг, п. 5).
+                    TertiaryButton(
+                        text = stringResource(R.string.person_delete),
+                        onClick = onDelete,
+                        color = Prinyal.colors.destructiveFg,
+                    )
+                    MetaText(
+                        stringResource(R.string.person_delete_hint),
+                        color = Prinyal.colors.inkFaint,
+                        modifier = Modifier.padding(start = Space.sm),
+                    )
                 }
-                // Удаление своей строкой: оно необратимо, и в ряду с правкой
-                // читалось бы как равное ей (полишинг, п. 5).
-                MetaText(
-                    text = stringResource(R.string.person_delete),
-                    color = Prinyal.colors.inkMuted,
-                    maxLines = 1,
-                    modifier = Modifier.tap(onClick = onDelete),
-                )
-                MetaText(
-                    stringResource(R.string.person_delete_hint),
-                    color = Prinyal.colors.inkFaint,
-                )
             }
         }
     }
