@@ -1,154 +1,245 @@
 package ai.prinim.prinyal.ui
 
 import ai.prinim.prinyal.R
+import ai.prinim.prinyal.data.DayEntity
+import ai.prinim.prinyal.domain.Dates
 import ai.prinim.prinyal.domain.StructureRepair
 import ai.prinim.prinyal.domain.WeeklyFacts
-import ai.prinim.prinyal.domain.WeeklySummary
+import ai.prinim.prinyal.ui.components.Divider
+import ai.prinim.prinyal.ui.components.EmptyState
+import ai.prinim.prinyal.ui.components.GroupHeader
+import ai.prinim.prinyal.ui.components.SurfaceCard
+import ai.prinim.prinyal.ui.components.TertiaryButton
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
-import ai.prinim.prinyal.ui.theme.tap
 import ai.prinim.prinyal.ui.theme.Radius
+import ai.prinim.prinyal.ui.theme.Sizes
 import ai.prinim.prinyal.ui.theme.Space
+import ai.prinim.prinyal.ui.theme.tap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.material3.Text
-import ai.prinim.prinyal.domain.Dates
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 /**
- * «Неделя»: что закрыто, и как себя чувствует петля.
+ * «Неделя» 1.4 (scope-1_4_0.md): экран про неделю человека, а не про продукт.
  *
- * Экран переписан по Р-13.1. Раньше он выносил «Провал» красным, когда человек
- * ответил меньше чем на половину возвратов. Считалось это как kill-критерий
- * продукта — жива ли петля, — но читалось как оценка человека после трудной
- * недели, и владелец справедливо назвал это жёстким.
+ * До 1.4 здесь стоял вердикт kill-критериев — «Петля буксует», «Мои возвраты
+ * чаще всего проходят мимо». Это продукт признавался, что не работает, и не
+ * предлагал человеку ничего сделать. У экрана не было глагола. Kill-критерии
+ * были правильным вопросом в первую неделю; на 121 записи он отвечен, и
+ * вердикт ушёл туда, где ему место с самого начала — в «Для разработчика».
  *
- * Теперь здесь три правила:
+ * Три блока сверху вниз, порядок постоянный:
  *
- *  - **судим петлю, а не человека.** Причина всегда сформулирована как то, что
- *    продукт сделает иначе: не «ты не отвечаешь», а «я приходил не вовремя»;
- *  - **красного вердикта о человеке нет.** `FAIL` на этом экране выглядит так
- *    же, как `WARN`: разница между ними важна для решения о судьбе продукта, а
- *    не для того, кто открыл экран в пятницу вечером;
- *  - **сделанное — числом, без процентов, полос и цели.** Полосы к порогам —
- *    инструмент владельца, они уехали в «Для разработчика».
+ *  1. **Итог недели** — прозой, из вечерних ответов. Есть, когда собран.
+ *  2. **Наблюдения** — факты, посчитанные кодом (не моделью — см. [WeeklyFacts]).
+ *  3. **Разобрать** — живые пункты, принесённые до понедельника, от старого к
+ *     новому, десять видимых. Три действия — те же, что у возврата.
+ *
+ * Разобрал всё — экран говорит «Разобрано». Это единственное место в
+ * продукте, где неделя закрывается как действие, а не как календарная граница.
  *
  * Серий («7 дней подряд») здесь нет и не будет: сорванная серия отваживает
  * сильнее, чем собранная мотивирует.
  */
 @Composable
 fun WeeklyScreen(vm: AppViewModel, onOpenDays: () -> Unit = {}) {
-    val report by vm.weekly.collectAsState()
     val facts by vm.weeklyFacts.collectAsState()
     val structure by vm.structure.collectAsState()
+    val recap by vm.weekRecap.collectAsState()
+    val weekDays by vm.weekDays.collectAsState()
+    val hanging by vm.hanging.collectAsState()
 
     LaunchedEffect(Unit) { vm.loadWeekly() }
 
-    val data = report
-    if (data == null) {
-        Box(Modifier.fillMaxSize(), Alignment.Center) {
-            MetaText(stringResource(R.string.week_no_data))
-        }
-        return
-    }
+    val shown = hanging.take(TRIAGE_VISIBLE)
+    val rest = hanging.size - shown.size
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = Space.screen),
-        verticalArrangement = Arrangement.spacedBy(Space.ml),
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(top = Space.s, bottom = Space.xxl),
     ) {
-        // Итог недели (Р-18.3) — первым: он про жизнь человека, «За неделю»
-        // ниже — про работу продукта. Два блока продукта на одном экране —
-        // первый такой случай, разводятся меткой и предметом, не цветом (12e).
-        val recap by vm.weekRecap.collectAsState()
-        val weekDays by vm.weekDays.collectAsState()
-        recap?.let { WeekRecapBlock(it.text, weekDays, onOpenDays) }
+        recap?.let { entity ->
+            item(key = "recap") {
+                Box(Modifier.padding(horizontal = Space.screen, vertical = Space.s)) {
+                    WeekRecapBlock(entity.text, weekDays, onOpenDays)
+                }
+            }
+        }
 
-        // Экран недели — блок продукта, а не текст на фоне: он рассказывает от
-        // своего лица, и это должно быть видно так же, как у «Собрано»
-        // (аудит Д-7, п. 6).
+        if (facts.isNotEmpty()) {
+            item(key = "facts") {
+                Box(Modifier.padding(horizontal = Space.screen, vertical = Space.s)) {
+                    SurfaceCard(shape = Radius.cardLarge) {
+                        GroupHeader(
+                            text = stringResource(R.string.week_facts_heading),
+                            divider = false,
+                        )
+                        // Наблюдений может не быть вовсе — тогда блока нет.
+                        // Натянуть факт на пустую неделю значит начать врать в
+                        // мелочи, а верят продукту целиком.
+                        facts.forEachIndexed { index, fact ->
+                            if (index > 0) Box(Modifier.height(Space.s))
+                            Text(
+                                text = factText(fact),
+                                style = Prinyal.type.body,
+                                color = Prinyal.colors.inkMuted,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        item(key = "triage-header") {
+            GroupHeader(
+                text = stringResource(R.string.week_triage_heading),
+                modifier = Modifier.padding(horizontal = Space.screen, vertical = Space.s),
+            )
+        }
+
+        if (hanging.isEmpty()) {
+            item(key = "triage-empty") {
+                // Два разных «пусто». Нечего разбирать при пустом экране —
+                // неделя просто идёт; нечего разбирать под итогом или фактами —
+                // это результат, и он назван.
+                if (recap == null && facts.isEmpty()) {
+                    EmptyState(
+                        title = stringResource(R.string.week_empty_title),
+                        explain = stringResource(R.string.week_empty_body),
+                    )
+                } else {
+                    EmptyState(
+                        title = stringResource(R.string.week_triage_done_title),
+                        explain = stringResource(R.string.week_triage_done_body),
+                    )
+                }
+            }
+        } else {
+            items(shown, key = { "hang-${it.item.id}" }) { row ->
+                HangingRow(
+                    row = row,
+                    onDone = { vm.markDone(row.item.id) },
+                    onLater = { vm.later(row.item.id) },
+                    onDismiss = { vm.dismiss(row.item.id) },
+                )
+            }
+            if (rest > 0) {
+                item(key = "triage-more") {
+                    Divider()
+                    // Десять видимых, не сорок семь: простыня в воскресенье
+                    // вечером — это укор, десять — работа на пять минут, и
+                    // она кончается. Список реактивный: закрыл — подъехал следующий.
+                    MetaText(
+                        text = stringResource(R.string.week_triage_more, rest),
+                        color = Prinyal.colors.inkFaint,
+                        modifier = Modifier.padding(horizontal = Space.screen, vertical = Space.sm),
+                    )
+                }
+            }
+        }
+
+        // Предложение починить структуру (Р-15.12) — последним: это просьба
+        // поработать, и открывать ею неделю невежливо. Вопрос о его месте на
+        // этом экране открыт (ТЗ дизайнеру 1.4, Д-49).
+        structure?.let { offer ->
+            item(key = "structure") {
+                Box(Modifier.padding(horizontal = Space.screen, vertical = Space.s)) {
+                    StructureOffer(vm, offer)
+                }
+            }
+        }
+    }
+}
+
+/** Сколько висящих пунктов видно сразу (scope-1_4_0.md). */
+private const val TRIAGE_VISIBLE = 10
+
+/**
+ * Строка разбора: текст пункта, сколько ждёт, три действия.
+ *
+ * Действия — те же три слова, что у возврата, теми же функциями репозитория.
+ * Ничего нового в данных; новое — только место, где это делается пачкой.
+ */
+@Composable
+private fun HangingRow(
+    row: AppViewModel.Hanging,
+    onDone: () -> Unit,
+    onLater: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val zone = ZoneId.systemDefault()
+    val days = ChronoUnit.DAYS.between(
+        Instant.ofEpochMilli(row.note.createdAt).atZone(zone).toLocalDate(),
+        LocalDate.now(zone),
+    ).toInt().coerceAtLeast(1)
+
+    Column(Modifier.fillMaxWidth()) {
+        Divider()
         Column(
             Modifier
                 .fillMaxWidth()
-                .background(Prinyal.colors.surface, Radius.cardLarge)
-                .padding(Space.m),
-            verticalArrangement = Arrangement.spacedBy(Space.sm),
+                .padding(horizontal = Space.screen)
+                .padding(top = Space.s14, bottom = Space.s),
+            verticalArrangement = Arrangement.spacedBy(Space.xs),
         ) {
-            MetaText(stringResource(R.string.week_block_label), color = Prinyal.colors.accentSelf)
-            // Вердикт «Пока нечего рассказать» и наблюдения под ним — прямое
-            // противоречие: экран говорит, что рассказать нечего, и тут же
-            // рассказывает. Пока данных мало, вердикт объясняет пустоту; как
-            // только наблюдения появились, объяснять нечего.
-            if (facts.isEmpty() || data.verdict != WeeklySummary.Verdict.EARLY) {
-                Verdict(data)
-            }
-
-            // Сделанное показываем, только когда оно есть. Крупный ноль был
-            // единственным числом на экране: продукт большим кеглем сообщал
-            // человеку, что тот не сделал ничего.
-            if (data.done > 0) Done(data.done)
-
-            // Наблюдения (Р-15.9). Их может не быть вовсе — тогда экран
-            // честно короткий. Натянуть факт на пустую неделю значит начать
-            // врать в мелочи, а верят продукту целиком.
-            facts.forEach { fact ->
-                Text(
-                    text = factText(fact),
-                    style = Prinyal.type.body,
-                    color = Prinyal.colors.inkMuted,
-                )
-            }
-
-            // «Рассказано вечеров: N» — наблюдение без укора (12e). Стоит,
-            // только когда вечера были, но на итог их не хватило: при готовом
-            // итоге число видно по его источникам.
-            val toldEvenings = weekDays.count { !it.transcript.isNullOrBlank() }
-            if (recap == null && toldEvenings > 0) {
-                Text(
-                    text = stringResource(R.string.week_told_evenings) + ": $toldEvenings",
-                    style = Prinyal.type.body,
-                    color = Prinyal.colors.inkMuted,
-                )
-            }
+            Text(
+                text = row.item.text,
+                style = Prinyal.type.itemTitle,
+                color = Prinyal.colors.ink,
+            )
+            MetaText(
+                text = pluralStringResource(R.plurals.week_waiting_days, days, days),
+                color = Prinyal.colors.inkFaint,
+            )
         }
-
-        // Предложение починить структуру (Р-15.12). Под фактами, а не над ними:
-        // это просьба поработать, и открывать ею неделю невежливо.
-        //
-        // Блок однажды уже пропадал: переменную собирали, а в разметку не
-        // ставили — Kotlin молчит, потому что делегат считается использованным,
-        // и фича просто не показывалась.
-        structure?.let { offer -> StructureOffer(vm, offer) }
-
-        Box(Modifier.height(Space.xl))
+        Row(
+            Modifier.padding(horizontal = Space.screen - Space.sm).padding(bottom = Space.xs),
+            horizontalArrangement = Arrangement.spacedBy(Space.xs),
+        ) {
+            TertiaryButton(
+                text = stringResource(R.string.action_done),
+                onClick = onDone,
+                color = Prinyal.colors.done,
+            )
+            TertiaryButton(
+                text = stringResource(R.string.action_later),
+                onClick = onLater,
+                color = Prinyal.colors.ink,
+            )
+            TertiaryButton(
+                text = stringResource(R.string.action_dismiss),
+                onClick = onDismiss,
+                color = Prinyal.colors.inkMuted,
+            )
+        }
     }
 }
 
@@ -178,57 +269,6 @@ private fun factText(fact: WeeklyFacts.Fact): String = when (fact) {
         pluralStringResource(R.plurals.week_fact_grown, fact.count, fact.count)
 }
 
-@Composable
-private fun Done(count: Int) {
-    Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
-        // Пара «подпись — значение» (ТЗ §5): подпись служебная, значит моно.
-        Text(
-            text = stringResource(R.string.week_metric_done),
-            style = Prinyal.type.meta,
-            color = Prinyal.colors.inkFaint,
-        )
-        Text(
-            text = count.toString(),
-            style = Prinyal.type.metric,
-            color = Prinyal.colors.ink,
-        )
-    }
-}
-
-@Composable
-private fun Verdict(report: WeeklySummary.Report) {
-    val (text, color) = when (report.verdict) {
-        WeeklySummary.Verdict.EARLY ->
-            stringResource(R.string.week_verdict_early) to Prinyal.colors.inkMuted
-        WeeklySummary.Verdict.ALIVE ->
-            stringResource(R.string.week_verdict_alive) to Prinyal.colors.statusOk
-        // FAIL и WARN здесь неразличимы намеренно: «Провал» — слово для решения
-        // о судьбе продукта, оно живёт в «Для разработчика». Человеку остаётся
-        // «буксует» — состояние петли, а не оценка его недели.
-        WeeklySummary.Verdict.WARN, WeeklySummary.Verdict.FAIL ->
-            stringResource(R.string.week_verdict_stalling) to Prinyal.colors.statusWarn
-    }
-
-    Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
-        Text(text, style = Prinyal.type.verdict, color = color)
-        Text(
-            text = phrase(report),
-            style = Prinyal.type.body,
-            color = Prinyal.colors.inkMuted,
-        )
-    }
-}
-
-@Composable
-private fun phrase(report: WeeklySummary.Report): String = when {
-    report.verdict == WeeklySummary.Verdict.EARLY -> stringResource(R.string.week_early_note)
-    report.problem == WeeklySummary.Problem.DAYS -> stringResource(R.string.week_phrase_days)
-    report.problem == WeeklySummary.Problem.RETURNS -> stringResource(R.string.week_phrase_returns)
-    report.problem == WeeklySummary.Problem.LUMP -> stringResource(R.string.week_phrase_lump)
-    else -> stringResource(R.string.week_phrase_ok)
-}
-
-
 /**
  * «В „Идеях" пять записей про маркдаун — выделить раздел?» (Р-15.12).
  *
@@ -253,14 +293,9 @@ private fun StructureOffer(vm: AppViewModel, offer: StructureRepair.Offer) {
             pluralStringResource(R.plurals.repair_gather, offer.noteIds.size, offer.noteIds.size)
     }
 
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .background(Prinyal.colors.surface, Radius.cardLarge)
-            .padding(Space.m),
-        verticalArrangement = Arrangement.spacedBy(Space.sm),
-    ) {
+    SurfaceCard(shape = Radius.cardLarge) {
         Text(text, style = Prinyal.type.body, color = Prinyal.colors.ink)
+        Box(Modifier.height(Space.sm))
         // Поле без подложки неотличимо от заголовка: человек не догадается, что
         // имя раздела можно поправить, и примет предложенное слово как данность.
         BasicTextField(
@@ -274,25 +309,22 @@ private fun StructureOffer(vm: AppViewModel, offer: StructureRepair.Offer) {
                 .background(Prinyal.colors.paper, Radius.card)
                 .padding(horizontal = Space.sm, vertical = Space.s),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(Space.ml)) {
-            Text(
+        Box(Modifier.height(Space.s))
+        Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+            TertiaryButton(
                 text = stringResource(R.string.repair_yes),
-                style = Prinyal.type.label,
+                onClick = { vm.acceptStructure(name) },
+                enabled = name.isNotBlank(),
                 color = if (name.isBlank()) Prinyal.colors.inkFaint else Prinyal.colors.accentSelf,
-                modifier = Modifier.tap(enabled = name.isNotBlank()) {
-                    vm.acceptStructure(name)
-                },
             )
-            Text(
+            TertiaryButton(
                 text = stringResource(R.string.repair_no),
-                style = Prinyal.type.label,
+                onClick = { vm.refuseStructure() },
                 color = Prinyal.colors.inkMuted,
-                modifier = Modifier.tap { vm.refuseStructure() },
             )
         }
     }
 }
-
 
 /**
  * Итог недели (Р-18.3, макет 12e): сводка словами человека и дни-источники.
@@ -303,22 +335,18 @@ private fun StructureOffer(vm: AppViewModel, offer: StructureRepair.Offer) {
 @Composable
 private fun WeekRecapBlock(
     text: String,
-    days: List<ai.prinim.prinyal.data.DayEntity>,
+    days: List<DayEntity>,
     onOpenDays: () -> Unit,
 ) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .background(Prinyal.colors.surface, Radius.cardLarge)
-            .padding(Space.m),
-        verticalArrangement = Arrangement.spacedBy(Space.sm),
-    ) {
-        MetaText(stringResource(R.string.week_recap_heading), color = Prinyal.colors.accentSelf)
+    SurfaceCard(shape = Radius.cardLarge) {
+        GroupHeader(text = stringResource(R.string.week_recap_heading), divider = false)
         Text(text = text, style = Prinyal.type.voice, color = Prinyal.colors.ink)
 
         val told = days.filter { !it.line.isNullOrBlank() || !it.transcript.isNullOrBlank() }
         if (told.isNotEmpty()) {
-            HorizontalDivider(thickness = 1.dp, color = Prinyal.colors.hairline)
+            Box(Modifier.height(Space.sm))
+            Divider()
+            Box(Modifier.height(Space.sm))
             told.forEach { day ->
                 // Тап по источнику ведёт в «Дни»: строка обещает, что за ней
                 // стоит день, и обещание должно куда-то вести.
@@ -327,14 +355,14 @@ private fun WeekRecapBlock(
                     modifier = Modifier.tap(onClick = onOpenDays),
                 ) {
                     MetaText(
-                        text = Dates.day(java.time.LocalDate.parse(day.date)),
+                        text = Dates.day(LocalDate.parse(day.date)),
                         color = Prinyal.colors.inkFaint,
                         maxLines = 1,
-                        modifier = Modifier.width(64.dp),
+                        modifier = Modifier.width(Sizes.dayDateColumn),
                     )
                     Text(
                         text = day.line ?: day.transcript.orEmpty(),
-                        style = Prinyal.type.body.copy(fontSize = 15.sp),
+                        style = Prinyal.type.hintSecondary,
                         color = Prinyal.colors.inkMuted,
                     )
                 }

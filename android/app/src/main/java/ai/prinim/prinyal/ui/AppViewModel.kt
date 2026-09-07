@@ -5,6 +5,7 @@ import ai.prinim.prinyal.R
 import ai.prinim.prinyal.capture.SilenceWindow
 import ai.prinim.prinyal.capture.UploadWorker
 import ai.prinim.prinyal.data.Analytics
+import ai.prinim.prinyal.data.ItemState
 import ai.prinim.prinyal.data.ItemType
 import ai.prinim.prinyal.data.NoteWithItems
 import ai.prinim.prinyal.data.TopicEntity
@@ -115,6 +116,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val message: StateFlow<String?> = _message
 
     companion object {
+        /** Окно заполнения дней задним числом (Д-50). */
+        const val MISSING_DAYS_WINDOW = 14
+
         /** Сколько ждём разбора ответа, прежде чем спросить снова. */
         private const val PARSE_WAIT_TRIES = 40
         private const val PARSE_WAIT_STEP_MS = 500L
@@ -918,6 +922,63 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val monday = java.time.LocalDate.now().with(java.time.DayOfWeek.MONDAY).toString()
             all.filter { it.date >= monday }.sortedByDescending { it.date }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    // --- разбор недели (1.4, scope-1_4_0.md) ---
+
+    /** Живой пункт, принесённый до понедельника этой недели, и его запись. */
+    data class Hanging(
+        val item: ai.prinim.prinyal.data.ItemEntity,
+        val note: ai.prinim.prinyal.data.NoteEntity,
+    )
+
+    /**
+     * Что висит с прошлых недель — от самого старого. Считается от ленты, а не
+     * отдельным запросом: список обязан быть реактивным — закрыл пункт, снизу
+     * подъехал следующий, — и `feed()` уже даёт это бесплатно.
+     */
+    val hanging: StateFlow<List<Hanging>> = app.db.notes().feed().map { rows ->
+        val monday = java.time.LocalDate.now()
+            .with(java.time.DayOfWeek.MONDAY)
+            .atStartOfDay(java.time.ZoneId.systemDefault())
+            .toInstant().toEpochMilli()
+        val alive = setOf(ItemState.PLANNED, ItemState.RETURNED, ItemState.SNOOZED)
+        rows.asSequence()
+            .filter { it.note.createdAt < monday }
+            .flatMap { row ->
+                row.items.asSequence()
+                    .filter { ItemState.of(it.state) in alive }
+                    .map { Hanging(it, row.note) }
+            }
+            .sortedBy { it.note.createdAt }
+            .toList()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * «Позже» в разборе: как у возврата (F-6) — продукт ставит ближайшее окно и
+     * называет его. Кнопка без ответа читалась бы как «убрал с глаз».
+     */
+    fun later(itemId: String) = viewModelScope.launch {
+        val at = app.repository.snooze(itemId) ?: return@launch
+        _message.value = app.getString(
+            R.string.week_later_toast,
+            ai.prinim.prinyal.domain.Dates.whenWill(at.toEpochMilli()),
+        )
+    }
+
+    /**
+     * Дни без впечатления за две недели назад, без сегодняшнего (Д-50).
+     * Дальше двух недель — не память о дне, а реконструкция.
+     */
+    val missingDays: StateFlow<List<String>> = days.map { all ->
+        val told = all
+            .filter { !it.line.isNullOrBlank() || !it.transcript.isNullOrBlank() }
+            .map { it.date }
+            .toSet()
+        val today = java.time.LocalDate.now()
+        (1..MISSING_DAYS_WINDOW)
+            .map { today.minusDays(it.toLong()).toString() }
+            .filter { it !in told }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     // --- «В план» (Р-18.4) ---
 

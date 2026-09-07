@@ -1,9 +1,14 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package ai.prinim.prinyal.ui
 
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.data.DayEntity
 import ai.prinim.prinyal.domain.Dates
+import ai.prinim.prinyal.ui.components.ChoiceChip
 import ai.prinim.prinyal.ui.components.Divider
+import ai.prinim.prinyal.ui.components.GroupHeader
+import ai.prinim.prinyal.ui.components.SecondaryButton
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Sizes
 import ai.prinim.prinyal.ui.theme.Prinyal
@@ -14,6 +19,7 @@ import android.media.MediaPlayer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -71,17 +77,26 @@ fun DaysScreen(vm: AppViewModel) {
         return
     }
 
+    val missing by vm.missingDays.collectAsState()
+
     LazyColumn(contentPadding = PaddingValues(top = Space.xs, bottom = Space.xxl)) {
         if (canTell) {
             item(key = "tell-today") {
-                MetaText(
-                    text = stringResource(R.string.days_tell),
-                    color = Prinyal.colors.accentSelf,
-                    modifier = Modifier
-                        .padding(horizontal = Space.screen)
-                        .padding(bottom = Space.m)
-                        .tap { vm.tellAboutDay(context) },
-                )
+                Row(Modifier.padding(horizontal = Space.screen).padding(bottom = Space.s)) {
+                    SecondaryButton(
+                        text = stringResource(R.string.days_tell),
+                        onClick = { vm.tellAboutDay(context) },
+                    )
+                }
+            }
+        }
+        // Дни задним числом (Д-50): чипы с датами без впечатления за две
+        // недели. Вечерний вопрос приходит один раз, и пропущенный день до 1.4
+        // пропадал навсегда — при том что весь конвейер дня параметризован
+        // датой с самого начала. Не хватало только входа.
+        if (missing.isNotEmpty()) {
+            item(key = "missing-days") {
+                MissingDays(dates = missing, onPick = { vm.retellDay(context, it) })
             }
         }
         items(shown, key = { it.date }) { day ->
@@ -255,6 +270,27 @@ private fun DayAudio(file: File, durationMs: Long) {
             }
         },
     )
+}
+
+/** Пропущенные дни — чипами 44, перенос строками с шагом 8 (ТЗ §4). */
+@Composable
+private fun MissingDays(dates: List<String>, onPick: (String) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Space.screen)) {
+        GroupHeader(text = stringResource(R.string.days_missing_heading))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Space.s),
+            verticalArrangement = Arrangement.spacedBy(Space.s),
+            modifier = Modifier.padding(bottom = Space.m),
+        ) {
+            dates.forEach { date ->
+                ChoiceChip(
+                    label = Dates.day(LocalDate.parse(date)),
+                    selected = false,
+                    onClick = { onPick(date) },
+                )
+            }
+        }
+    }
 }
 
 @Composable

@@ -52,6 +52,24 @@
     <string name="days_empty_body">Вечером спрошу, что было главным. Что ответишь — то и встанет сюда строкой.</string>
     <string name="week_recap_heading">ИТОГ НЕДЕЛИ</string>
     <string name="week_told_evenings">Рассказано вечеров</string>
+    <!-- «Неделя» 1.4 (scope-1_4_0.md): наблюдения и разбор висящих дел. -->
+    <string name="week_facts_heading">Наблюдения</string>
+    <string name="week_triage_heading">Разобрать</string>
+    <string name="week_triage_more">ещё %1$d — покажу после этих</string>
+    <string name="week_triage_done_title">Разобрано.</string>
+    <string name="week_triage_done_body">Всё, что висело с прошлых недель, получило ответ.</string>
+    <string name="week_empty_title">Неделя ещё идёт.</string>
+    <string name="week_empty_body">Итог соберу в воскресенье вечером. Дел с прошлых недель, которые ждут ответа, сейчас нет.</string>
+    <string name="week_later_toast">Вернусь %1$s</string>
+    <plurals name="week_waiting_days">
+        <item quantity="one">ждёт %1$d день</item>
+        <item quantity="few">ждёт %1$d дня</item>
+        <item quantity="many">ждёт %1$d дней</item>
+        <item quantity="other">ждёт %1$d дня</item>
+    </plurals>
+    <!-- Дни задним числом (scope-1_4_0.md, Д-50). -->
+    <string name="days_missing_heading">Пропущенные дни</string>
+    <string name="day_plate_past">про %1$s</string>
     <string name="set_bedtime">Перед сном</string>
     <!-- «В план» (Р-18.4): закрытое возвращается. Не «вернуть» — оно занято
          откатом во всех снекбарах, и пара «сделал · вернуть» сломалась бы. -->
