@@ -913,5 +913,9 @@ private const val SWIPE_SOFT_DP = 64
 private const val SWIPE_VELOCITY_DP_S = 800
 private const val SWIPE_RESISTANCE = 0.6f
 private const val RUBBER_DP = 24
-/** Ширина полосы, с которой имя колонки помещается целиком (моно 13, до 8 букв). */
-private const val LABEL_MIN_DP = 96
+/**
+ * Ширина полосы, с которой имя колонки помещается целиком (моно 13, до 8 букв).
+ * Меньше порога коммита (96): человек видит, куда уедет карточка, до того как
+ * отпустит палец, — а не после.
+ */
+private const val LABEL_MIN_DP = 80
