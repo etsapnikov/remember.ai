@@ -25,7 +25,7 @@ import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -253,9 +253,12 @@ private fun ColumnHeaders(board: Board, active: BoardColumn, onPick: (BoardColum
         ) {
             BoardColumn.entries.forEach { column ->
                 val current = column == active
+                // Ширина — по содержимому: с fillMaxWidth у линии первый заголовок
+                // забирал всю строку, и «Завтра» с «Позже» не рендерились вовсе.
                 Column(
                     Modifier
                         .fillMaxHeight()
+                        .width(IntrinsicSize.Max)
                         .clickable { onPick(column) },
                     verticalArrangement = Arrangement.Center,
                 ) {
