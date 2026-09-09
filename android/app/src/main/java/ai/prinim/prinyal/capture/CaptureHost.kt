@@ -71,9 +71,13 @@ fun CaptureHost(
     var heightPx by remember { mutableStateOf(0f) }
     val scope = rememberCoroutineScope()
 
+    // Состояние листа пересоздаётся вместе с высотой (поворот), и раньше
+    // стартовало с Hidden: повернул телефон на доске — оказался на экране
+    // записи. Последнее положение держим отдельно и стартуем с него.
+    var lastSheet by remember { mutableStateOf(SheetValue.Hidden) }
     val drag = remember(heightPx) {
         AnchoredDraggableState(
-            initialValue = SheetValue.Hidden,
+            initialValue = lastSheet,
             anchors = DraggableAnchors {
                 SheetValue.Hidden at heightPx
                 SheetValue.Shown at 0f
@@ -93,6 +97,7 @@ fun CaptureHost(
     }
 
     val sheetOpen = drag.currentValue == SheetValue.Shown
+    LaunchedEffect(drag.currentValue) { lastSheet = drag.currentValue }
     LaunchedEffect(sheetOpen) {
         if (sheetOpen) onFeedOpened()
     }
@@ -226,6 +231,11 @@ private enum class SheetValue { Hidden, Shown }
 /** Лента и её экраны — тот же каркас, что открывается из уведомлений. */
 @Composable
 private fun FeedPane() {
-    var current by remember { mutableStateOf<Route>(Route.Feed) }
-    AppScaffold(route = current, onRoute = { current = it })
+    // Лист открывается на последней корневой поверхности, а не на «Записях»:
+    // владелец работал на доске, наговорил дело, вернулся — и оказывался в
+    // ленте. Маршрут читается из настроек один раз при открытии листа.
+    val vm: ai.prinim.prinyal.ui.AppViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    var current by remember { mutableStateOf<Route?>(null) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { if (current == null) current = vm.lastRoot() }
+    current?.let { AppScaffold(route = it, onRoute = { current = it }) }
 }

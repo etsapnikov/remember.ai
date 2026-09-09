@@ -153,6 +153,13 @@ class CaptureActivity : ComponentActivity() {
             // куда попадёт запись.
             state.dayPlate = dayDate != null || firstStep
             state.appendHint = when {
+                // День задним числом (Д-50): плашка называет дату, а не «день» —
+                // человек должен видеть, о каком дне говорит.
+                dayDate != null && dayDate != java.time.LocalDate.now().toString() ->
+                    getString(
+                        R.string.day_plate_past,
+                        ai.prinim.prinyal.domain.Dates.day(java.time.LocalDate.parse(dayDate)),
+                    )
                 dayDate != null -> getString(R.string.day_plate)
                 firstStep -> getString(R.string.step_plate)
                 else -> about

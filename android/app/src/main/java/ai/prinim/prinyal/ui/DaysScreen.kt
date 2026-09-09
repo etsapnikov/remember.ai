@@ -1,9 +1,15 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package ai.prinim.prinyal.ui
 
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.data.DayEntity
 import ai.prinim.prinyal.domain.Dates
+import ai.prinim.prinyal.ui.components.ChoiceChip
 import ai.prinim.prinyal.ui.components.Divider
+import ai.prinim.prinyal.ui.components.GroupHeader
+import ai.prinim.prinyal.ui.components.SecondaryButton
+import ai.prinim.prinyal.ui.components.SurfaceCard
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Sizes
 import ai.prinim.prinyal.ui.theme.Prinyal
@@ -14,6 +20,9 @@ import android.media.MediaPlayer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.unit.dp
 import java.io.File
 import java.time.LocalDate
@@ -71,17 +81,54 @@ fun DaysScreen(vm: AppViewModel) {
         return
     }
 
+    val missing by vm.missingDays.collectAsState()
+    val recap by vm.weekRecap.collectAsState()
+    val metrics by vm.recapMetrics.collectAsState()
+    LaunchedEffect(Unit) { vm.loadRecapMetrics() }
+
     LazyColumn(contentPadding = PaddingValues(top = Space.xs, bottom = Space.xxl)) {
+        // Итог недели переехал сюда с «Недели» (спека 1.5 §7, Д-55): он собран из
+        // дней, и стоять ему над днями. Нет итога — нет карточки.
+        recap?.let { entity ->
+            item(key = "recap") {
+                Box(Modifier.padding(horizontal = Space.screen, vertical = Space.s)) {
+                    SurfaceCard(shape = Radius.cardLarge) {
+                        GroupHeader(text = stringResource(R.string.week_recap_heading), divider = false)
+                        Text(text = entity.text, style = Prinyal.type.voice, color = Prinyal.colors.ink)
+                        metrics?.let { (oldest, moved) ->
+                            Box(Modifier.height(Space.sm))
+                            Divider()
+                            Box(Modifier.height(Space.sm))
+                            RecapPair(
+                                label = stringResource(R.string.recap_oldest),
+                                value = pluralStringResource(R.plurals.recap_days, oldest, oldest),
+                            )
+                            RecapPair(
+                                label = stringResource(R.string.recap_moved_from_inbox),
+                                value = moved.toString(),
+                            )
+                        }
+                    }
+                }
+            }
+        }
         if (canTell) {
             item(key = "tell-today") {
-                MetaText(
-                    text = stringResource(R.string.days_tell),
-                    color = Prinyal.colors.accentSelf,
-                    modifier = Modifier
-                        .padding(horizontal = Space.screen)
-                        .padding(bottom = Space.m)
-                        .tap { vm.tellAboutDay(context) },
-                )
+                Row(Modifier.padding(horizontal = Space.screen).padding(bottom = Space.s)) {
+                    SecondaryButton(
+                        text = stringResource(R.string.days_tell),
+                        onClick = { vm.tellAboutDay(context) },
+                    )
+                }
+            }
+        }
+        // Дни задним числом (Д-50): чипы с датами без впечатления за две
+        // недели. Вечерний вопрос приходит один раз, и пропущенный день до 1.4
+        // пропадал навсегда — при том что весь конвейер дня параметризован
+        // датой с самого начала. Не хватало только входа.
+        if (missing.isNotEmpty()) {
+            item(key = "missing-days") {
+                MissingDays(dates = missing, onPick = { vm.retellDay(context, it) })
             }
         }
         items(shown, key = { it.date }) { day ->
@@ -255,6 +302,40 @@ private fun DayAudio(file: File, durationMs: Long) {
             }
         },
     )
+}
+
+/** Пара «подпись моно — значение Bold» в итоге недели (спека 1.5 §7). */
+@Composable
+private fun RecapPair(label: String, value: String) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = Space.xs),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        MetaText(text = label, color = Prinyal.colors.inkFaint)
+        Text(text = value, style = Prinyal.type.noteTitle, color = Prinyal.colors.ink)
+    }
+}
+
+/** Пропущенные дни — чипами 44, перенос строками с шагом 8 (ТЗ §4). */
+@Composable
+private fun MissingDays(dates: List<String>, onPick: (String) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Space.screen)) {
+        GroupHeader(text = stringResource(R.string.days_missing_heading))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Space.s),
+            verticalArrangement = Arrangement.spacedBy(Space.s),
+            modifier = Modifier.padding(bottom = Space.m),
+        ) {
+            dates.forEach { date ->
+                ChoiceChip(
+                    label = Dates.day(LocalDate.parse(date)),
+                    selected = false,
+                    onClick = { onPick(date) },
+                )
+            }
+        }
+    }
 }
 
 @Composable

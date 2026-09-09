@@ -77,6 +77,10 @@ fun AppScaffold(route: Route, onRoute: (Route) -> Unit) {
         onDispose { vm.purgeDeleted() }
     }
 
+    // Корневая поверхность запоминается: после записи человек возвращается
+    // туда, где работал, а не в «Записи» по умолчанию.
+    LaunchedEffect(route) { vm.rememberRoot(route) }
+
     Box(
         Modifier
             .fillMaxSize()
@@ -110,7 +114,8 @@ fun AppScaffold(route: Route, onRoute: (Route) -> Unit) {
                         onOpenNote = { onRoute(Route.Note(it)) },
                     )
                     is Route.Settings -> SettingsScreen(vm)
-                    is Route.Weekly -> WeeklyScreen(vm, onOpenDays = { onRoute(Route.Days) })
+                    // «Неделя» стала доской «Дела» (1.5): маршрут тот же, экран другой.
+                    is Route.Weekly -> BoardScreen(vm)
                     is Route.Topics -> TopicsScreen(
                         vm,
                         onOpen = { id, name -> onRoute(Route.Topic(id, name)) },
@@ -250,6 +255,8 @@ private fun undoText(message: AppViewModel.UndoMessage): String = when (message)
         stringResource(R.string.item_repeat_off_done)
     is AppViewModel.UndoMessage.ItemRevived ->
         stringResource(R.string.item_revived_undo).substringBefore(" · ")
+    // Перенос на доске: строка называет новый день — «Завтра утром» (спека 1.5 §5.1).
+    is AppViewModel.UndoMessage.Moved -> message.label
 }
 
 @Composable

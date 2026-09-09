@@ -52,10 +52,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             PrinyalTheme {
-                var route by remember {
+                var route by androidx.compose.runtime.saveable.rememberSaveable(
+                    stateSaver = RouteSaver,
+                ) {
                     mutableStateOf<Route>(
                         when {
-                            intent.getBooleanExtra(EXTRA_OPEN_WEEKLY, false) -> Route.Weekly
+                            // Итог недели с 1.5 живёт в «Днях» (Д-55); имя экстры историческое.
+                            intent.getBooleanExtra(EXTRA_OPEN_WEEKLY, false) -> Route.Days
                             openNoteId != null -> Route.Note(openNoteId)
                             // Голосом собранный пак открывает выбор записей, а
                             // не готовый файл (Д-28).
@@ -65,6 +68,16 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 val vm: AppViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+                // Открыто без явной цели — вернуться на последнюю корневую поверхность.
+                val explicit = intent.getBooleanExtra(EXTRA_OPEN_WEEKLY, false) ||
+                    openNoteId != null || packTopic != null
+                var rootLoaded by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    if (!explicit && !rootLoaded) {
+                        route = vm.lastRoot()
+                        rootLoaded = true
+                    }
+                }
                 androidx.compose.runtime.LaunchedEffect(packTopic) {
                     packTopic?.let { vm.openPackPickByTopic(it) }
                 }
@@ -83,7 +96,7 @@ class MainActivity : ComponentActivity() {
                         return@LaunchedEffect
                     }
                     if (fresh.getBooleanExtra(EXTRA_OPEN_WEEKLY, false)) {
-                        route = Route.Weekly
+                        route = Route.Days
                         return@LaunchedEffect
                     }
                     fresh.getStringExtra(EXTRA_PACK_TOPIC)?.let { topic ->
@@ -116,6 +129,42 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_KEEP_ASKING = "keep_asking"
     }
 }
+
+/**
+ * Маршрут переживает поворот экрана. Без этого «Дела» в ландшафте открывались
+ * лентой: rememberSaveable нужен Saver, а у Route есть параметры.
+ */
+val RouteSaver: androidx.compose.runtime.saveable.Saver<Route, List<String>> =
+    androidx.compose.runtime.saveable.Saver(
+        save = { route ->
+            when (route) {
+                Route.Feed -> listOf("feed")
+                Route.Settings -> listOf("settings")
+                Route.Weekly -> listOf("weekly")
+                Route.Topics -> listOf("topics")
+                Route.Days -> listOf("days")
+                Route.People -> listOf("people")
+                is Route.Topic -> listOf("topic", route.id ?: "", route.name)
+                is Route.Person -> listOf("person", route.id, route.name)
+                is Route.PackPick -> listOf("pack", route.title)
+                is Route.Note -> listOf("note", route.id)
+            }
+        },
+        restore = { parts ->
+            when (parts.firstOrNull()) {
+                "settings" -> Route.Settings
+                "weekly" -> Route.Weekly
+                "topics" -> Route.Topics
+                "days" -> Route.Days
+                "people" -> Route.People
+                "topic" -> Route.Topic(parts.getOrNull(1)?.ifEmpty { null }, parts.getOrNull(2).orEmpty())
+                "person" -> Route.Person(parts.getOrNull(1).orEmpty(), parts.getOrNull(2).orEmpty())
+                "pack" -> Route.PackPick(parts.getOrNull(1).orEmpty())
+                "note" -> Route.Note(parts.getOrNull(1).orEmpty())
+                else -> Route.Feed
+            }
+        },
+    )
 
 sealed interface Route {
     data object Feed : Route

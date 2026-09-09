@@ -11,6 +11,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -74,12 +78,25 @@ fun TopicsScreen(
         return
     }
 
+    // Предложение починить структуру (Р-15.12) жило на «Неделе»; с уходом экрана
+    // в 1.5 оно осталось бы без дома. Здесь ему место по смыслу (бриф 1.5, Д-49):
+    // человек смотрит на разделы — и продукт предлагает разделы.
+    val structure by vm.structure.collectAsState()
+    LaunchedEffect(Unit) { vm.loadStructure() }
+
     LazyColumn(
         // Боковые поля несёт строка, а не список: иначе они складывались с
         // полями ListRow в 40, и разделитель обрывался за 20 dp до края.
         contentPadding = PaddingValues(top = Space.s, bottom = Space.xxl),
         modifier = Modifier.fillMaxSize(),
     ) {
+        structure?.let { offer ->
+            item(key = "structure") {
+                Box(Modifier.padding(horizontal = Space.screen, vertical = Space.s)) {
+                    StructureOffer(vm, offer)
+                }
+            }
+        }
         // Выборки — наверху, до разделов (Д-26): их всегда две-три, а разделов
         // со временем станет десять, и внизу выборки уезжали бы за край.
         // «Без раздела» при этом обязан оставаться последним.
@@ -176,4 +193,61 @@ private fun TopicRow(
         titleColor = if (muted) Prinyal.colors.inkFaint else Prinyal.colors.ink,
         onClick = onClick,
     )
+}
+
+/**
+ * «В „Идеях" пять записей про маркдаун — выделить раздел?» (Р-15.12).
+ *
+ * Два действия и ни одного третьего: «потом» здесь означало бы, что продукт
+ * спросит снова, а он не спросит — отказ закрывает тему на месяц. Имя раздела
+ * подставлено словом, которым группа держится, и его можно поправить: продукт
+ * нашёл группу, но как её назвать — знает человек.
+ */
+@Composable
+private fun StructureOffer(vm: AppViewModel, offer: ai.prinim.prinyal.domain.StructureRepair.Offer) {
+    val suggested = when (offer) {
+        is ai.prinim.prinyal.domain.StructureRepair.Offer.Split -> offer.word
+        is ai.prinim.prinyal.domain.StructureRepair.Offer.Gather -> offer.word
+    }.replaceFirstChar { it.uppercase() }
+    var name by androidx.compose.runtime.remember(offer) { androidx.compose.runtime.mutableStateOf(suggested) }
+
+    val text = when (offer) {
+        is ai.prinim.prinyal.domain.StructureRepair.Offer.Split -> pluralStringResource(
+            R.plurals.repair_split, offer.noteIds.size, offer.noteIds.size, offer.topicName,
+        )
+        is ai.prinim.prinyal.domain.StructureRepair.Offer.Gather ->
+            pluralStringResource(R.plurals.repair_gather, offer.noteIds.size, offer.noteIds.size)
+    }
+
+    ai.prinim.prinyal.ui.components.SurfaceCard(shape = ai.prinim.prinyal.ui.theme.Radius.cardLarge) {
+        Text(text, style = Prinyal.type.body, color = Prinyal.colors.ink)
+        Box(Modifier.height(Space.sm))
+        // Поле без подложки неотличимо от заголовка: человек не догадается, что
+        // имя раздела можно поправить, и примет предложенное слово как данность.
+        androidx.compose.foundation.text.BasicTextField(
+            value = name,
+            onValueChange = { name = it.take(24) },
+            singleLine = true,
+            textStyle = Prinyal.type.itemTitle.copy(color = Prinyal.colors.ink),
+            cursorBrush = androidx.compose.ui.graphics.SolidColor(Prinyal.colors.accentSelf),
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Prinyal.colors.paper, ai.prinim.prinyal.ui.theme.Radius.card)
+                .padding(horizontal = Space.sm, vertical = Space.s),
+        )
+        Box(Modifier.height(Space.s))
+        Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+            ai.prinim.prinyal.ui.components.TertiaryButton(
+                text = stringResource(R.string.repair_yes),
+                onClick = { vm.acceptStructure(name) },
+                enabled = name.isNotBlank(),
+                color = if (name.isBlank()) Prinyal.colors.inkFaint else Prinyal.colors.accentSelf,
+            )
+            ai.prinim.prinyal.ui.components.TertiaryButton(
+                text = stringResource(R.string.repair_no),
+                onClick = { vm.refuseStructure() },
+                color = Prinyal.colors.inkMuted,
+            )
+        }
+    }
 }
