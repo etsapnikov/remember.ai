@@ -180,6 +180,15 @@ interface ReturnDao {
     @Query("SELECT * FROM returns WHERE fired_at IS NULL ORDER BY scheduled_at ASC")
     suspend fun upcoming(): List<ReturnEntity>
 
+    /**
+     * Доска «Дела» (1.5) раскладывает пункты по колонкам временем ближайшего
+     * возврата — у пункта с окном `dueAt` пуст, срок живёт здесь. Поток, а не
+     * запрос: перенос карточки пересобирает возврат, и колонка обязана
+     * подвинуться сама.
+     */
+    @Query("SELECT * FROM returns ORDER BY scheduled_at ASC")
+    fun watchAll(): Flow<List<ReturnEntity>>
+
     @Query("DELETE FROM returns WHERE item_id = :itemId AND fired_at IS NULL")
     suspend fun dropPending(itemId: String)
 

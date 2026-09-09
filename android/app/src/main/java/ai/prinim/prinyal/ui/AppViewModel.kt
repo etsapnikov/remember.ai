@@ -34,6 +34,7 @@ import ai.prinim.prinyal.domain.WeeklySummary
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -608,6 +609,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
         /** «Снова в плане» — закрытый пункт вернули (Р-18.4). */
         data object ItemRevived : UndoMessage
+
+        /** Перенос на доске (1.5): строка называет новый день — «Завтра утром». */
+        data class Moved(val label: String) : UndoMessage
     }
 
     private val _undo = MutableStateFlow<UndoEvent?>(null)
@@ -979,6 +983,217 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             .map { today.minusDays(it.toLong()).toString() }
             .filter { it !in told }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    // --- доска «Дела» (1.5, спека «Неделя доской») ---
+
+    enum class BoardColumn { TODAY, TOMORROW, LATER }
+
+    /**
+     * Карточка доски. [at] — момент, которым пункт попал в колонку: ручная дата
+     * или ближайший возврат. У повтора [repeat] не null, и переносу он не
+     * поддаётся (Д-54).
+     */
+    data class BoardCard(
+        val item: ai.prinim.prinyal.data.ItemEntity,
+        val note: ai.prinim.prinyal.data.NoteEntity,
+        val topic: String?,
+        val at: Long?,
+        val repeat: ai.prinim.prinyal.domain.Repeat?,
+        val overdue: Boolean,
+    )
+
+    data class Board(
+        val inbox: List<BoardCard> = emptyList(),
+        val today: List<BoardCard> = emptyList(),
+        val tomorrow: List<BoardCard> = emptyList(),
+        val later: List<BoardCard> = emptyList(),
+        /** Сколько пунктов закрыто за семь дней — строка под доской, при 0 её нет. */
+        val doneWeek: Int = 0,
+    ) {
+        fun column(c: BoardColumn): List<BoardCard> = when (c) {
+            BoardColumn.TODAY -> today
+            BoardColumn.TOMORROW -> tomorrow
+            BoardColumn.LATER -> later
+        }
+    }
+
+    /**
+     * Доска считается от трёх потоков — записи с пунктами, возвраты, разделы —
+     * и потому реактивна целиком: перенос карточки пересобирает возврат, а
+     * возврат двигает карточку в новую колонку без единого ручного обновления.
+     *
+     * Колонку задаёт **ближайший возврат**, а не `dueAt`: у пункта с окном
+     * `dueAt` пуст, и лента до 1.5 из-за этого считала его «позже». На доске
+     * это была бы ложь: «напомню днём» — это сегодня.
+     */
+    val board: StateFlow<Board> = combine(
+        app.db.notes().feed(),
+        app.db.returns().watchAll(),
+        topics,
+    ) { rows, returns, topicList ->
+        val zone = java.time.ZoneId.systemDefault()
+        val today = java.time.LocalDate.now(zone)
+        val startToday = today.atStartOfDay(zone).toInstant().toEpochMilli()
+        val endToday = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val endTomorrow = today.plusDays(2).atStartOfDay(zone).toInstant().toEpochMilli()
+        val weekAgo = java.time.Instant.now().minus(java.time.Duration.ofDays(7)).toEpochMilli()
+        val names = topicList.associate { it.id to it.name }
+        val alive = setOf(ItemState.PLANNED, ItemState.RETURNED, ItemState.SNOOZED)
+        val pending = returns.filter { it.firedAt == null }
+            .groupBy { it.itemId }
+            .mapValues { (_, list) -> list.minOf { it.scheduledAt } }
+
+        val inbox = mutableListOf<BoardCard>()
+        val cols = BoardColumn.entries.associateWith { mutableListOf<BoardCard>() }
+
+        rows.forEach { row ->
+            row.items.filter { ItemState.of(it.state) in alive }.forEach { item ->
+                val repeat = ai.prinim.prinyal.domain.Repeat.of(item.repeatRule)
+                val kind = ai.prinim.prinyal.data.DueKind.of(item.dueKind)
+                val at = item.dueAt ?: pending[item.id]
+                val card = BoardCard(
+                    item = item,
+                    note = row.note,
+                    topic = row.note.topicId?.let { names[it] },
+                    at = at,
+                    repeat = repeat,
+                    overdue = at != null && at < startToday,
+                )
+                when {
+                    // Повтор стоит в «Сегодня» каждый день (Д-54).
+                    repeat != null -> cols.getValue(BoardColumn.TODAY) += card
+                    // Без срока и без окна — во «Входящие» (Д-51).
+                    kind == ai.prinim.prinyal.data.DueKind.NONE -> inbox += card
+                    // Окно назначено, возврат уже сработал и ждёт ответа — это
+                    // сегодняшнее дело, а не потерянное.
+                    at == null -> cols.getValue(BoardColumn.TODAY) += card
+                    at < endToday -> cols.getValue(BoardColumn.TODAY) += card
+                    at < endTomorrow -> cols.getValue(BoardColumn.TOMORROW) += card
+                    else -> cols.getValue(BoardColumn.LATER) += card
+                }
+            }
+        }
+
+        // «Сегодня»: просроченные сверху, потом по времени, повторы в конце (§4).
+        val todayCards = cols.getValue(BoardColumn.TODAY).sortedWith(
+            compareBy<BoardCard> { it.repeat != null }
+                .thenByDescending { it.overdue }
+                .thenBy { it.at ?: Long.MAX_VALUE },
+        )
+        val doneWeek = returns
+            .filter { it.action == "done" && (it.firedAt ?: 0L) >= weekAgo }
+            .map { it.itemId }.distinct().size
+
+        Board(
+            inbox = inbox.sortedBy { it.note.createdAt },
+            today = todayCards,
+            tomorrow = cols.getValue(BoardColumn.TOMORROW).sortedBy { it.at ?: Long.MAX_VALUE },
+            later = cols.getValue(BoardColumn.LATER).sortedBy { it.at ?: Long.MAX_VALUE },
+            doneWeek = doneWeek,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Board())
+
+    private val _boardHintDone = MutableStateFlow(true)
+    /** Фраза голоса в стопке: до первого удачного переноса, потом навсегда нет (§3). */
+    val boardHintDone: StateFlow<Boolean> = _boardHintDone
+
+    fun loadBoardHint() = viewModelScope.launch {
+        _boardHintDone.value = app.settings.boardHintDone()
+    }
+
+    /** Снимок расписания пункта — чтобы «Вернуть» вернуло ровно то, что было. */
+    private data class Schedule(val kind: ai.prinim.prinyal.data.DueKind, val window: Window?, val exactAt: Long?)
+
+    private suspend fun scheduleOf(itemId: String): Schedule? {
+        val item = app.db.items().byId(itemId) ?: return null
+        return Schedule(
+            ai.prinim.prinyal.data.DueKind.of(item.dueKind),
+            Window.of(item.window),
+            item.dueAt.takeIf { ai.prinim.prinyal.data.DueKind.of(item.dueKind) == ai.prinim.prinyal.data.DueKind.EXACT },
+        )
+    }
+
+    private suspend fun restore(itemId: String, was: Schedule) {
+        when (was.kind) {
+            ai.prinim.prinyal.data.DueKind.NONE -> app.repository.editItem(itemId, clearSchedule = true)
+            ai.prinim.prinyal.data.DueKind.EXACT -> app.repository.editItem(itemId, exactAt = was.exactAt)
+            ai.prinim.prinyal.data.DueKind.WINDOW -> app.repository.editItem(itemId, window = was.window)
+        }
+    }
+
+    /**
+     * Перенос на доске: одна функция на все жесты. Правило продукта «срок
+     * назначает речь» здесь сужено, а не отменено (бриф 1.5): речь — при
+     * рождении дела, доска — при пересмотре.
+     */
+    private fun move(
+        itemId: String,
+        fromInbox: Boolean,
+        label: String,
+        apply: suspend () -> Unit,
+    ) = viewModelScope.launch {
+        val was = scheduleOf(itemId) ?: return@launch
+        apply()
+        if (fromInbox && !_boardHintDone.value) {
+            app.settings.setBoardHintDone()
+            _boardHintDone.value = true
+        }
+        app.analytics.log(
+            "board_move",
+            mapOf("item" to itemId, "from_inbox" to fromInbox, "to" to label),
+        )
+        _undo.value = UndoEvent(UndoMessage.Moved(label)) { restore(itemId, was) }
+    }
+
+    /** Свайп вправо из стопки или из «Сегодня»: завтра утром (§5.1). */
+    fun moveTomorrow(itemId: String, fromInbox: Boolean = false) = move(
+        itemId, fromInbox, app.getString(R.string.board_moved_tomorrow),
+    ) { app.repository.editItem(itemId, window = Window.TOMORROW_MORNING) }
+
+    /** Свайп влево из «Завтра» или drag в «Сегодня»: ближайшее окно сегодня. */
+    fun moveToday(itemId: String, fromInbox: Boolean = false) = viewModelScope.launch {
+        val zone = java.time.ZoneId.systemDefault()
+        val now = java.time.LocalTime.now(zone)
+        val windows = app.settings.windowsNow()
+        val window = listOf(Window.MORNING, Window.DAY, Window.EVENING)
+            .firstOrNull { windows.timeOf(it).isAfter(now) } ?: Window.EVENING
+        val label = app.getString(
+            R.string.board_moved_today,
+            ai.prinim.prinyal.domain.Phrases.windowLabel(app, window),
+        )
+        move(itemId, fromInbox, label) { app.repository.editItem(itemId, window = window) }
+    }
+
+    /** Свайп вправо из «Завтра»: послезавтра утром. Точный день — через шторку. */
+    fun moveAfterTomorrow(itemId: String) = viewModelScope.launch {
+        val zone = java.time.ZoneId.systemDefault()
+        val at = java.time.LocalDate.now(zone).plusDays(2)
+            .atTime(app.settings.windowsNow().timeOf(Window.MORNING))
+            .atZone(zone).toInstant().toEpochMilli()
+        move(itemId, false, app.getString(R.string.board_moved_after_tomorrow)) {
+            app.repository.editItem(itemId, exactAt = at)
+        }
+    }
+
+    /** Свайп влево из «Сегодня»: снять срок — обратно во «Входящие». */
+    fun moveToInbox(itemId: String) = move(
+        itemId, false, app.getString(R.string.board_moved_inbox),
+    ) { app.repository.editItem(itemId, clearSchedule = true) }
+
+    /** Итог недели в «Днях» (§7): самое старое живое дело и разложено из входящих за 7 дней. */
+    private val _recapMetrics = MutableStateFlow<Pair<Int, Int>?>(null)
+    val recapMetrics: StateFlow<Pair<Int, Int>?> = _recapMetrics
+
+    fun loadRecapMetrics() = viewModelScope.launch {
+        val oldest = ai.prinim.prinyal.domain.WeekSignal(app.db).build().oldestWaitingDays
+        val weekAgo = System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000
+        val moved = app.analytics.readAll().count { e ->
+            e.optString("e") == "board_move" &&
+                e.optLong("t") >= weekAgo &&
+                e.optBoolean("from_inbox")
+        }
+        _recapMetrics.value = oldest to moved
+    }
 
     // --- «В план» (Р-18.4) ---
 

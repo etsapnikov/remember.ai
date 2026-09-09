@@ -70,6 +70,38 @@
     <!-- Дни задним числом (scope-1_4_0.md, Д-50). -->
     <string name="days_missing_heading">Пропущенные дни</string>
     <string name="day_plate_past">про %1$s</string>
+    <!-- Доска «Дела» (спека 1.5, Д-51…Д-55). Тексты — как в макетах, посимвольно. -->
+    <string name="board_col_today">Сегодня</string>
+    <string name="board_col_tomorrow">Завтра</string>
+    <string name="board_col_later">Позже</string>
+    <string name="board_empty_today">на сегодня ничего не назначено</string>
+    <string name="board_empty_tomorrow">на завтра ничего не назначено</string>
+    <string name="board_empty_later">дальше ничего не назначено</string>
+    <string name="board_inbox">Входящие</string>
+    <string name="board_inbox_hint">свайп — в день</string>
+    <string name="board_inbox_voice">Ты не сказал, когда — значит, дня нет. Дай его здесь, и я вернусь.</string>
+    <string name="board_more">ещё %1$d</string>
+    <string name="board_done_week">за неделю сделано %1$d</string>
+    <string name="board_overdue_since">ждёт с %1$s</string>
+    <string name="board_repeat_fixed">перенос не двигает</string>
+    <string name="board_no_due">без срока</string>
+    <string name="board_drag_hint">отпусти — назначу день</string>
+    <string name="board_in_hand">карточка в руке</string>
+    <string name="board_moved_tomorrow">Завтра утром</string>
+    <string name="board_moved_today">Сегодня %1$s</string>
+    <string name="board_moved_after_tomorrow">Послезавтра утром</string>
+    <string name="board_moved_day">На %1$s</string>
+    <string name="board_moved_inbox">Во входящих</string>
+    <string name="board_undo">Вернуть</string>
+    <!-- Итог недели в «Днях» (спека 1.5 §7). -->
+    <string name="recap_oldest">самое старое живое дело</string>
+    <string name="recap_moved_from_inbox">разложено из входящих</string>
+    <plurals name="recap_days">
+        <item quantity="one">%1$d день</item>
+        <item quantity="few">%1$d дня</item>
+        <item quantity="many">%1$d дней</item>
+        <item quantity="other">%1$d дня</item>
+    </plurals>
     <string name="set_bedtime">Перед сном</string>
     <!-- «В план» (Р-18.4): закрытое возвращается. Не «вернуть» — оно занято
          откатом во всех снекбарах, и пара «сделал · вернуть» сломалась бы. -->
@@ -385,7 +417,7 @@
 
     <!-- Правка айтема -->
     <string name="edit_title">Поправить</string>
-    <string name="edit_text">Текст</string>
+    <string name="edit_text">Дело</string>
     <string name="edit_type">Что это</string>
     <string name="edit_when">Когда вернуть</string>
     <string name="edit_save">Сохранить</string>
@@ -563,7 +595,8 @@
     <string name="settings_notifications">Разрешить уведомления</string>
 
     <!-- Сводка недели §F-9 -->
-    <string name="weekly_title">Неделя</string>
+    <!-- Таб доски (спека 1.5 §8): «Дела» — короче «Доски» и не обещает недельного среза. -->
+    <string name="weekly_title">Дела</string>
     <string name="topics_title">Разделы</string>
     <string name="ask_question">%1$s встречается уже дважды — кто это?</string>
     <string name="ask_tell">рассказать</string>

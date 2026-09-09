@@ -9,6 +9,7 @@ import ai.prinim.prinyal.ui.components.ChoiceChip
 import ai.prinim.prinyal.ui.components.Divider
 import ai.prinim.prinyal.ui.components.GroupHeader
 import ai.prinim.prinyal.ui.components.SecondaryButton
+import ai.prinim.prinyal.ui.components.SurfaceCard
 import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Sizes
 import ai.prinim.prinyal.ui.theme.Prinyal
@@ -19,6 +20,8 @@ import android.media.MediaPlayer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -40,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.unit.dp
 import java.io.File
 import java.time.LocalDate
@@ -78,8 +82,36 @@ fun DaysScreen(vm: AppViewModel) {
     }
 
     val missing by vm.missingDays.collectAsState()
+    val recap by vm.weekRecap.collectAsState()
+    val metrics by vm.recapMetrics.collectAsState()
+    LaunchedEffect(Unit) { vm.loadRecapMetrics() }
 
     LazyColumn(contentPadding = PaddingValues(top = Space.xs, bottom = Space.xxl)) {
+        // Итог недели переехал сюда с «Недели» (спека 1.5 §7, Д-55): он собран из
+        // дней, и стоять ему над днями. Нет итога — нет карточки.
+        recap?.let { entity ->
+            item(key = "recap") {
+                Box(Modifier.padding(horizontal = Space.screen, vertical = Space.s)) {
+                    SurfaceCard(shape = Radius.cardLarge) {
+                        GroupHeader(text = stringResource(R.string.week_recap_heading), divider = false)
+                        Text(text = entity.text, style = Prinyal.type.voice, color = Prinyal.colors.ink)
+                        metrics?.let { (oldest, moved) ->
+                            Box(Modifier.height(Space.sm))
+                            Divider()
+                            Box(Modifier.height(Space.sm))
+                            RecapPair(
+                                label = stringResource(R.string.recap_oldest),
+                                value = pluralStringResource(R.plurals.recap_days, oldest, oldest),
+                            )
+                            RecapPair(
+                                label = stringResource(R.string.recap_moved_from_inbox),
+                                value = moved.toString(),
+                            )
+                        }
+                    }
+                }
+            }
+        }
         if (canTell) {
             item(key = "tell-today") {
                 Row(Modifier.padding(horizontal = Space.screen).padding(bottom = Space.s)) {
@@ -270,6 +302,19 @@ private fun DayAudio(file: File, durationMs: Long) {
             }
         },
     )
+}
+
+/** Пара «подпись моно — значение Bold» в итоге недели (спека 1.5 §7). */
+@Composable
+private fun RecapPair(label: String, value: String) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = Space.xs),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        MetaText(text = label, color = Prinyal.colors.inkFaint)
+        Text(text = value, style = Prinyal.type.noteTitle, color = Prinyal.colors.ink)
+    }
 }
 
 /** Пропущенные дни — чипами 44, перенос строками с шагом 8 (ТЗ §4). */

@@ -11,6 +11,7 @@ import ai.prinim.prinyal.ui.theme.MetaText
 import ai.prinim.prinyal.ui.theme.Prinyal
 import ai.prinim.prinyal.ui.theme.tap
 import ai.prinim.prinyal.ui.components.Divider
+import ai.prinim.prinyal.ui.components.GroupHeader
 import ai.prinim.prinyal.ui.components.SheetButton
 import ai.prinim.prinyal.ui.components.TertiaryButton
 import ai.prinim.prinyal.ui.theme.Radius
@@ -69,6 +70,11 @@ fun EditItemSheet(
         clear: Boolean,
     ) -> Unit,
     onBury: () -> Unit,
+    /** Подпись под текстом на доске: «Работа · 26 авг · без срока» (спека 1.5 §5.2). */
+    subtitle: String? = null,
+    /** Ряд действий доски под чипами: сделано / не надо. Без них — обычная правка. */
+    onDone: (() -> Unit)? = null,
+    onDismissItem: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -110,7 +116,8 @@ fun EditItemSheet(
                 ),
             verticalArrangement = Arrangement.spacedBy(Space.s18),
         ) {
-            MetaText(stringResource(R.string.edit_text))
+            // Заголовок блока — группой, капсом: «ДЕЛО» (спека 1.5 §5.2).
+            GroupHeader(text = stringResource(R.string.edit_text), divider = false)
             BasicTextField(
                 value = text,
                 onValueChange = { text = it },
@@ -121,6 +128,7 @@ fun EditItemSheet(
                     .border(1.dp, Prinyal.colors.rule, Radius.control)
                     .padding(Space.sm),
             )
+            subtitle?.let { MetaText(it, color = Prinyal.colors.inkFaint) }
 
             MetaText(stringResource(R.string.edit_type))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
@@ -238,6 +246,23 @@ fun EditItemSheet(
             // Ряд действий (спека R1.1 §4): главное — залитой пилюлей, отмена рядом
             // текстом, деструктивное — отдельной строкой за хайрлайном, чтобы жесты
             // «сохранить» и «похоронить» нельзя было перепутать вслепую.
+            // Действия доски: те же три слова, что у возврата (спека 1.5 §5.2).
+            // «Поправить» из макета не нужен: полная правка уже на экране.
+            if (onDone != null && onDismissItem != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                    TertiaryButton(
+                        text = stringResource(R.string.action_done),
+                        onClick = onDone,
+                        color = Prinyal.colors.done,
+                    )
+                    TertiaryButton(
+                        text = stringResource(R.string.action_dismiss),
+                        onClick = onDismissItem,
+                        color = Prinyal.colors.inkMuted,
+                    )
+                }
+            }
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(Space.s),
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
