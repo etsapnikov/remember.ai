@@ -785,6 +785,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * нарушение тишины, и продукт превращается в того, кто требует навести
      * порядок (Р-15.12).
      */
+    /** Предложение структуры показывают «Разделы» (Д-49): грузится само по себе. */
+    fun loadStructure() = viewModelScope.launch { _structure.value = findStructureOffer() }
+
     private suspend fun findStructureOffer(): StructureRepair.Offer? {
         val now = System.currentTimeMillis()
         if (!StructureRepair.maySpeak(app.settings.lastStructureOffer(), now)) return null
@@ -926,48 +929,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val monday = java.time.LocalDate.now().with(java.time.DayOfWeek.MONDAY).toString()
             all.filter { it.date >= monday }.sortedByDescending { it.date }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    // --- разбор недели (1.4, scope-1_4_0.md) ---
-
-    /** Живой пункт, принесённый до понедельника этой недели, и его запись. */
-    data class Hanging(
-        val item: ai.prinim.prinyal.data.ItemEntity,
-        val note: ai.prinim.prinyal.data.NoteEntity,
-    )
-
-    /**
-     * Что висит с прошлых недель — от самого старого. Считается от ленты, а не
-     * отдельным запросом: список обязан быть реактивным — закрыл пункт, снизу
-     * подъехал следующий, — и `feed()` уже даёт это бесплатно.
-     */
-    val hanging: StateFlow<List<Hanging>> = app.db.notes().feed().map { rows ->
-        val monday = java.time.LocalDate.now()
-            .with(java.time.DayOfWeek.MONDAY)
-            .atStartOfDay(java.time.ZoneId.systemDefault())
-            .toInstant().toEpochMilli()
-        val alive = setOf(ItemState.PLANNED, ItemState.RETURNED, ItemState.SNOOZED)
-        rows.asSequence()
-            .filter { it.note.createdAt < monday }
-            .flatMap { row ->
-                row.items.asSequence()
-                    .filter { ItemState.of(it.state) in alive }
-                    .map { Hanging(it, row.note) }
-            }
-            .sortedBy { it.note.createdAt }
-            .toList()
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    /**
-     * «Позже» в разборе: как у возврата (F-6) — продукт ставит ближайшее окно и
-     * называет его. Кнопка без ответа читалась бы как «убрал с глаз».
-     */
-    fun later(itemId: String) = viewModelScope.launch {
-        val at = app.repository.snooze(itemId) ?: return@launch
-        _message.value = app.getString(
-            R.string.week_later_toast,
-            ai.prinim.prinyal.domain.Dates.whenWill(at.toEpochMilli()),
-        )
-    }
 
     /**
      * Дни без впечатления за две недели назад, без сегодняшнего (Д-50).
@@ -1206,8 +1167,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         // час, но сегодня: человек сказал «сегодня», и это должно остаться сегодня.
         val window = listOf(Window.MORNING, Window.DAY, Window.EVENING)
             .firstOrNull { windows.timeOf(it).isAfter(now) }
-        val at = if (window != null) boardInstant(0, window)
-        else System.currentTimeMillis() + 60L * 60 * 1000
+        val at = if (window != null) {
+            boardInstant(0, window)
+        } else {
+            // Все окна прошли: через час, но не позже конца сегодняшнего дня —
+            // иначе «Сегодня вечером» ложилось бы в «Завтра».
+            val endOfDay = java.time.LocalDate.now(zone).plusDays(1).atStartOfDay(zone)
+                .toInstant().toEpochMilli() - 60_000L
+            minOf(System.currentTimeMillis() + 60L * 60 * 1000, endOfDay)
+        }
         val label = app.getString(
             R.string.board_moved_today,
             if (window != null) ai.prinim.prinyal.domain.Phrases.windowLabel(app, window)

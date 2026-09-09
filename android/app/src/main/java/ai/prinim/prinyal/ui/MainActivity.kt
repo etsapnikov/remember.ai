@@ -57,7 +57,8 @@ class MainActivity : ComponentActivity() {
                 ) {
                     mutableStateOf<Route>(
                         when {
-                            intent.getBooleanExtra(EXTRA_OPEN_WEEKLY, false) -> Route.Weekly
+                            // Итог недели с 1.5 живёт в «Днях» (Д-55); имя экстры историческое.
+                            intent.getBooleanExtra(EXTRA_OPEN_WEEKLY, false) -> Route.Days
                             openNoteId != null -> Route.Note(openNoteId)
                             // Голосом собранный пак открывает выбор записей, а
                             // не готовый файл (Д-28).
@@ -95,7 +96,7 @@ class MainActivity : ComponentActivity() {
                         return@LaunchedEffect
                     }
                     if (fresh.getBooleanExtra(EXTRA_OPEN_WEEKLY, false)) {
-                        route = Route.Weekly
+                        route = Route.Days
                         return@LaunchedEffect
                     }
                     fresh.getStringExtra(EXTRA_PACK_TOPIC)?.let { topic ->

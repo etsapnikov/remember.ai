@@ -71,9 +71,13 @@ fun CaptureHost(
     var heightPx by remember { mutableStateOf(0f) }
     val scope = rememberCoroutineScope()
 
+    // Состояние листа пересоздаётся вместе с высотой (поворот), и раньше
+    // стартовало с Hidden: повернул телефон на доске — оказался на экране
+    // записи. Последнее положение держим отдельно и стартуем с него.
+    var lastSheet by remember { mutableStateOf(SheetValue.Hidden) }
     val drag = remember(heightPx) {
         AnchoredDraggableState(
-            initialValue = SheetValue.Hidden,
+            initialValue = lastSheet,
             anchors = DraggableAnchors {
                 SheetValue.Hidden at heightPx
                 SheetValue.Shown at 0f
@@ -93,6 +97,7 @@ fun CaptureHost(
     }
 
     val sheetOpen = drag.currentValue == SheetValue.Shown
+    LaunchedEffect(drag.currentValue) { lastSheet = drag.currentValue }
     LaunchedEffect(sheetOpen) {
         if (sheetOpen) onFeedOpened()
     }
