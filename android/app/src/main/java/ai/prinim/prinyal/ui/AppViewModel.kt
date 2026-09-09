@@ -1145,31 +1145,52 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _undo.value = UndoEvent(UndoMessage.Moved(label)) { restore(itemId, was) }
     }
 
+    /**
+     * Момент «день D в окно W» от сегодняшнего числа.
+     *
+     * Окна пункта (`window = …`) считаются от даты записи, а не от сегодня
+     * (Scheduler.scheduleFor): для дела трёхнедельной давности «завтра утром» —
+     * это давно прошедшее утро, и планировщик молча уводил его в ближайшее
+     * окно. Карточка ложилась в «Сегодня», а строка отмены говорила «Завтра
+     * утром». Доска назначает день пальцем — значит, точной датой от сегодня.
+     */
+    private suspend fun boardInstant(daysFromToday: Long, window: Window): Long {
+        val zone = java.time.ZoneId.systemDefault()
+        return java.time.LocalDate.now(zone).plusDays(daysFromToday)
+            .atTime(app.settings.windowsNow().timeOf(window))
+            .atZone(zone).toInstant().toEpochMilli()
+    }
+
     /** Свайп вправо из стопки или из «Сегодня»: завтра утром (§5.1). */
-    fun moveTomorrow(itemId: String, fromInbox: Boolean = false) = move(
-        itemId, fromInbox, app.getString(R.string.board_moved_tomorrow),
-    ) { app.repository.editItem(itemId, window = Window.TOMORROW_MORNING) }
+    fun moveTomorrow(itemId: String, fromInbox: Boolean = false) = viewModelScope.launch {
+        val at = boardInstant(1, Window.MORNING)
+        move(itemId, fromInbox, app.getString(R.string.board_moved_tomorrow)) {
+            app.repository.editItem(itemId, exactAt = at)
+        }
+    }
 
     /** Свайп влево из «Завтра» или drag в «Сегодня»: ближайшее окно сегодня. */
     fun moveToday(itemId: String, fromInbox: Boolean = false) = viewModelScope.launch {
         val zone = java.time.ZoneId.systemDefault()
         val now = java.time.LocalTime.now(zone)
         val windows = app.settings.windowsNow()
+        // Ближайшее окно, которое ещё впереди; вечером позже вечернего — через
+        // час, но сегодня: человек сказал «сегодня», и это должно остаться сегодня.
         val window = listOf(Window.MORNING, Window.DAY, Window.EVENING)
-            .firstOrNull { windows.timeOf(it).isAfter(now) } ?: Window.EVENING
+            .firstOrNull { windows.timeOf(it).isAfter(now) }
+        val at = if (window != null) boardInstant(0, window)
+        else System.currentTimeMillis() + 60L * 60 * 1000
         val label = app.getString(
             R.string.board_moved_today,
-            ai.prinim.prinyal.domain.Phrases.windowLabel(app, window),
+            if (window != null) ai.prinim.prinyal.domain.Phrases.windowLabel(app, window)
+            else ai.prinim.prinyal.domain.Phrases.windowLabel(app, Window.EVENING),
         )
-        move(itemId, fromInbox, label) { app.repository.editItem(itemId, window = window) }
+        move(itemId, fromInbox, label) { app.repository.editItem(itemId, exactAt = at) }
     }
 
     /** Свайп вправо из «Завтра»: послезавтра утром. Точный день — через шторку. */
     fun moveAfterTomorrow(itemId: String) = viewModelScope.launch {
-        val zone = java.time.ZoneId.systemDefault()
-        val at = java.time.LocalDate.now(zone).plusDays(2)
-            .atTime(app.settings.windowsNow().timeOf(Window.MORNING))
-            .atZone(zone).toInstant().toEpochMilli()
+        val at = boardInstant(2, Window.MORNING)
         move(itemId, false, app.getString(R.string.board_moved_after_tomorrow)) {
             app.repository.editItem(itemId, exactAt = at)
         }

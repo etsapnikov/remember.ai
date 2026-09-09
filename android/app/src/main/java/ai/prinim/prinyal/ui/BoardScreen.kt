@@ -25,6 +25,7 @@ import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -163,46 +164,62 @@ private fun PortraitBoard(
             onPick = { scope.launch { pager.animateScrollToPage(it.ordinal) } },
         )
 
-        if (board.inbox.isNotEmpty()) {
-            InboxStack(
-                cards = board.inbox,
-                hintDone = hintDone,
-                expanded = inboxExpanded,
-                onToggle = { inboxExpanded = !inboxExpanded },
-                onOpen = onOpen,
-                onRight = { vm.moveTomorrow(it.item.id, fromInbox = true) },
-            )
-        }
-
-        HorizontalPager(
-            state = pager,
-            modifier = Modifier.weight(1f),
-            // Край соседней колонки 24 dp справа (§2): видно, куда тащить.
-            contentPadding = PaddingValues(start = Space.screen, end = Space.screen + PEEK),
-            pageSpacing = Space.sm,
-            beyondViewportPageCount = 1,
-        ) { page ->
-            val column = BoardColumn.entries[page]
-            ColumnCards(
-                column = column,
-                cards = board.column(column),
-                onOpen = onOpen,
-                onRight = { card -> swipeRight(vm, column, card) },
-                onLeft = { card -> swipeLeft(vm, column, card) },
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-
-        // Строка итога 48: «за неделю сделано N», при нуле — ничего (Д-54).
-        if (board.doneWeek > 0) {
-            Box(
-                Modifier.fillMaxWidth().height(48.dp).padding(horizontal = Space.screen),
-                contentAlignment = Alignment.CenterStart,
+        // Всё под заголовками — одна прокрутка. Раскрытая стопка из 34 карточек
+        // без неё уносила доску за экран: человек видел только входящие, табы
+        // переключали невидимый пейджер, а последняя карточка стояла обрезанной
+        // краем экрана и читалась как пустая. Доска — страница фиксированной
+        // высоты под стопкой: спека говорит «доска уезжает вниз», не «пропадает».
+        BoxWithConstraints(Modifier.weight(1f)) {
+            val pageHeight = maxHeight
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
             ) {
-                MetaText(
-                    text = stringResource(R.string.board_done_week, board.doneWeek),
-                    color = Prinyal.colors.inkFaint,
-                )
+                if (board.inbox.isNotEmpty()) {
+                    InboxStack(
+                        cards = board.inbox,
+                        hintDone = hintDone,
+                        expanded = inboxExpanded,
+                        onToggle = { inboxExpanded = !inboxExpanded },
+                        onOpen = onOpen,
+                        onRight = { vm.moveTomorrow(it.item.id, fromInbox = true) },
+                    )
+                }
+
+                HorizontalPager(
+                    state = pager,
+                    modifier = Modifier.height(pageHeight),
+                    // Край соседней колонки 24 dp справа (§2): видно, куда тащить.
+                    contentPadding = PaddingValues(start = Space.screen, end = Space.screen + PEEK),
+                    // Шаг страниц не меньше левого поля: иначе предыдущая колонка
+                    // просвечивала слева полоской в 8 dp и читалась как пустая карточка.
+                    pageSpacing = Space.screen,
+                    beyondViewportPageCount = 1,
+                ) { page ->
+                    val column = BoardColumn.entries[page]
+                    ColumnCards(
+                        column = column,
+                        cards = board.column(column),
+                        onOpen = onOpen,
+                        onRight = { card -> swipeRight(vm, column, card) },
+                        onLeft = { card -> swipeLeft(vm, column, card) },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+
+                // Строка итога 48: «за неделю сделано N», при нуле — ничего (Д-54).
+                if (board.doneWeek > 0) {
+                    Box(
+                        Modifier.fillMaxWidth().height(48.dp).padding(horizontal = Space.screen),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        MetaText(
+                            text = stringResource(R.string.board_done_week, board.doneWeek),
+                            color = Prinyal.colors.inkFaint,
+                        )
+                    }
+                }
             }
         }
     }
@@ -373,7 +390,7 @@ private fun InboxStack(
                 contentAlignment = Alignment.CenterStart,
             ) {
                 MetaText(
-                    text = if (expanded) stringResource(R.string.board_inbox).lowercase()
+                    text = if (expanded) stringResource(R.string.board_collapse)
                     else stringResource(R.string.board_more, rest),
                     color = Prinyal.colors.inkFaint,
                 )
@@ -426,7 +443,9 @@ private fun ColumnCards(
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(Space.s),
                 contentPadding = PaddingValues(top = Space.sm, bottom = Space.ml),
-                modifier = Modifier.alpha(if (dimmed) 0.5f else 1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .alpha(if (dimmed) 0.5f else 1f),
             ) {
                 items(cards, key = { it.item.id }) { card ->
                     SwipeCard(
@@ -517,10 +536,12 @@ private fun SwipeCard(
                                 commitRight -> {
                                     offset.animateTo(widthPx, tween(Motion.Polish.SNACK_IN_MS))
                                     onRight?.invoke()
+                                    offset.snapTo(0f)
                                 }
                                 commitLeft -> {
                                     offset.animateTo(-widthPx, tween(Motion.Polish.SNACK_IN_MS))
                                     onLeft?.invoke()
+                                    offset.snapTo(0f)
                                 }
                                 else -> offset.animateTo(0f, tween(Motion.Polish.FILTER_MS))
                             }

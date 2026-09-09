@@ -81,6 +81,7 @@
     <string name="board_inbox_hint">свайп — в день</string>
     <string name="board_inbox_voice">Ты не сказал, когда — значит, дня нет. Дай его здесь, и я вернусь.</string>
     <string name="board_more">ещё %1$d</string>
+    <string name="board_collapse">свернуть</string>
     <string name="board_done_week">за неделю сделано %1$d</string>
     <string name="board_overdue_since">ждёт с %1$s</string>
     <string name="board_repeat_fixed">перенос не двигает</string>
