@@ -226,6 +226,11 @@ private enum class SheetValue { Hidden, Shown }
 /** Лента и её экраны — тот же каркас, что открывается из уведомлений. */
 @Composable
 private fun FeedPane() {
-    var current by remember { mutableStateOf<Route>(Route.Feed) }
-    AppScaffold(route = current, onRoute = { current = it })
+    // Лист открывается на последней корневой поверхности, а не на «Записях»:
+    // владелец работал на доске, наговорил дело, вернулся — и оказывался в
+    // ленте. Маршрут читается из настроек один раз при открытии листа.
+    val vm: ai.prinim.prinyal.ui.AppViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    var current by remember { mutableStateOf<Route?>(null) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { if (current == null) current = vm.lastRoot() }
+    current?.let { AppScaffold(route = it, onRoute = { current = it }) }
 }

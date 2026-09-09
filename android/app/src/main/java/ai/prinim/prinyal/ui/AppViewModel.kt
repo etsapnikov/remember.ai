@@ -984,9 +984,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             .filter { it !in told }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    // --- последняя корневая поверхность ---
+
+    /** Корневые поверхности, к которым возвращаемся после записи. */
+    fun rememberRoot(route: Route) {
+        val key = when (route) {
+            Route.Feed -> "feed"
+            Route.Topics -> "topics"
+            Route.Days -> "days"
+            Route.Weekly -> "board"
+            else -> return
+        }
+        viewModelScope.launch { app.settings.setLastRoot(key) }
+    }
+
+    suspend fun lastRoot(): Route = when (app.settings.lastRoot()) {
+        "topics" -> Route.Topics
+        "days" -> Route.Days
+        "board" -> Route.Weekly
+        else -> Route.Feed
+    }
+
     // --- доска «Дела» (1.5, спека «Неделя доской») ---
 
-    enum class BoardColumn { TODAY, TOMORROW, LATER }
+    enum class BoardColumn { TODAY, TOMORROW, THIS_WEEK, LATER }
 
     /**
      * Карточка доски. [at] — момент, которым пункт попал в колонку: ручная дата
@@ -1006,6 +1027,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val inbox: List<BoardCard> = emptyList(),
         val today: List<BoardCard> = emptyList(),
         val tomorrow: List<BoardCard> = emptyList(),
+        /** Ближайшие семь дней после завтра — то же окно, что у ленты (CLOSED_WINDOW_DAYS). */
+        val week: List<BoardCard> = emptyList(),
         val later: List<BoardCard> = emptyList(),
         /** Сколько пунктов закрыто за семь дней — строка под доской, при 0 её нет. */
         val doneWeek: Int = 0,
@@ -1013,6 +1036,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         fun column(c: BoardColumn): List<BoardCard> = when (c) {
             BoardColumn.TODAY -> today
             BoardColumn.TOMORROW -> tomorrow
+            BoardColumn.THIS_WEEK -> week
             BoardColumn.LATER -> later
         }
     }
@@ -1036,6 +1060,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val startToday = today.atStartOfDay(zone).toInstant().toEpochMilli()
         val endToday = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
         val endTomorrow = today.plusDays(2).atStartOfDay(zone).toInstant().toEpochMilli()
+        val endWeek = today.plusDays(ai.prinim.prinyal.domain.FeedView.CLOSED_WINDOW_DAYS)
+            .atStartOfDay(zone).toInstant().toEpochMilli()
         val weekAgo = java.time.Instant.now().minus(java.time.Duration.ofDays(7)).toEpochMilli()
         val names = topicList.associate { it.id to it.name }
         val alive = setOf(ItemState.PLANNED, ItemState.RETURNED, ItemState.SNOOZED)
@@ -1069,6 +1095,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     at == null -> cols.getValue(BoardColumn.TODAY) += card
                     at < endToday -> cols.getValue(BoardColumn.TODAY) += card
                     at < endTomorrow -> cols.getValue(BoardColumn.TOMORROW) += card
+                    at < endWeek -> cols.getValue(BoardColumn.THIS_WEEK) += card
                     else -> cols.getValue(BoardColumn.LATER) += card
                 }
             }
@@ -1088,6 +1115,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             inbox = inbox.sortedBy { it.note.createdAt },
             today = todayCards,
             tomorrow = cols.getValue(BoardColumn.TOMORROW).sortedBy { it.at ?: Long.MAX_VALUE },
+            week = cols.getValue(BoardColumn.THIS_WEEK).sortedBy { it.at ?: Long.MAX_VALUE },
             later = cols.getValue(BoardColumn.LATER).sortedBy { it.at ?: Long.MAX_VALUE },
             doneWeek = doneWeek,
         )
@@ -1188,10 +1216,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         move(itemId, fromInbox, label) { app.repository.editItem(itemId, exactAt = at) }
     }
 
-    /** Свайп вправо из «Завтра»: послезавтра утром. Точный день — через шторку. */
-    fun moveAfterTomorrow(itemId: String) = viewModelScope.launch {
+    /** В «Неделю» — первый её день: послезавтра утром. Точный день — через шторку. */
+    fun moveThisWeek(itemId: String, fromInbox: Boolean = false) = viewModelScope.launch {
         val at = boardInstant(2, Window.MORNING)
-        move(itemId, false, app.getString(R.string.board_moved_after_tomorrow)) {
+        move(itemId, fromInbox, app.getString(R.string.board_moved_after_tomorrow)) {
+            app.repository.editItem(itemId, exactAt = at)
+        }
+    }
+
+    /** В «Позже» — первый день за окном недели: через семь дней утром. */
+    fun moveNextWeek(itemId: String) = viewModelScope.launch {
+        val at = boardInstant(ai.prinim.prinyal.domain.FeedView.CLOSED_WINDOW_DAYS, Window.MORNING)
+        move(itemId, false, app.getString(R.string.board_moved_next_week)) {
             app.repository.editItem(itemId, exactAt = at)
         }
     }

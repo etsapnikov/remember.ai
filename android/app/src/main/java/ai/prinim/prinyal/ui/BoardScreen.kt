@@ -23,6 +23,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -228,7 +229,8 @@ private fun PortraitBoard(
 /** Свайп вправо — на колонку позже (§5.1). Из «Позже» вправо — некуда. */
 private fun swipeRight(vm: AppViewModel, column: BoardColumn, card: BoardCard) = when (column) {
     BoardColumn.TODAY -> vm.moveTomorrow(card.item.id)
-    BoardColumn.TOMORROW -> vm.moveAfterTomorrow(card.item.id)
+    BoardColumn.TOMORROW -> vm.moveThisWeek(card.item.id)
+    BoardColumn.THIS_WEEK -> vm.moveNextWeek(card.item.id)
     BoardColumn.LATER -> null
 }
 
@@ -236,7 +238,8 @@ private fun swipeRight(vm: AppViewModel, column: BoardColumn, card: BoardCard) =
 private fun swipeLeft(vm: AppViewModel, column: BoardColumn, card: BoardCard) = when (column) {
     BoardColumn.TODAY -> vm.moveToInbox(card.item.id)
     BoardColumn.TOMORROW -> vm.moveToday(card.item.id)
-    BoardColumn.LATER -> vm.moveTomorrow(card.item.id)
+    BoardColumn.THIS_WEEK -> vm.moveTomorrow(card.item.id)
+    BoardColumn.LATER -> vm.moveThisWeek(card.item.id)
 }
 
 private fun canSwipeRight(column: BoardColumn?) = column != BoardColumn.LATER
@@ -246,11 +249,17 @@ private fun canSwipeLeft(column: BoardColumn?) = column != null
 @Composable
 private fun targetLabel(column: BoardColumn?, right: Boolean): String = when {
     column == null -> stringResource(R.string.board_col_tomorrow)
-    right && column == BoardColumn.TODAY -> stringResource(R.string.board_col_tomorrow)
-    right -> stringResource(R.string.board_col_later)
-    column == BoardColumn.TODAY -> stringResource(R.string.board_inbox)
-    column == BoardColumn.TOMORROW -> stringResource(R.string.board_col_today)
-    else -> stringResource(R.string.board_col_tomorrow)
+    right -> when (column) {
+        BoardColumn.TODAY -> stringResource(R.string.board_col_tomorrow)
+        BoardColumn.TOMORROW -> stringResource(R.string.board_col_week)
+        else -> stringResource(R.string.board_col_later)
+    }
+    else -> when (column) {
+        BoardColumn.TODAY -> stringResource(R.string.board_inbox)
+        BoardColumn.TOMORROW -> stringResource(R.string.board_col_today)
+        BoardColumn.THIS_WEEK -> stringResource(R.string.board_col_tomorrow)
+        BoardColumn.LATER -> stringResource(R.string.board_col_week)
+    }
 }
 
 /**
@@ -264,6 +273,7 @@ private fun ColumnHeaders(board: Board, active: BoardColumn, onPick: (BoardColum
             Modifier
                 .fillMaxWidth()
                 .height(Sizes.filterRow)
+                .horizontalScroll(rememberScrollState())
                 .padding(horizontal = Space.screen),
             horizontalArrangement = Arrangement.spacedBy(Space.screen),
             verticalAlignment = Alignment.CenterVertically,
@@ -313,6 +323,7 @@ private fun ColumnHeaders(board: Board, active: BoardColumn, onPick: (BoardColum
 private fun columnTitle(column: BoardColumn): String = when (column) {
     BoardColumn.TODAY -> stringResource(R.string.board_col_today)
     BoardColumn.TOMORROW -> stringResource(R.string.board_col_tomorrow)
+    BoardColumn.THIS_WEEK -> stringResource(R.string.board_col_week)
     BoardColumn.LATER -> stringResource(R.string.board_col_later)
 }
 
@@ -320,6 +331,7 @@ private fun columnTitle(column: BoardColumn): String = when (column) {
 private fun emptyLine(column: BoardColumn): String = when (column) {
     BoardColumn.TODAY -> stringResource(R.string.board_empty_today)
     BoardColumn.TOMORROW -> stringResource(R.string.board_empty_tomorrow)
+    BoardColumn.THIS_WEEK -> stringResource(R.string.board_empty_week)
     BoardColumn.LATER -> stringResource(R.string.board_empty_later)
 }
 
@@ -553,21 +565,32 @@ private fun SwipeCard(
     ) {
         // Подложка: акцент 12% с именем колонки и стрелкой на вскрывшейся стороне.
         if (direction != null && !fixed) {
+            val revealDp = with(density) { abs(offset.value).toDp() }
             Row(
                 Modifier
                     .matchParentSize()
                     .clip(Radius.chip)
-                    .background(Prinyal.colors.accentSelf.copy(alpha = if (Prinyal.colors.isDark) 0.16f else 0.12f))
-                    .padding(horizontal = Space.m),
+                    .background(Prinyal.colors.accentSelf.copy(alpha = if (Prinyal.colors.isDark) 0.16f else 0.12f)),
                 horizontalArrangement = if (direction) Arrangement.Start else Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(horizontalAlignment = if (direction) Alignment.Start else Alignment.End) {
-                    MetaText(
-                        text = (if (direction) labelRight else labelLeft).uppercase(),
-                        color = Prinyal.colors.accentSelf,
-                    )
-                    MetaText(text = if (direction) "→" else "←", color = Prinyal.colors.accentSelf)
+                // Метка стоит в открывшейся полосе и центрируется в ней: слово
+                // либо помещается целиком, либо его нет. Выровненное по краю оно
+                // открывалось с последней буквы — человек видел «А» и гадал.
+                Box(
+                    Modifier.width(revealDp).fillMaxHeight(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        if (revealDp >= LABEL_MIN_DP.dp) {
+                            MetaText(
+                                text = (if (direction) labelRight else labelLeft).uppercase(),
+                                color = Prinyal.colors.accentSelf,
+                                maxLines = 1,
+                            )
+                        }
+                        MetaText(text = if (direction) "→" else "←", color = Prinyal.colors.accentSelf)
+                    }
                 }
             }
         }
@@ -594,7 +617,9 @@ private fun CardBody(
 ) {
     val zone = ZoneId.systemDefault()
     val caption = buildList {
-        if (!inbox && card.at != null && column == BoardColumn.LATER) {
+        if (!inbox && card.at != null &&
+            (column == BoardColumn.LATER || column == BoardColumn.THIS_WEEK)
+        ) {
             add(Dates.day(card.at))
         } else {
             card.topic?.let { add(it) }
@@ -808,6 +833,7 @@ private fun drop(
     when (target) {
         BoardColumn.TODAY -> vm.moveToday(card.item.id, fromInbox)
         BoardColumn.TOMORROW -> vm.moveTomorrow(card.item.id, fromInbox)
+        BoardColumn.THIS_WEEK -> vm.moveThisWeek(card.item.id, fromInbox)
         BoardColumn.LATER -> onOpen(card)
     }
 }
@@ -887,3 +913,5 @@ private const val SWIPE_SOFT_DP = 64
 private const val SWIPE_VELOCITY_DP_S = 800
 private const val SWIPE_RESISTANCE = 0.6f
 private const val RUBBER_DP = 24
+/** Ширина полосы, с которой имя колонки помещается целиком (моно 13, до 8 букв). */
+private const val LABEL_MIN_DP = 96

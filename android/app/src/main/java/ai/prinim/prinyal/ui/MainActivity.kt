@@ -67,6 +67,16 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 val vm: AppViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+                // Открыто без явной цели — вернуться на последнюю корневую поверхность.
+                val explicit = intent.getBooleanExtra(EXTRA_OPEN_WEEKLY, false) ||
+                    openNoteId != null || packTopic != null
+                var rootLoaded by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    if (!explicit && !rootLoaded) {
+                        route = vm.lastRoot()
+                        rootLoaded = true
+                    }
+                }
                 androidx.compose.runtime.LaunchedEffect(packTopic) {
                     packTopic?.let { vm.openPackPickByTopic(it) }
                 }

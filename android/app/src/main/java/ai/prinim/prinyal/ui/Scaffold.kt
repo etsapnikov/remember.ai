@@ -77,6 +77,10 @@ fun AppScaffold(route: Route, onRoute: (Route) -> Unit) {
         onDispose { vm.purgeDeleted() }
     }
 
+    // Корневая поверхность запоминается: после записи человек возвращается
+    // туда, где работал, а не в «Записи» по умолчанию.
+    LaunchedEffect(route) { vm.rememberRoot(route) }
+
     Box(
         Modifier
             .fillMaxSize()

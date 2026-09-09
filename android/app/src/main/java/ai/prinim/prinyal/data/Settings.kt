@@ -166,6 +166,18 @@ class Settings(private val context: Context) {
     suspend fun boardHintDone(): Boolean =
         context.dataStore.data.first()[booleanPreferencesKey("board_hint_done")] ?: false
 
+    /**
+     * Последняя корневая поверхность — «Записи», «Разделы», «Дни» или «Дела».
+     * После записи лента открывалась всегда «Записями»: человек работал на
+     * доске, наговорил дело, вернулся — и оказался не там, где был.
+     */
+    suspend fun lastRoot(): String =
+        context.dataStore.data.first()[stringPreferencesKey("last_root")] ?: "feed"
+
+    suspend fun setLastRoot(key: String) {
+        context.dataStore.edit { it[stringPreferencesKey("last_root")] = key }
+    }
+
     suspend fun setBoardHintDone() {
         context.dataStore.edit { it[booleanPreferencesKey("board_hint_done")] = true }
     }
