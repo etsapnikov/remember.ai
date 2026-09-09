@@ -517,19 +517,29 @@ private fun SwipeCard(
             .onGloballyPositioned { widthPx = it.size.width.toFloat() }
             .pointerInput(card.item.id, fixed, onRight == null, onLeft == null) {
                 val tracker = VelocityTracker()
+                // Путь пальца считается отдельно от положения карточки. Раньше
+                // базой каждого кадра было уже смягчённое смещение, и коэффициент
+                // 0.6 накладывался на себя каждый кадр: после 64 dp карточка
+                // упиралась в потолок и до порога 96 не доходила никогда —
+                // срабатывал только быстрый мах по скорости. Два свайпа из
+                // десяти — ровно столько было быстрых.
+                var travel = 0f
                 detectHorizontalDragGestures(
-                    onDragStart = { tracker.resetTracking() },
+                    onDragStart = {
+                        tracker.resetTracking()
+                        travel = 0f
+                    },
                     onHorizontalDrag = { change, delta ->
                         tracker.addPosition(change.uptimeMillis, change.position)
-                        val raw = offset.value + delta
+                        travel += delta
                         val allowed = when {
-                            fixed -> raw.coerceIn(-rubberPx, rubberPx)
-                            raw > 0 && onRight == null -> raw.coerceAtMost(rubberPx)
-                            raw < 0 && onLeft == null -> raw.coerceAtLeast(-rubberPx)
-                            else -> raw
+                            fixed -> travel.coerceIn(-rubberPx, rubberPx)
+                            travel > 0 && onRight == null -> travel.coerceAtMost(rubberPx)
+                            travel < 0 && onLeft == null -> travel.coerceAtLeast(-rubberPx)
+                            else -> travel
                         }
-                        // Сопротивление после 64 dp: карточка даёт понять, что
-                        // порог близко, а не улетает от одного касания.
+                        // Сопротивление после 64 dp — от пути пальца, один раз:
+                        // карточка даёт понять, что порог близко, но доходит до него.
                         val eased = if (abs(allowed) > softPx) {
                             val over = abs(allowed) - softPx
                             (softPx + over * SWIPE_RESISTANCE) * if (allowed < 0) -1f else 1f
@@ -538,7 +548,8 @@ private fun SwipeCard(
                     },
                     onDragEnd = {
                         val v = tracker.calculateVelocity().x
-                        val x = offset.value
+                        // Порог — по пути пальца (96 dp), не по смягчённому смещению.
+                        val x = travel
                         val commitRight = !fixed && onRight != null &&
                             (x >= thresholdPx || (x > softPx / 2 && v >= velocityPx))
                         val commitLeft = !fixed && onLeft != null &&
