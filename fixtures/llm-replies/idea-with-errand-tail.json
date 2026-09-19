@@ -1,45 +1,45 @@
 {
  "id": "idea-with-errand-tail",
- "prompt_version": "11",
- "recorded_at": "2026-08-25T21:40:29",
- "took_s": 4.1,
+ "prompt_version": "12",
+ "recorded_at": "2026-09-18T22:26:11",
+ "took_s": 135.1,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2786,
-  "completion_tokens": 370,
-  "total_tokens": 3156,
+  "prompt_tokens": 3280,
+  "completion_tokens": 203,
+  "total_tokens": 3483,
   "prompt_tokens_details": {
-   "cached_tokens": 2688
+   "cached_tokens": 3072
   },
-  "prompt_cache_hit_tokens": 2688,
-  "prompt_cache_miss_tokens": 98
+  "prompt_cache_hit_tokens": 3072,
+  "prompt_cache_miss_tokens": 208
  },
  "response": {
-  "id": "547f34af-6ca7-4190-b238-8ca7c24fd3c7",
+  "id": "52f66850-8338-497c-83e9-8682ab4ea304",
   "object": "chat.completion",
-  "created": 1787683226,
-  "model": "deepseek-v4-flash",
+  "created": 1789759570,
+  "model": "deepseek-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"mixed\",\n  \"topic\": null,\n  \"entities\": [],\n  \"person_facts\": [],\n  \"body_md\": \"## Идея\\n\\nДумаю над тем, чтобы **вынести веса из АПК** — тогда установка станет секундной, а не трёхминутной. Надо посмотреть, как это делают другие.\\n\\n## Дела\\n\\n- Купить молока по дороге.\",\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"thought\",\n      \"text\": \"вынести веса из апк, чтобы установка стала секундной\",\n      \"who\": null,\n      \"due_kind\": \"none\",\n      \"window\": null,\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"вынести веса из апк тогда установка станет секундной а не трёхминутной\"\n    },\n    {\n      \"type\": \"do\",\n      \"text\": \"посмотреть как это делают другие\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"evening\",\n      \"exact_local\": null,\n      \"confidence\": \"medium\",\n      \"raw_span\": \"надо посмотреть как это делают другие\"\n    },\n    {\n      \"type\": \"buy\",\n      \"text\": \"купить молока\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"молока купить по дороге\"\n    }\n  ]\n}"
+     "content": "{\n  \"note_kind\": \"idea\",\n  \"topic\": \"Работа\",\n  \"entities\": [],\n  \"person_facts\": [],\n  \"body_md\": \"## Вынести веса из APK\\n\\nДумаю над тем, чтобы вынести веса из APK — тогда установка станет секундной, а не трёхминутной.\\n\\n- Надо посмотреть, как это делают другие.\\n\\n## Дом\\n\\n- Молока купить по дороге.\",\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"buy\",\n      \"text\": \"молока купить по дороге\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"молока купить по дороге\"\n    }\n  ]\n}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2786,
-   "completion_tokens": 370,
-   "total_tokens": 3156,
+   "prompt_tokens": 3280,
+   "completion_tokens": 203,
+   "total_tokens": 3483,
    "prompt_tokens_details": {
-    "cached_tokens": 2688
+    "cached_tokens": 3072
    },
-   "prompt_cache_hit_tokens": 2688,
-   "prompt_cache_miss_tokens": 98
+   "prompt_cache_hit_tokens": 3072,
+   "prompt_cache_miss_tokens": 208
   },
-  "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
+  "system_fingerprint": "aeb56401ca74e127821c4f9126dcb669"
  }
 }

@@ -15,11 +15,13 @@ replay продолжит проходить, проверяя вчерашни�
 
 from __future__ import annotations
 
+import http.client
 import json
 import pathlib
 import re
 import sys
 import time
+import urllib.error
 import urllib.request
 from datetime import datetime
 
@@ -70,8 +72,18 @@ def ask(transcript: str, now: datetime, key: str, candidates=None, thinking=Fals
         data=json.dumps(payload).encode(),
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
     )
-    with urllib.request.urlopen(request, timeout=400) as response:
-        return json.loads(response.read())
+    # Сеть до фронта DeepSeek с Mac моргает: один вызов из трёх обрывается по
+    # TLS. Плёнка из тринадцати записей не должна падать на восьмой.
+    last = None
+    for attempt in range(5):
+        try:
+            with urllib.request.urlopen(request, timeout=400) as response:
+                return json.loads(response.read())
+        except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException, json.JSONDecodeError) as e:
+            last = e
+            print(f"    [сеть] попытка {attempt + 1}: {type(e).__name__}", file=sys.stderr)
+            time.sleep(2 * (attempt + 1))
+    raise RuntimeError(f"DeepSeek не ответил после 5 попыток: {last}")
 
 
 def main() -> None:

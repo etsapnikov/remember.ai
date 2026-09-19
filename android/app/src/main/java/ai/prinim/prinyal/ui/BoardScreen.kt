@@ -132,11 +132,11 @@ fun BoardScreen(vm: AppViewModel) {
                 editing = null
             },
             onDone = {
-                vm.markDone(card.item.id)
+                vm.doneGroup(card.item.id)
                 editing = null
             },
             onDismissItem = {
-                vm.dismiss(card.item.id)
+                vm.dismissGroup(card.item.id)
                 editing = null
             },
         )
@@ -652,7 +652,7 @@ private fun CardBody(
         verticalArrangement = Arrangement.spacedBy(Space.xs),
     ) {
         Text(
-            text = card.item.text,
+            text = card.title,
             style = if (compact) Prinyal.type.hintSecondary.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
             else Prinyal.type.itemTitle,
             color = Prinyal.colors.ink,

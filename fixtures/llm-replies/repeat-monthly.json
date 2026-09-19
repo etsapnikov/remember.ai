@@ -1,45 +1,45 @@
 {
  "id": "repeat-monthly",
- "prompt_version": "11",
- "recorded_at": "2026-08-25T21:40:47",
- "took_s": 2.4,
+ "prompt_version": "12",
+ "recorded_at": "2026-09-18T23:38:45",
+ "took_s": 1.6,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2759,
-  "completion_tokens": 119,
-  "total_tokens": 2878,
+  "prompt_tokens": 3253,
+  "completion_tokens": 129,
+  "total_tokens": 3382,
   "prompt_tokens_details": {
-   "cached_tokens": 2688
+   "cached_tokens": 3072
   },
-  "prompt_cache_hit_tokens": 2688,
-  "prompt_cache_miss_tokens": 71
+  "prompt_cache_hit_tokens": 3072,
+  "prompt_cache_miss_tokens": 181
  },
  "response": {
-  "id": "cee0383c-41ca-4ffb-9163-7cc120e124f5",
+  "id": "46f07ffc-f5e4-43b6-8693-6bea44f597c9",
   "object": "chat.completion",
-  "created": 1787683246,
-  "model": "deepseek-v4-flash",
+  "created": 1789763924,
+  "model": "deepseek-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\"note_kind\": \"tasks\", \"topic\": \"Дом\", \"entities\": [], \"person_facts\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"do\", \"text\": \"передавать показания счётчиков\", \"who\": null, \"due_kind\": \"none\", \"window\": null, \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"передавать показания счётчиков\", \"repeat\": \"monthly:15\"}]}"
+     "content": "{\"note_kind\": \"reminder\", \"topic\": \"Дом\", \"entities\": [], \"person_facts\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"do\", \"text\": \"передавать показания счётчиков\", \"who\": null, \"due_kind\": \"none\", \"window\": null, \"exact_local\": null, \"repeat\": \"monthly:15\", \"confidence\": \"high\", \"raw_span\": \"напоминай каждый месяц пятнадцатого числа передавать показания счётчиков\"}]}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2759,
-   "completion_tokens": 119,
-   "total_tokens": 2878,
+   "prompt_tokens": 3253,
+   "completion_tokens": 129,
+   "total_tokens": 3382,
    "prompt_tokens_details": {
-    "cached_tokens": 2688
+    "cached_tokens": 3072
    },
-   "prompt_cache_hit_tokens": 2688,
-   "prompt_cache_miss_tokens": 71
+   "prompt_cache_hit_tokens": 3072,
+   "prompt_cache_miss_tokens": 181
   },
-  "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
+  "system_fingerprint": "aeb56401ca74e127821c4f9126dcb669"
  }
 }

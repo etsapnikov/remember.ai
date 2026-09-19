@@ -1,6 +1,7 @@
 package ai.prinim.prinyal.capture
 
 import ai.prinim.prinyal.PrinyalApp
+import ai.prinim.prinyal.data.CaptureSource
 import ai.prinim.prinyal.asr.AudioDecoder
 import ai.prinim.prinyal.asr.ModelStore
 import ai.prinim.prinyal.domain.LinkCandidates
@@ -52,7 +53,10 @@ class UploadWorker(
 
         for (note in pending) {
             val audio = File(note.audioPath)
-            if (!audio.exists()) {
+            // Набранная запись (1.6) аудио не имеет — транскрипт у неё с
+            // рождения, распознавать нечего, проверка файла её не касается.
+            val typed = note.source == CaptureSource.TYPED.wire
+            if (!typed && !audio.exists()) {
                 // Файла нет — разбирать нечего; запись помечаем, но не удаляем:
                 // пусть будет видно, что здесь что-то было.
                 app.repository.markFailed(note.id, "audio_missing")

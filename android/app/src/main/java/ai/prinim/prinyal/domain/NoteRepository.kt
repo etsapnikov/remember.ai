@@ -84,6 +84,33 @@ class NoteRepository(
         )
     }
 
+    /**
+     * Запись с клавиатуры (1.6): когда говорить нельзя — совещание, транспорт,
+     * спящий ребёнок. Аудио нет, транскрипт есть сразу; дальше конвейер тот же,
+     * что у речи, — разбор, разделы, люди, возвраты. Текст не правится и не
+     * «улучшается»: человек написал, как сказал бы.
+     */
+    suspend fun createTypedNote(id: String, text: String): Boolean {
+        val clean = text.trim()
+        if (clean.isEmpty()) return false
+        db.notes().insert(
+            NoteEntity(
+                id = id,
+                createdAt = Instant.now().toEpochMilli(),
+                audioPath = "",
+                transcript = clean,
+                status = NoteStatus.RECORDED.wire,
+                durationMs = 0,
+                source = CaptureSource.TYPED.wire,
+            )
+        )
+        analytics.log(
+            Analytics.CAPTURE_STOP,
+            mapOf("note" to id, "source" to CaptureSource.TYPED.wire, "chars" to clean.length),
+        )
+        return true
+    }
+
     // --- разбор ---
 
     /**

@@ -66,6 +66,7 @@ fun CaptureHost(
     onGrant: () -> Unit,
     onFeedOpened: () -> Unit,
     onStart: () -> Unit = {},
+    onTyped: ((String) -> Unit)? = null,
 ) {
     val density = LocalDensity.current
     var heightPx by remember { mutableStateOf(0f) }
@@ -208,6 +209,7 @@ fun CaptureHost(
                 onCancel = onCancel,
                 onGrant = onGrant,
                 onStart = onStart,
+                onTyped = onTyped,
             )
         }
 

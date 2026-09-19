@@ -286,6 +286,6 @@ class OnDeviceParsingTest {
         // версию с сервера, а `CoreLoopFixturesTest` сверяет её с этой. Здесь же
         // канарейка на забытое поднятие: правка промпта без смены версии
         // означала бы, что аналитика §8 сравнивает несравнимое.
-        assertEquals("11", Prompt.VERSION)
+        assertEquals("12", Prompt.VERSION)
     }
 }

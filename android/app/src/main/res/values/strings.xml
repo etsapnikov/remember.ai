@@ -75,6 +75,16 @@
     <string name="board_col_tomorrow">Завтра</string>
     <string name="board_col_later">Позже</string>
     <string name="board_col_week">Неделя</string>
+    <!-- Ввод с клавиатуры (1.6): когда говорить нельзя. -->
+    <string name="typed_open">Написать</string>
+    <string name="typed_hint">Пиши как сказал бы — разберу так же</string>
+    <string name="typed_save">Принял</string>
+    <string name="typed_cancel">отмена</string>
+    <string name="typed_plate">написано</string>
+    <!-- Виды записи (1.6): список и напоминание не режутся на дела. -->
+    <string name="kind_list">Список</string>
+    <string name="kind_reminder">Напоминание</string>
+    <string name="kind_idea">Идея</string>
     <string name="board_empty_today">на сегодня ничего не назначено</string>
     <string name="board_empty_tomorrow">на завтра ничего не назначено</string>
     <string name="board_empty_later">дальше ничего не назначено</string>

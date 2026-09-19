@@ -1,45 +1,45 @@
 {
  "id": "date-explicit",
- "prompt_version": "11",
- "recorded_at": "2026-08-25T21:40:12",
- "took_s": 3.3,
+ "prompt_version": "12",
+ "recorded_at": "2026-09-18T22:19:20",
+ "took_s": 2.1,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2756,
-  "completion_tokens": 145,
-  "total_tokens": 2901,
+  "prompt_tokens": 3250,
+  "completion_tokens": 128,
+  "total_tokens": 3378,
   "prompt_tokens_details": {
-   "cached_tokens": 0
+   "cached_tokens": 3072
   },
-  "prompt_cache_hit_tokens": 0,
-  "prompt_cache_miss_tokens": 2756
+  "prompt_cache_hit_tokens": 3072,
+  "prompt_cache_miss_tokens": 178
  },
  "response": {
-  "id": "87d05808-c126-452e-a29e-8dba9289a505",
+  "id": "2ee9856e-7676-46d5-9fbf-7ea3c79e9948",
   "object": "chat.completion",
-  "created": 1787683211,
-  "model": "deepseek-v4-flash",
+  "created": 1789759159,
+  "model": "deepseek-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Дом\",\n  \"entities\": [],\n  \"person_facts\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"do\",\n      \"text\": \"оплатить счёт за садик\",\n      \"who\": null,\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2026-09-10T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"счёт за садик оплатить десятого сентября\"\n    }\n  ]\n}"
+     "content": "{\"note_kind\": \"reminder\", \"topic\": \"Дом\", \"entities\": [], \"person_facts\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"do\", \"text\": \"оплатить счёт за садик\", \"who\": null, \"due_kind\": \"exact\", \"window\": null, \"exact_local\": \"2026-09-10T09:00\", \"confidence\": \"high\", \"raw_span\": \"счёт за садик оплатить десятого сентября не забыть\"}]}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2756,
-   "completion_tokens": 145,
-   "total_tokens": 2901,
+   "prompt_tokens": 3250,
+   "completion_tokens": 128,
+   "total_tokens": 3378,
    "prompt_tokens_details": {
-    "cached_tokens": 0
+    "cached_tokens": 3072
    },
-   "prompt_cache_hit_tokens": 0,
-   "prompt_cache_miss_tokens": 2756
+   "prompt_cache_hit_tokens": 3072,
+   "prompt_cache_miss_tokens": 178
   },
-  "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
+  "system_fingerprint": "aeb56401ca74e127821c4f9126dcb669"
  }
 }

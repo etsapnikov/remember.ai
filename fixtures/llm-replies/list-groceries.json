@@ -1,45 +1,45 @@
 {
  "id": "list-groceries",
- "prompt_version": "11",
- "recorded_at": "2026-08-25T21:40:39",
- "took_s": 4.1,
+ "prompt_version": "12",
+ "recorded_at": "2026-09-18T22:28:31",
+ "took_s": 136.2,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2788,
-  "completion_tokens": 507,
-  "total_tokens": 3295,
+  "prompt_tokens": 3282,
+  "completion_tokens": 422,
+  "total_tokens": 3704,
   "prompt_tokens_details": {
-   "cached_tokens": 2688
+   "cached_tokens": 3072
   },
-  "prompt_cache_hit_tokens": 2688,
-  "prompt_cache_miss_tokens": 100
+  "prompt_cache_hit_tokens": 3072,
+  "prompt_cache_miss_tokens": 210
  },
  "response": {
-  "id": "19815432-140b-4bbc-9534-1741f4a019eb",
+  "id": "d63a50d3-bce0-465d-8a64-1db7ce8dacb7",
   "object": "chat.completion",
-  "created": 1787683236,
-  "model": "deepseek-v4-flash",
+  "created": 1789759709,
+  "model": "deepseek-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"tasks\",\n  \"topic\": \"Дом\",\n  \"entities\": [\"Соня\"],\n  \"person_facts\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"buy\",\n      \"text\": \"молока\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"молока\"\n    },\n    {\n      \"type\": \"buy\",\n      \"text\": \"хлеб чёрный\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"хлеб чёрный\"\n    },\n    {\n      \"type\": \"buy\",\n      \"text\": \"яйца десяток\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"яйца десяток\"\n    },\n    {\n      \"type\": \"buy\",\n      \"text\": \"яблоки для Сони\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"соня просила яблок\"\n    },\n    {\n      \"type\": \"do\",\n      \"text\": \"забрать посылку по дороге\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"по дороге забрать посылку\"\n    },\n    {\n      \"type\": \"do\",\n      \"text\": \"зайти в химчистку\",\n      \"who\": null,\n      \"due_kind\": \"window\",\n      \"window\": \"day\",\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"в химчистку зайти\"\n    }\n  ]\n}"
+     "content": "{\"note_kind\": \"list\", \"topic\": \"Покупки\", \"entities\": [\"Соня\"], \"person_facts\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"buy\", \"text\": \"молока взять\", \"who\": null, \"due_kind\": \"day\", \"window\": \"day\", \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"молока взять\"}, {\"type\": \"buy\", \"text\": \"хлеб чёрный\", \"who\": null, \"due_kind\": \"none\", \"window\": null, \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"хлеб чёрный\"}, {\"type\": \"buy\", \"text\": \"яйца десяток\", \"who\": null, \"due_kind\": \"none\", \"window\": null, \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"яйца десяток\"}, {\"type\": \"buy\", \"text\": \"яблок\", \"who\": null, \"due_kind\": \"none\", \"window\": null, \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"соня просила яблок\"}, {\"type\": \"do\", \"text\": \"по дороге забрать посылку\", \"who\": null, \"due_kind\": \"none\", \"window\": null, \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"по дороге забрать посылку\"}, {\"type\": \"do\", \"text\": \"в химчистку зайти\", \"who\": null, \"due_kind\": \"none\", \"window\": null, \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"в химчистку зайти\"}]}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2788,
-   "completion_tokens": 507,
-   "total_tokens": 3295,
+   "prompt_tokens": 3282,
+   "completion_tokens": 422,
+   "total_tokens": 3704,
    "prompt_tokens_details": {
-    "cached_tokens": 2688
+    "cached_tokens": 3072
    },
-   "prompt_cache_hit_tokens": 2688,
-   "prompt_cache_miss_tokens": 100
+   "prompt_cache_hit_tokens": 3072,
+   "prompt_cache_miss_tokens": 210
   },
-  "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
+  "system_fingerprint": "aeb56401ca74e127821c4f9126dcb669"
  }
 }

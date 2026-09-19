@@ -7,9 +7,11 @@
     "items_min": 5,
     "items_max": 7,
     "note_kind": [
+      "list",
       "tasks"
     ],
     "has_topic": true,
     "split": false
-  }
+  },
+  "note": "С v12 перечисление покупок — вид list: пункты по одному, срок общий (scope-1_6_0)."
 }

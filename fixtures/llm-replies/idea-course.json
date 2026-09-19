@@ -1,45 +1,45 @@
 {
  "id": "idea-course",
- "prompt_version": "11",
- "recorded_at": "2026-08-25T21:40:25",
- "took_s": 4.2,
+ "prompt_version": "12",
+ "recorded_at": "2026-09-18T22:23:56",
+ "took_s": 2.3,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2831,
-  "completion_tokens": 504,
-  "total_tokens": 3335,
+  "prompt_tokens": 3325,
+  "completion_tokens": 260,
+  "total_tokens": 3585,
   "prompt_tokens_details": {
-   "cached_tokens": 2688
+   "cached_tokens": 3072
   },
-  "prompt_cache_hit_tokens": 2688,
-  "prompt_cache_miss_tokens": 143
+  "prompt_cache_hit_tokens": 3072,
+  "prompt_cache_miss_tokens": 253
  },
  "response": {
-  "id": "f58e1874-6921-4186-94b7-123666830451",
+  "id": "45a960a0-5ffb-4c65-9a0d-d640fea8b1ad",
   "object": "chat.completion",
-  "created": 1787683222,
-  "model": "deepseek-v4-flash",
+  "created": 1789759435,
+  "model": "deepseek-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"idea\",\n  \"topic\": null,\n  \"entities\": [],\n  \"person_facts\": [],\n  \"body_md\": \"## Идея курса для родителей-одиночек\\n\\n- Четыре встречи по будням вечером онлайн.\\n- Не терапия и не лекции, а разбор конкретных ситуаций, которые приносят сами.\\n- Надо проверить: пойдут ли по будням, а не в выходные, и потянут ли платно с первой встречи.\\n- Ещё непонятно: сколько человек в группе и нужен ли второй ведущий.\",\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"thought\",\n      \"text\": \"проверить, пойдут ли по будням, а не в выходные\",\n      \"who\": null,\n      \"due_kind\": \"none\",\n      \"window\": null,\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"надо проверить пойдут ли по будням а не в выходные\"\n    },\n    {\n      \"type\": \"thought\",\n      \"text\": \"проверить, потянут ли платно с первой встречи\",\n      \"who\": null,\n      \"due_kind\": \"none\",\n      \"window\": null,\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"потянут ли платно с первой встречи\"\n    },\n    {\n      \"type\": \"thought\",\n      \"text\": \"непонятно, сколько человек в группе\",\n      \"who\": null,\n      \"due_kind\": \"none\",\n      \"window\": null,\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"ещё непонятно сколько человек в группе\"\n    },\n    {\n      \"type\": \"thought\",\n      \"text\": \"непонятно, нужен ли второй ведущий\",\n      \"who\": null,\n      \"due_kind\": \"none\",\n      \"window\": null,\n      \"exact_local\": null,\n      \"confidence\": \"high\",\n      \"raw_span\": \"нужен ли второй ведущий\"\n    }\n  ]\n}"
+     "content": "{\"note_kind\": \"idea\", \"topic\": \"Курс\", \"entities\": [], \"person_facts\": [], \"body_md\": \"## Курс для родителей-одиночек\\n\\nИдея: **четыре встречи по будням вечером, онлайн**.\\n\\n- Не терапия и не лекции, а разбор конкретных ситуаций, которые приносят сами.\\n- Надо проверить, пойдут ли по будням, а не в выходные.\\n- Потянут ли платно с первой встречи — ещё непонятно.\\n- Непонятно, сколько человек в группе.\\n- Непонятно, нужен ли второй ведущий.\", \"second\": null, \"items\": [{\"type\": \"thought\", \"text\": \"Проверить, пойдут ли по будням, а не в выходные\", \"who\": null, \"due_kind\": \"none\", \"window\": null, \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"надо проверить пойдут ли по будням а не в выходные\"}], \"links\": []}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2831,
-   "completion_tokens": 504,
-   "total_tokens": 3335,
+   "prompt_tokens": 3325,
+   "completion_tokens": 260,
+   "total_tokens": 3585,
    "prompt_tokens_details": {
-    "cached_tokens": 2688
+    "cached_tokens": 3072
    },
-   "prompt_cache_hit_tokens": 2688,
-   "prompt_cache_miss_tokens": 143
+   "prompt_cache_hit_tokens": 3072,
+   "prompt_cache_miss_tokens": 253
   },
-  "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
+  "system_fingerprint": "aeb56401ca74e127821c4f9126dcb669"
  }
 }

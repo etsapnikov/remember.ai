@@ -3,6 +3,7 @@ package ai.prinim.prinyal.capture
 import ai.prinim.prinyal.R
 import ai.prinim.prinyal.ui.components.LevelBars
 import ai.prinim.prinyal.ui.components.PrimaryButton
+import ai.prinim.prinyal.ui.components.TertiaryButton
 import ai.prinim.prinyal.ui.components.RecordKey
 import ai.prinim.prinyal.ui.components.rememberAmplitude
 import ai.prinim.prinyal.ui.theme.MetaText
@@ -111,7 +112,19 @@ fun CaptureScreen(
     onCancel: () -> Unit,
     onGrant: () -> Unit,
     onStart: () -> Unit = {},
+    /** Текст с клавиатуры (1.6): пустой обработчик — кнопки «Написать» нет. */
+    onTyped: ((String) -> Unit)? = null,
 ) {
+    var typing by remember { mutableStateOf(false) }
+    if (typing && onTyped != null) {
+        TypedSheet(
+            onSave = { text ->
+                typing = false
+                onTyped(text)
+            },
+            onDismiss = { typing = false },
+        )
+    }
     // Вертикальные жесты живут в CaptureHost: вверх тянет лист ленты, вниз отменяет.
     Box(
         Modifier
@@ -132,10 +145,16 @@ fun CaptureScreen(
                 step = state.receiptStep,
                 about = state.receiptAbout,
             )
-            state.needsPermission -> PermissionRequest(onGrant)
+            state.needsPermission -> PermissionRequest(
+                onGrant = onGrant,
+                onTyped = if (onTyped != null) ({ typing = true }) else null,
+            )
             state.failed -> Message(stringResource(R.string.error_asr_failed))
             state.tooShort -> Message(stringResource(R.string.capture_too_short))
-            else -> Recording(state, hasNotes, onStop = onStop, onStart = onStart)
+            else -> Recording(
+                state, hasNotes, onStop = onStop, onStart = onStart,
+                onTyped = if (onTyped != null) ({ typing = true }) else ({}),
+            )
         }
 
         // Плашка контекста дописывания (Д-3): прижата к верху, набрана
@@ -222,6 +241,7 @@ private fun Recording(
     hasNotes: Boolean,
     onStop: () -> Unit,
     onStart: () -> Unit,
+    onTyped: () -> Unit = {},
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -290,6 +310,18 @@ private fun Recording(
             }
         }
 
+        // Ввод с клавиатуры (1.6) — под подсказками, третичной кнопкой: это
+        // второй рот, а не второй продукт. Виден только в покое и в записи;
+        // в квитанции и отсчёте ему делать нечего.
+        if (state.silenceLeftMs <= 0) {
+            Box(Modifier.height(Space.m))
+            TertiaryButton(
+                text = stringResource(R.string.typed_open),
+                onClick = onTyped,
+                color = Prinyal.colors.inkMuted,
+            )
+        }
+
         Box(Modifier.weight(0.55f))
     }
 }
@@ -316,7 +348,7 @@ private fun HintSecondary(text: String) {
 }
 
 @Composable
-private fun PermissionRequest(onGrant: () -> Unit) {
+private fun PermissionRequest(onGrant: () -> Unit, onTyped: (() -> Unit)? = null) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(Space.screen),
@@ -350,6 +382,16 @@ private fun PermissionRequest(onGrant: () -> Unit) {
             height = Sizes.buttonAllow,
             shape = Radius.pill,
         )
+        // Без микрофона записать можно только буквами (1.6): человек, который
+        // не дал доступ, — тот же, кому сейчас нельзя говорить вслух.
+        if (onTyped != null) {
+            Box(Modifier.height(Space.m))
+            TertiaryButton(
+                text = stringResource(R.string.typed_open),
+                onClick = onTyped,
+                color = Prinyal.colors.inkMuted,
+            )
+        }
     }
 }
 

@@ -1,45 +1,45 @@
 {
  "id": "decision-release",
- "prompt_version": "11",
- "recorded_at": "2026-08-25T21:40:18",
- "took_s": 2.7,
+ "prompt_version": "12",
+ "recorded_at": "2026-09-18T22:19:24",
+ "took_s": 2.1,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2759,
-  "completion_tokens": 148,
-  "total_tokens": 2907,
+  "prompt_tokens": 3253,
+  "completion_tokens": 137,
+  "total_tokens": 3390,
   "prompt_tokens_details": {
-   "cached_tokens": 2688
+   "cached_tokens": 3072
   },
-  "prompt_cache_hit_tokens": 2688,
-  "prompt_cache_miss_tokens": 71
+  "prompt_cache_hit_tokens": 3072,
+  "prompt_cache_miss_tokens": 181
  },
  "response": {
-  "id": "b5cc38e9-ff6b-45e5-bfd4-6e11570909fb",
+  "id": "d2f82b9c-2da7-4ab6-949e-eed8ed07908f",
   "object": "chat.completion",
-  "created": 1787683216,
-  "model": "deepseek-v4-flash",
+  "created": 1789759163,
+  "model": "deepseek-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"decision\",\n  \"topic\": \"Работа\",\n  \"entities\": [\"Дима\"],\n  \"person_facts\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [\n    {\n      \"type\": \"decision\",\n      \"text\": \"переносим релиз на октябрь\",\n      \"who\": \"Дима\",\n      \"due_kind\": \"exact\",\n      \"window\": null,\n      \"exact_local\": \"2026-10-01T09:00\",\n      \"confidence\": \"high\",\n      \"raw_span\": \"решили переносить релиз на октябрь\"\n    }\n  ]\n}"
+     "content": "{\"note_kind\": \"decision\", \"topic\": \"Работа\", \"entities\": [\"Дима\"], \"person_facts\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"decision\", \"text\": \"решили переносить релиз на октябрь\", \"who\": \"Дима\", \"due_kind\": \"exact\", \"window\": null, \"exact_local\": \"2026-10-01T09:00\", \"confidence\": \"high\", \"raw_span\": \"созвонились с димой решили переносить релиз на октябрь\"}]}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2759,
-   "completion_tokens": 148,
-   "total_tokens": 2907,
+   "prompt_tokens": 3253,
+   "completion_tokens": 137,
+   "total_tokens": 3390,
    "prompt_tokens_details": {
-    "cached_tokens": 2688
+    "cached_tokens": 3072
    },
-   "prompt_cache_hit_tokens": 2688,
-   "prompt_cache_miss_tokens": 71
+   "prompt_cache_hit_tokens": 3072,
+   "prompt_cache_miss_tokens": 181
   },
-  "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
+  "system_fingerprint": "aeb56401ca74e127821c4f9126dcb669"
  }
 }

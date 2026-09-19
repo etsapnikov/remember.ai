@@ -110,7 +110,17 @@ enum class NoteKind(val wire: String) {
     TASKS("tasks"), IDEA("idea"), QUESTION("question"), FACTS("facts"), MIXED("mixed"),
 
     /** Запись о том, что решили или договорились (Р-15.10). */
-    DECISION("decision");
+    DECISION("decision"),
+
+    /**
+     * Перечисление однородного — покупки, вещи в дорогу (1.6). Один жанр из
+     * трёх, которые не режутся на дела: пункты списка не возвращаются по
+     * одному, у списка один срок на всех.
+     */
+    LIST("list"),
+
+    /** Одно напоминание с одним сроком — не комок дел (1.6). */
+    REMINDER("reminder");
 
     companion object {
         fun of(wire: String?): NoteKind? = entries.firstOrNull { it.wire == wire }
@@ -127,7 +137,10 @@ enum class TopicKind(val wire: String) {
 }
 
 enum class CaptureSource(val wire: String) {
-    ICON("icon"), WIDGET("widget"), TILE("tile");
+    ICON("icon"), WIDGET("widget"), TILE("tile"),
+
+    /** Набрано с клавиатуры (1.6): аудио у записи нет, транскрипт — с рождения. */
+    TYPED("typed");
 
     companion object {
         fun of(wire: String?): CaptureSource = entries.firstOrNull { it.wire == wire } ?: ICON

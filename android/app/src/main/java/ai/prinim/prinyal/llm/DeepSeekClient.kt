@@ -158,6 +158,18 @@ class DeepSeekClient(
                     personFacts = ItemValidator.personFactsOf(root, transcript),
                             bodyMd = Markdown.sanitize(ItemValidator.stringOrNull(root, "body_md"))
                                 .ifBlank { null },
+                            // Идея без пунктов — обычный ответ v12, и связи, срок
+                            // записи и вторая половина у неё такие же настоящие,
+                            // как у записи с делами. До 1.6 эта ветка их теряла:
+                            // «продолжение прежней мысли» без дел линковалось в
+                            // никуда, а вторая тема-идея исчезала целиком.
+                            noteDueAt = ItemValidator.parseNoteDue(root, now, zone),
+                            links = LinkValidator.validate(
+                                root.optJSONArray("links"),
+                                candidates.map { it.first }.toSet(),
+                                selfId = "",
+                            ),
+                            second = secondOf(root, transcript, now, zone),
                             degraded = null,
                             asrMs = 0,
                             llmMs = 0,
@@ -727,16 +739,21 @@ class DeepSeekClient(
         if (root.isNull("second")) return null
         val node = root.optJSONObject("second") ?: return null
         val items = ItemValidator.validate(itemsOf(node), transcript, now, zone).items
-        if (items.isEmpty()) return null
+        val body = Markdown.sanitize(ItemValidator.stringOrNull(node, "body_md")).ifBlank { null }
+        val kind = NoteKind.of(node.optString("note_kind").takeIf { it.isNotBlank() })
+        // Вторая половина без дел — законна, если это замысел с телом: под v12
+        // «совсем отдельно хочу переделать сайт» — идея, и пунктов у неё нет.
+        // Требовать пункты значило бы терять вторую тему всякий раз, когда она
+        // не список дел.
+        if (items.isEmpty() && (body == null || kind == null)) return null
 
         return ParseResult(
             transcript = transcript,
             items = items,
-            noteKind = NoteKind.of(node.optString("note_kind").takeIf { it.isNotBlank() }),
+            noteKind = kind,
             topic = ItemValidator.topicOf(node),
             entities = ItemValidator.entitiesOf(node),
-            bodyMd = Markdown.sanitize(ItemValidator.stringOrNull(node, "body_md"))
-                .ifBlank { null },
+            bodyMd = body,
             degraded = null,
             asrMs = 0,
             llmMs = 0,

@@ -94,6 +94,7 @@ class CaptureActivity : ComponentActivity() {
                         }
                     },
                     onStart = ::beginRecording,
+                    onTyped = ::saveTyped,
                 )
             }
         }
@@ -513,6 +514,26 @@ class CaptureActivity : ComponentActivity() {
             kotlinx.coroutines.delay(400)
         }
         state.receiptStep = false to null
+    }
+
+    /**
+     * Набранная запись (1.6). Идущая запись отбрасывается: человек выбрал
+     * клавиатуру вместо голоса, а не в дополнение к нему — иначе в ленту
+     * легли бы две записи, одна из них с тишиной комнаты.
+     */
+    private fun saveTyped(text: String) {
+        watchdog?.cancel()
+        if (recorder.isRecording) recorder.cancel()
+        state.recording = false
+        val app = PrinyalApp.of(this)
+        lifecycleScope.launch {
+            val id = java.util.UUID.randomUUID().toString()
+            if (app.repository.createTypedNote(id, text)) {
+                UploadWorker.enqueue(this@CaptureActivity, id)
+                Haptics.receipt(this@CaptureActivity)
+            }
+            finishAndRemoveTask()
+        }
     }
 
     /** Свайп вниз — отмена. Другого способа передумать не нужно. */

@@ -966,6 +966,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         else -> Route.Feed
     }
 
+    // --- ввод с клавиатуры (1.6) ---
+
+    /** Запись, набранная руками: в базу и в тот же разбор, что и речь. */
+    fun createTyped(text: String) = viewModelScope.launch {
+        val id = java.util.UUID.randomUUID().toString()
+        if (app.repository.createTypedNote(id, text)) {
+            ai.prinim.prinyal.capture.UploadWorker.enqueue(app, id)
+        }
+    }
+
     // --- доска «Дела» (1.5, спека «Неделя доской») ---
 
     enum class BoardColumn { TODAY, TOMORROW, THIS_WEEK, LATER }
@@ -982,6 +992,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val at: Long?,
         val repeat: ai.prinim.prinyal.domain.Repeat?,
         val overdue: Boolean,
+        /**
+         * Список (1.6) — одна карточка на запись, а не по карточке на продукт:
+         * «купить: сыр, кефир, творог» переносится и закрывается целиком.
+         * У обычного пункта здесь он один.
+         */
+        val groupIds: List<String> = listOf(item.id),
+        val title: String = item.text,
     )
 
     data class Board(
@@ -1034,10 +1051,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val cols = BoardColumn.entries.associateWith { mutableListOf<BoardCard>() }
 
         rows.forEach { row ->
-            row.items.filter { ItemState.of(it.state) in alive }.forEach { item ->
+            val aliveItems = row.items.filter { ItemState.of(it.state) in alive }
+            // Список — одной карточкой (1.6). Пункты нужны, чтобы вычёркивать
+            // продукты в карточке записи; на доске список — одно дело.
+            val isList = row.note.noteKind == ai.prinim.prinyal.data.NoteKind.LIST.wire &&
+                aliveItems.size > 1
+            val units: List<Pair<ai.prinim.prinyal.data.ItemEntity, List<String>>> =
+                if (isList) listOf(aliveItems.first() to aliveItems.map { it.id })
+                else aliveItems.map { it to listOf(it.id) }
+            units.forEach { (item, group) ->
                 val repeat = ai.prinim.prinyal.domain.Repeat.of(item.repeatRule)
                 val kind = ai.prinim.prinyal.data.DueKind.of(item.dueKind)
-                val at = item.dueAt ?: pending[item.id]
+                val at = if (isList) {
+                    aliveItems.mapNotNull { it.dueAt ?: pending[it.id] }.minOrNull()
+                } else {
+                    item.dueAt ?: pending[item.id]
+                }
                 val card = BoardCard(
                     item = item,
                     note = row.note,
@@ -1045,6 +1074,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     at = at,
                     repeat = repeat,
                     overdue = at != null && at < startToday,
+                    groupIds = group,
+                    title = if (isList) listTitle(row.note, aliveItems) else item.text,
                 )
                 when {
                     // Повтор стоит в «Сегодня» каждый день (Д-54).
@@ -1119,19 +1150,57 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         itemId: String,
         fromInbox: Boolean,
         label: String,
-        apply: suspend () -> Unit,
+        apply: suspend (String) -> Unit,
     ) = viewModelScope.launch {
-        val was = scheduleOf(itemId) ?: return@launch
-        apply()
+        // Список едет целиком (1.6): у карточки-списка за одним id стоят все
+        // живые пункты записи. Снимок и откат — по каждому.
+        val ids = groupOf(itemId)
+        val was = ids.mapNotNull { id -> scheduleOf(id)?.let { id to it } }
+        if (was.isEmpty()) return@launch
+        ids.forEach { apply(it) }
         if (fromInbox && !_boardHintDone.value) {
             app.settings.setBoardHintDone()
             _boardHintDone.value = true
         }
         app.analytics.log(
             "board_move",
-            mapOf("item" to itemId, "from_inbox" to fromInbox, "to" to label),
+            mapOf("item" to itemId, "group" to ids.size, "from_inbox" to fromInbox, "to" to label),
         )
-        _undo.value = UndoEvent(UndoMessage.Moved(label)) { restore(itemId, was) }
+        _undo.value = UndoEvent(UndoMessage.Moved(label)) {
+            was.forEach { (id, w) -> restore(id, w) }
+        }
+    }
+
+    /** Пункт списка тянет за собой соседей; обычный пункт — только себя. */
+    private suspend fun groupOf(itemId: String): List<String> {
+        val item = app.db.items().byId(itemId) ?: return listOf(itemId)
+        val note = app.db.notes().byId(item.noteId) ?: return listOf(itemId)
+        if (note.noteKind != ai.prinim.prinyal.data.NoteKind.LIST.wire) return listOf(itemId)
+        val alive = setOf(ItemState.PLANNED, ItemState.RETURNED, ItemState.SNOOZED)
+        return app.db.items().forNote(note.id)
+            .filter { ItemState.of(it.state) in alive }
+            .map { it.id }
+            .ifEmpty { listOf(itemId) }
+    }
+
+    /** «Сделано» и «не надо» на карточке-списке — на весь список. */
+    fun doneGroup(itemId: String) = viewModelScope.launch {
+        groupOf(itemId).forEach { app.repository.markDone(it) }
+    }
+    fun dismissGroup(itemId: String) = viewModelScope.launch {
+        groupOf(itemId).forEach { app.repository.dismissItem(it) }
+    }
+
+    /** Заголовок карточки-списка: слова до двоеточия или начало записи, и счёт. */
+    private fun listTitle(
+        note: ai.prinim.prinyal.data.NoteEntity,
+        items: List<ai.prinim.prinyal.data.ItemEntity>,
+    ): String {
+        val head = note.transcript.orEmpty()
+            .substringBefore(':').trim().trimEnd('.', ',', ' ')
+            .takeIf { it.isNotEmpty() && it.length <= 60 }
+            ?: note.transcript.orEmpty().take(60).trim()
+        return if (head.isEmpty()) items.joinToString(", ") { it.text } else "$head · ${items.size}"
     }
 
     /**
@@ -1153,8 +1222,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** Свайп вправо из стопки или из «Сегодня»: завтра утром (§5.1). */
     fun moveTomorrow(itemId: String, fromInbox: Boolean = false) = viewModelScope.launch {
         val at = boardInstant(1, Window.MORNING)
-        move(itemId, fromInbox, app.getString(R.string.board_moved_tomorrow)) {
-            app.repository.editItem(itemId, exactAt = at)
+        move(itemId, fromInbox, app.getString(R.string.board_moved_tomorrow)) { id ->
+            app.repository.editItem(id, exactAt = at)
         }
     }
 
@@ -1181,29 +1250,29 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             if (window != null) ai.prinim.prinyal.domain.Phrases.windowLabel(app, window)
             else ai.prinim.prinyal.domain.Phrases.windowLabel(app, Window.EVENING),
         )
-        move(itemId, fromInbox, label) { app.repository.editItem(itemId, exactAt = at) }
+        move(itemId, fromInbox, label) { id -> app.repository.editItem(id, exactAt = at) }
     }
 
     /** В «Неделю» — первый её день: послезавтра утром. Точный день — через шторку. */
     fun moveThisWeek(itemId: String, fromInbox: Boolean = false) = viewModelScope.launch {
         val at = boardInstant(2, Window.MORNING)
-        move(itemId, fromInbox, app.getString(R.string.board_moved_after_tomorrow)) {
-            app.repository.editItem(itemId, exactAt = at)
+        move(itemId, fromInbox, app.getString(R.string.board_moved_after_tomorrow)) { id ->
+            app.repository.editItem(id, exactAt = at)
         }
     }
 
     /** В «Позже» — первый день за окном недели: через семь дней утром. */
     fun moveNextWeek(itemId: String) = viewModelScope.launch {
         val at = boardInstant(ai.prinim.prinyal.domain.FeedView.CLOSED_WINDOW_DAYS, Window.MORNING)
-        move(itemId, false, app.getString(R.string.board_moved_next_week)) {
-            app.repository.editItem(itemId, exactAt = at)
+        move(itemId, false, app.getString(R.string.board_moved_next_week)) { id ->
+            app.repository.editItem(id, exactAt = at)
         }
     }
 
     /** Свайп влево из «Сегодня»: снять срок — обратно во «Входящие». */
     fun moveToInbox(itemId: String) = move(
         itemId, false, app.getString(R.string.board_moved_inbox),
-    ) { app.repository.editItem(itemId, clearSchedule = true) }
+    ) { id -> app.repository.editItem(id, clearSchedule = true) }
 
     /** Итог недели в «Днях» (§7): самое старое живое дело и разложено из входящих за 7 дней. */
     private val _recapMetrics = MutableStateFlow<Pair<Int, Int>?>(null)

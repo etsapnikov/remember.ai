@@ -1,45 +1,45 @@
 {
  "id": "question-drops",
- "prompt_version": "11",
- "recorded_at": "2026-08-25T21:40:45",
- "took_s": 2.7,
+ "prompt_version": "12",
+ "recorded_at": "2026-09-18T23:38:43",
+ "took_s": 1988.6,
  "finish_reason": "stop",
  "usage": {
-  "prompt_tokens": 2768,
-  "completion_tokens": 57,
-  "total_tokens": 2825,
+  "prompt_tokens": 3262,
+  "completion_tokens": 140,
+  "total_tokens": 3402,
   "prompt_tokens_details": {
-   "cached_tokens": 2688
+   "cached_tokens": 3072
   },
-  "prompt_cache_hit_tokens": 2688,
-  "prompt_cache_miss_tokens": 80
+  "prompt_cache_hit_tokens": 3072,
+  "prompt_cache_miss_tokens": 190
  },
  "response": {
-  "id": "0e4aaf0a-8cee-42a3-b852-8bef3d809cd1",
+  "id": "257c6d3a-9b84-4d4d-bdb6-77c26c45709a",
   "object": "chat.completion",
-  "created": 1787683243,
-  "model": "deepseek-v4-flash",
+  "created": 1789763923,
+  "model": "deepseek-flash",
   "choices": [
    {
     "index": 0,
     "message": {
      "role": "assistant",
-     "content": "{\n  \"note_kind\": \"question\",\n  \"topic\": \"Здоровье\",\n  \"entities\": [],\n  \"person_facts\": [],\n  \"body_md\": null,\n  \"second\": null,\n  \"items\": [],\n  \"links\": []\n}"
+     "content": "{\"note_kind\": \"question\", \"topic\": \"Здоровье\", \"entities\": [], \"person_facts\": [], \"body_md\": null, \"second\": null, \"items\": [{\"type\": \"thought\", \"text\": \"Детские капли в нос можно капать не дольше пяти дней — это правда?\", \"who\": null, \"due_kind\": \"none\", \"window\": null, \"exact_local\": null, \"confidence\": \"high\", \"raw_span\": \"мне сказали что детские капли в нос можно капать не дольше пяти дней это правда вообще\"}]}"
     },
     "logprobs": null,
     "finish_reason": "stop"
    }
   ],
   "usage": {
-   "prompt_tokens": 2768,
-   "completion_tokens": 57,
-   "total_tokens": 2825,
+   "prompt_tokens": 3262,
+   "completion_tokens": 140,
+   "total_tokens": 3402,
    "prompt_tokens_details": {
-    "cached_tokens": 2688
+    "cached_tokens": 3072
    },
-   "prompt_cache_hit_tokens": 2688,
-   "prompt_cache_miss_tokens": 80
+   "prompt_cache_hit_tokens": 3072,
+   "prompt_cache_miss_tokens": 190
   },
-  "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
+  "system_fingerprint": "aeb56401ca74e127821c4f9126dcb669"
  }
 }
